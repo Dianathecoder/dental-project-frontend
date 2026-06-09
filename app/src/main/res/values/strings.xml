@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Dynalar_frontend_v1</string>
+    <string name="label_email">Email</string>
+    <string name="label_password">Contrasenya</string>
+    <string name="placeholder_value">Value</string>
+    <string name="btn_forgot_password">Forgot password</string>
+    <string name="btn_login">Login</string>
+    <string name="btn_sign_in_google">Sign in with Google</string>
+    <string name="label_nom">Nom</string>
+    <string name="label_cognom">Cognom</string>
+    <string name="label_dni_nie">DNI/NIE</string>
+    <string name="label_telefono">Telefono</string>
+    <string name="back_button_desc">Back</string>
+    <string name="profile_image_desc">Profile Image</string>
+</resources>
