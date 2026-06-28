@@ -46,24 +46,29 @@ class UserViewModel: ViewModel() {
         }
     }
 
-    fun login(mail: String, pass: String){
+    // Modifica la función login dentro de tu UserViewModel para que quede así:
+    fun login(mail: String, pass: String) {
         viewModelScope.launch {
             _userUiState.value = LoginUiState.Loading
             try {
-                val userToLogin = User(email = mail, password = pass)
-                val loggedUser = userRepository.login(userToLogin)
+                val authResponse = userRepository.login(mail, pass)
 
-                //sessionManager.saveUser(loggedUser)
-                if (loggedUser != null) {
+                if (authResponse != null) {
+                    val loggedUser = User(
+                        id = authResponse.userId,
+                        name = authResponse.name,
+                        surname = authResponse.surname,
+                        email = mail,
+                        role = authResponse.role
+                    )
                     _userUiState.value = LoginUiState.Success(loggedUser)
                 } else {
                     _userUiState.value = LoginUiState.Error("Credenciales incorrectas")
                 }
-
-                _userUiState.value = LoginUiState.Success(loggedUser)
             } catch (e: Exception) {
                 e.printStackTrace()
-                _userUiState.value = LoginUiState.Error("Error al iniciar sesión")
+                // 👈 En vez de poner un texto fijo, le pasamos el mensaje exacto del error ocurrido
+                _userUiState.value = LoginUiState.Error(e.message ?: "Error al iniciar sesión")
             }
         }
     }

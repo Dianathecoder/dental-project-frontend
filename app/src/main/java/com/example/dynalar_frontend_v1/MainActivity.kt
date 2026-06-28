@@ -33,6 +33,7 @@ import com.example.dynalar_frontend_v1.ui.screens.PatientProfilePage
 import com.example.dynalar_frontend_v1.ui.screens.ProtocolPage
 import com.example.dynalar_frontend_v1.ui.screens.PatientFileUploadPage
 import com.example.dynalar_frontend_v1.ui.screens.PatientFilesPage
+import com.example.dynalar_frontend_v1.ui.screens.RegisterPage
 import com.example.dynalar_frontend_v1.ui.screens.ResumeDateScreen
 import com.example.dynalar_frontend_v1.ui.screens.ScheduleAppointmentPage
 import com.example.dynalar_frontend_v1.ui.screens.StockPage
@@ -76,6 +77,10 @@ class MainActivity : ComponentActivity() {
                             onLoginSuccess = {
                                 navController.navigate(AppRoutes.Home.route)
                             },
+                            onRegisterClick = {
+                                navController.navigate(AppRoutes.Register.route)
+                            }
+
                         )
                     }
 
@@ -97,9 +102,12 @@ class MainActivity : ComponentActivity() {
                             onNavigateBoxMaterials = {
                                 navController.navigate(AppRoutes.MaterialsHome.route)
                             },
-                            // !!! AÑADE ESTA LÍNEA AQUÍ PARA CONECTAR LA NAVEGACIÓN !!!
                             onNavigateToPatientProfile = { patientId ->
-                                navController.navigate(AppRoutes.PatientProfile.createRoute(patientId))
+                                navController.navigate(
+                                    AppRoutes.PatientProfile.createRoute(
+                                        patientId
+                                    )
+                                )
                             }
                         )
                     }
@@ -111,9 +119,11 @@ class MainActivity : ComponentActivity() {
                                 navController.navigate(AppRoutes.BoxPage.route)
                             },
                             onNavigateStock = {
-                                navController.navigate(AppRoutes.ListStock.route)                            },
+                                navController.navigate(AppRoutes.ListStock.route)
+                            },
                             onNavigateProtocolo = {
-                                navController.navigate(AppRoutes.ListProtocols.route)                            }
+                                navController.navigate(AppRoutes.ListProtocols.route)
+                            }
                         )
                     }
 
@@ -123,7 +133,11 @@ class MainActivity : ComponentActivity() {
                             onNavigateAddPatient = { navController.navigate(AppRoutes.CreateProfile.route) },
                             onNavigateBack = { navController.popBackStack() },
                             onNavigateToPatientProfile = { patientId ->
-                                navController.navigate(AppRoutes.PatientProfile.createRoute(patientId))
+                                navController.navigate(
+                                    AppRoutes.PatientProfile.createRoute(
+                                        patientId
+                                    )
+                                )
                             }
                         )
                     }
@@ -156,7 +170,9 @@ class MainActivity : ComponentActivity() {
                                 onDeleteClick = { id ->
                                     patientViewModel.deletePatient(id) {
                                         navController.navigate(AppRoutes.ListPatients.route) {
-                                            popUpTo(AppRoutes.PatientProfile.route) { inclusive = true }
+                                            popUpTo(AppRoutes.PatientProfile.route) {
+                                                inclusive = true
+                                            }
                                             launchSingleTop = true
                                         }
                                     }
@@ -232,7 +248,10 @@ class MainActivity : ComponentActivity() {
                                 onNavigateBack = { navController.popBackStack() }
                             )
                         } else {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 CircularProgressIndicator()
                             }
                         }
@@ -241,11 +260,11 @@ class MainActivity : ComponentActivity() {
                     // PANTALLA DE STOCK
                     composable(
                         route = AppRoutes.ListStock.route
-                    ){
-                        ListStockPage(materialViewModel,
-                            onBack ={ navController.popBackStack() },
-                            onMaterialClick = {
-                                    material ->
+                    ) {
+                        ListStockPage(
+                            materialViewModel,
+                            onBack = { navController.popBackStack() },
+                            onMaterialClick = { material ->
                                 material.id?.let { id ->
                                     navController.navigate(AppRoutes.StockPage.createRoute(id))
                                 }
@@ -271,11 +290,10 @@ class MainActivity : ComponentActivity() {
                     composable(
                         route = AppRoutes.ListProtocols.route
                     ) {
-                        ListProtocolsPage (
+                        ListProtocolsPage(
                             viewModel = treatmentViewModel,
-                            onBack ={ navController.popBackStack() },
-                            onTreatmentClick = {
-                                treatment ->
+                            onBack = { navController.popBackStack() },
+                            onTreatmentClick = { treatment ->
                                 treatment.id?.let { id ->
                                     navController.navigate(AppRoutes.ProtocolPage.createRoute(id))
                                 }
@@ -316,7 +334,12 @@ class MainActivity : ComponentActivity() {
                             viewModel = odontogramViewModel,
                             onBack = { navController.popBackStack() },
                             onToothSelected = { toothNumber ->
-                                navController.navigate(AppRoutes.ToothPage.createRoute(odontogramId, toothNumber))
+                                navController.navigate(
+                                    AppRoutes.ToothPage.createRoute(
+                                        odontogramId,
+                                        toothNumber
+                                    )
+                                )
                             }
                         )
                     }
@@ -367,13 +390,17 @@ class MainActivity : ComponentActivity() {
                             patientViewModel = patientViewModel,
                             onBackClick = { navController.popBackStack() },
                             onNavigateUpload = {
-                                navController.navigate(AppRoutes.PatientFileUpload.createRoute(patientId))
+                                navController.navigate(
+                                    AppRoutes.PatientFileUpload.createRoute(
+                                        patientId
+                                    )
+                                )
                             }
                         )
                     }
 
-                    composable(AppRoutes.BoxPage.route){
-                        BoxPage(onBack = {navController.popBackStack()}, viewModel = boxViewModel)
+                    composable(AppRoutes.BoxPage.route) {
+                        BoxPage(onBack = { navController.popBackStack() }, viewModel = boxViewModel)
                     }
 
                     composable(
@@ -397,7 +424,13 @@ class MainActivity : ComponentActivity() {
                             viewModel = appointmentViewModel,
                             onNavigateBack = { navController.popBackStack() },
                             onAddAppointmentClick = { date, hour, minute ->
-                                navController.navigate(AppRoutes.ScheduleAppointment.createRoute(date.toString(), hour, minute))
+                                navController.navigate(
+                                    AppRoutes.ScheduleAppointment.createRoute(
+                                        date.toString(),
+                                        hour,
+                                        minute
+                                    )
+                                )
                             },
                             onAppointmentClick = { appointment ->
                                 appointmentViewModel.selectedAppointment = appointment
@@ -413,7 +446,11 @@ class MainActivity : ComponentActivity() {
                                 appointment = appointment,
                                 onBackClick = { navController.popBackStack() },
                                 onPatientClick = { patientId ->
-                                    navController.navigate(AppRoutes.PatientProfile.createRoute(patientId))
+                                    navController.navigate(
+                                        AppRoutes.PatientProfile.createRoute(
+                                            patientId
+                                        )
+                                    )
                                 }
                             )
                         } else {
@@ -475,6 +512,17 @@ class MainActivity : ComponentActivity() {
                                 CircularProgressIndicator()
                             }
                         }
+
+                    }
+                    composable(AppRoutes.Register.route) {
+                        RegisterPage(
+                            onRegisterSuccess = {
+                                navController.navigate(AppRoutes.Home.route) {
+                                    popUpTo(AppRoutes.Login.route) { inclusive = true }
+                                }
+                            },
+                            onNavigateToLogin = { navController.popBackStack() }
+                        )
                     }
                 }
             }
