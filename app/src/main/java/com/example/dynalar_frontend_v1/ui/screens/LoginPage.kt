@@ -57,7 +57,8 @@ fun LoginPage(
     viewModel: UserViewModel = viewModel(),
     onLoginSuccess: () -> Unit = {},
     onForgotPasswordClick: () -> Unit = {},
-    onGoogleSignInClick: () -> Unit = {}
+    onGoogleSignInClick: () -> Unit = {},
+    onRegisterClick: () -> Unit = {}
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var email by remember { mutableStateOf("") }
@@ -200,7 +201,17 @@ fun LoginPage(
             }
         }
 
-        Spacer(modifier = Modifier.height(80.dp))
+        Spacer(modifier = Modifier.height(8.dp))
+        TextButton(onClick = onRegisterClick) {
+            Text(
+                text = "No tens compte? Registra't",
+                color = Color(0xFF537895),
+                fontSize = 14.sp
+            )
+        }
+
+
+        Spacer(modifier = Modifier.height(48.dp))
 
         OutlinedButton(
             onClick = onGoogleSignInClick,
@@ -218,7 +229,6 @@ fun LoginPage(
                         .background(Color.Transparent),
                     contentAlignment = Alignment.Center
                 ) {
-                   
                     Text("G", fontWeight = FontWeight.Bold, color = Color.Blue)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
