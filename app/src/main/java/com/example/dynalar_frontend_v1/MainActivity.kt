@@ -41,6 +41,7 @@ import com.example.dynalar_frontend_v1.ui.screens.ToothPage
 import com.example.dynalar_frontend_v1.ui.screens.UserProfilePage
 import com.example.dynalar_frontend_v1.ui.theme.Dynalar_frontend_v1Theme
 import com.example.dynalar_frontend_v1.viewmodel.AppointmentViewModel
+import com.example.dynalar_frontend_v1.viewmodel.AuthViewModel
 import com.example.dynalar_frontend_v1.viewmodel.BoxViewModel
 import com.example.dynalar_frontend_v1.viewmodel.MaterialViewModel
 import com.example.dynalar_frontend_v1.viewmodel.OdontogramViewModel
@@ -65,6 +66,7 @@ class MainActivity : ComponentActivity() {
                 val odontogramViewModel: OdontogramViewModel = viewModel()
                 val boxViewModel: BoxViewModel = viewModel()
                 val userViewModel: UserViewModel = viewModel()
+                val authViewModel: AuthViewModel = viewModel()
 
                 NavHost(
                     navController = navController,
@@ -74,13 +76,24 @@ class MainActivity : ComponentActivity() {
                     composable(AppRoutes.Login.route) {
                         LoginPage(
                             viewModel = userViewModel,
-                            onLoginSuccess = {
-                                navController.navigate(AppRoutes.Home.route)
+                            authViewModel = authViewModel,
+
+                            onAdminLoginSuccess = {
+                                navController.navigate(AppRoutes.Home.route) {
+                                    popUpTo(AppRoutes.Login.route) { inclusive = true }
+                                }
                             },
+
+                            onPatientLoginSuccess = {
+                                // ¡AQUÍ ESTÁ EL CAMBIO! Ahora también va al Home
+                                navController.navigate(AppRoutes.Home.route) {
+                                    popUpTo(AppRoutes.Login.route) { inclusive = true }
+                                }
+                            },
+
                             onRegisterClick = {
                                 navController.navigate(AppRoutes.Register.route)
                             }
-
                         )
                     }
 

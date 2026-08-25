@@ -95,5 +95,20 @@ dependencies {
     implementation("com.kizitonwose.calendar:view:2.5.0")
 // o si usas Compose:
     implementation("com.kizitonwose.calendar:compose:2.5.0")
-// o la versión más reciente
+
+// Google Sign-In con CredentialManager (API moderna, GoogleSignInClient está deprecated)
+    implementation("androidx.credentials:credentials:1.3.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+
+    // Retrofit (si no lo tienes)
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+
+    // ViewModel + Coroutines
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
+
+    // DataStore (guardar JWT)
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 }

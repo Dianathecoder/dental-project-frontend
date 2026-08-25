@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.model.LoginUiState
+import com.example.dynalar_frontend_v1.model.auth.AuthResponse
 import com.example.dynalar_frontend_v1.model.user.User
 import com.example.dynalar_frontend_v1.ui.components.BannerGenericProfile
 import com.example.dynalar_frontend_v1.ui.components.ErrorScreenWithImage
@@ -43,11 +44,12 @@ fun UserProfilePage(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            val user = (uiState as? LoginUiState.Success)?.user
+            val authData = (uiState as? LoginUiState.Success)?.authResponse
 
             BannerGenericProfile(
-                userName = user?.name ?: "",
-                userRole = if (user?.role?.uppercase() == "ADMIN") "Administrador" else "Usuari",
+                userName = authData?.name ?: "",
+                // 2. Extraemos el rol desde authData
+                userRole = if (authData?.role?.toString()?.uppercase() == "ADMIN") "Administrador" else "Usuari",
                 profileImage = {
                     Image(
                         painter = painterResource(R.drawable.avatar_color),
@@ -63,17 +65,19 @@ fun UserProfilePage(
             when (uiState) {
                 is LoginUiState.Loading, LoginUiState.Idle -> {
                     Box(
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-
                         CircularProgressIndicator(color = ButtonPrimary)
                     }
                 }
 
                 is LoginUiState.Success -> {
                     Box(modifier = Modifier.weight(1f)) {
-                        UserInfoContent(user = user!!)
+                        // 3. Pasamos el authData en lugar del modelo User
+                        UserInfoContent(authData = authData!!)
                     }
                 }
 
@@ -89,8 +93,9 @@ fun UserProfilePage(
     }
 }
 
+//CÓDIGO NUEVO CORRECTO
 @Composable
-fun UserInfoContent(user: User) {
+fun UserInfoContent(authData: AuthResponse) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
@@ -98,10 +103,9 @@ fun UserInfoContent(user: User) {
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 24.dp)
     ) {
-        InputField(label = "Nom", value = user.name ?: "")
-        InputField(label = "Cognoms", value = user.surname ?: "")
-        InputField(label = "DNI", value = "")
-        InputField(label = "Correu electrònic", value = user.email ?: "")
+        InputField(label = "Nom", value = authData.name ?: "")
+        InputField(label = "Cognoms", value = authData.surname ?: "")
+        InputField(label = "Correu electrònic", value = authData.email ?: "")
     }
 }
 

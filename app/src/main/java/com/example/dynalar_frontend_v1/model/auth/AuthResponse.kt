@@ -5,5 +5,6 @@ data class AuthResponse(
     val userId: Long,
     val name: String,
     val surname: String?,
-    val role: String,
-    val avatarUrl: String?)
+    val email: String?,
+    val role: String
+)
