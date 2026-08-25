@@ -1,6 +1,6 @@
 package com.example.dynalar_frontend_v1.model.auth
 
-class RegisterRequest(
+data class RegisterRequest(
     val name: String,
     val surname: String,
     val email: String,

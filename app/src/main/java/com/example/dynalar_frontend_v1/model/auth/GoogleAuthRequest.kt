@@ -1,5 +1,5 @@
 package com.example.dynalar_frontend_v1.model.auth
 
-class GoogleAuthRequest (
+data class GoogleAuthRequest(
     val idToken: String
 )
