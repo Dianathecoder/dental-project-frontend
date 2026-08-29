@@ -1,6 +1,8 @@
 package com.example.dynalar_frontend_v1.interfaces
 
 
+import androidx.annotation.StringRes
+
 sealed interface InterfaceGlobal<out T> {
 
     object Idle : InterfaceGlobal<Nothing>
@@ -9,7 +11,10 @@ sealed interface InterfaceGlobal<out T> {
 
     data class Success<T>(val data: T) : InterfaceGlobal<T>
 
-    data class Error(val message: String? = null) : InterfaceGlobal<Nothing>
+    data class Error(
+        val message: String? = null,
+        @StringRes val stringResId: Int? = null
+    ) : InterfaceGlobal<Nothing>
 
     object NotFound : InterfaceGlobal<Nothing>
 }

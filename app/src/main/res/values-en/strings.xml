@@ -291,6 +291,33 @@
     <string name="error_connection_title">Connection Error</string>
     <string name="error_connection_desc">Check your internet connection and try again.</string>
     <string name="language_label">Language</string>
+    <!-- Strings para los botones de opción -->
+    <string name="option_none">None</string>
+    <string name="option_specify">Specify</string>
+
+    <!-- Strings para las opciones de sexo -->
+    <string name="sex_male">Male</string>
+    <string name="sex_female">Female</string>
+    <string name="sex_other">Other</string>
+
+    <!-- Login Validation Errors -->
+    <string name="error_fields_empty">Please fill in all fields.</string>
+    <string name="error_invalid_email_format">Invalid email address format.</string>
+    <string name="error_password_length">Password must be at least 6 characters long.</string>
+
+    <!-- Server / Auth Errors -->
+    <string name="error_invalid_credentials">Invalid email address or password.</string>
+    <string name="error_server_connection">Could not connect to the server. Is it online?</string>
+    <string name="error_user_not_found">User not found.</string>
+    <string name="error_generic">An unexpected error occurred.</string>
+    <!-- Change Avatar -->
+    <string name="change_avatar_title">Change Avatar</string>
+    <string name="change_avatar_subtitle">Select your new avatar</string>
+    <string name="change_avatar_description">Choose the image that best represents you on your profile.</string>
+    <string name="btn_save_changes">Save changes</string>
+
+    <!-- Patient Alerts -->
+    <string name="patient_allergy_prefix">Allergy: %1$s</string>
 
     <string name="web_client_id">237928135138-2u59spbose7pkmnb8cm7oeqhci23akpk.apps.googleusercontent.com</string>
 </resources>

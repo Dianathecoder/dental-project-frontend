@@ -58,5 +58,6 @@ sealed class AppRoutes(val route: String) {
             return "scheduleAppointment/$date/$hour/$minute"
         }
     }
+    object ChangeAvatar : AppRoutes("changeAvatarPage")
     object Register : AppRoutes("registerPage")
 }

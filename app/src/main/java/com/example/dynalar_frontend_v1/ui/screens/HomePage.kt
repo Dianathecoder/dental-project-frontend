@@ -56,6 +56,7 @@ import java.util.Locale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.ui.layout.ContentScale
 import com.example.dynalar_frontend_v1.utils.changeLanguage
 @Composable
 fun HomePage(
@@ -424,8 +425,16 @@ fun NextAppointmentCardItem(
     }
 }
 @Composable
-fun Header_HomePage(onNavigateProfileUserProfile: () -> Unit,
-                    onLanguageChange: (String) -> Unit) {
+fun Header_HomePage(
+    onNavigateProfileUserProfile: () -> Unit,
+    onLanguageChange: (String) -> Unit
+) {
+
+    val context = LocalContext.current
+    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+
+    val currentAvatarResId = prefs.getInt("user_avatar", R.drawable.avatar_color)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -433,7 +442,7 @@ fun Header_HomePage(onNavigateProfileUserProfile: () -> Unit,
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Avatar + nombre (igual que antes)
+        // Avatar + nombre
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -442,11 +451,14 @@ fun Header_HomePage(onNavigateProfileUserProfile: () -> Unit,
                 .padding(end = 8.dp, top = 4.dp, bottom = 4.dp)
         ) {
             Image(
-                painter = painterResource(id = R.drawable.avatar_color),
+                painter = painterResource(id = currentAvatarResId),
                 contentDescription = stringResource(id = R.string.home_my_profile),
-                modifier = Modifier.size(45.dp).clip(CircleShape)
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
             )
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
                     text = stringResource(id = R.string.home_my_profile),
@@ -467,7 +479,7 @@ fun Header_HomePage(onNavigateProfileUserProfile: () -> Unit,
             )
         }
 
-        // Selector de idioma (igual que en Login)
+        // Selector de idioma
         HomeLanguageSelector(onLanguageChange = onLanguageChange)
     }
 }
@@ -475,7 +487,7 @@ fun Header_HomePage(onNavigateProfileUserProfile: () -> Unit,
 fun HomeLanguageSelector(onLanguageChange: (String) -> Unit) {
     val context = LocalContext.current
 
-    // Leemos el idioma guardado, por defecto "ca"
+
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
     var currentLangCode by remember {
         mutableStateOf(prefs.getString("language", "ca") ?: "ca")
@@ -506,8 +518,8 @@ fun HomeLanguageSelector(onLanguageChange: (String) -> Unit) {
                     },
                     onClick = {
                         expanded = false
-                        currentLangCode = code // Actualizamos el estado local
-                        onLanguageChange(code) // Llamamos a tu callback de MainActivity
+                        currentLangCode = code
+                        onLanguageChange(code)
                     }
                 )
             }
@@ -520,6 +532,10 @@ fun CalendarHomepage(viewModel: AppointmentViewModel, onDayClick: (LocalDate) ->
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
     val today = LocalDate.now()
     var showDatePicker by remember { mutableStateOf(false) }
+
+    // 1. Obtener el Locale actual del sistema dinámicamente
+    val configuration = LocalConfiguration.current
+    val currentLocale = configuration.locales[0]
 
     LaunchedEffect(currentMonth) {
         val startOfMonth = currentMonth.atDay(1).atStartOfDay()
@@ -541,13 +557,22 @@ fun CalendarHomepage(viewModel: AppointmentViewModel, onDayClick: (LocalDate) ->
         } else emptyMap()
     }
 
-    val weekDays = listOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+    val weekDays = listOf(
+        DayOfWeek.MONDAY,
+        DayOfWeek.TUESDAY,
+        DayOfWeek.WEDNESDAY,
+        DayOfWeek.THURSDAY,
+        DayOfWeek.FRIDAY,
+        DayOfWeek.SATURDAY,
+        DayOfWeek.SUNDAY
+    )
     val firstDay = currentMonth.atDay(1)
     val offset = firstDay.dayOfWeek.value - 1
     val daysInMonth = currentMonth.lengthOfMonth()
-    val monthName = currentMonth.month.getDisplayName(TextStyle.FULL, Locale("ca")).replaceFirstChar { it.uppercase() }
-    val headerText = "$monthName ${currentMonth.year}"
 
+
+    val formatter = java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)
+    val headerText = currentMonth.format(formatter).replaceFirstChar { it.uppercase() }
     var offsetX by remember { mutableFloatStateOf(0f) }
 
     Surface(
@@ -572,10 +597,17 @@ fun CalendarHomepage(viewModel: AppointmentViewModel, onDayClick: (LocalDate) ->
         shadowElevation = 2.dp
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { showDatePicker = true }.padding(horizontal = 6.dp, vertical = 4.dp)
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { showDatePicker = true }
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
                 ) {
                     Text(headerText, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2C2C2C))
                     Spacer(modifier = Modifier.width(4.dp))
@@ -594,7 +626,14 @@ fun CalendarHomepage(viewModel: AppointmentViewModel, onDayClick: (LocalDate) ->
             Spacer(modifier = Modifier.height(10.dp))
             Row(modifier = Modifier.fillMaxWidth()) {
                 weekDays.forEach { day ->
-                    Text(day.getDisplayName(TextStyle.NARROW, Locale.ENGLISH), modifier = Modifier.weight(1f).height(38.dp), textAlign = TextAlign.Center, fontSize = 13.sp, color = Color(0xFF888888))
+                    Text(
+
+                        text = day.getDisplayName(TextStyle.NARROW, Locale.ENGLISH),
+                        modifier = Modifier.weight(1f).height(38.dp),
+                        textAlign = TextAlign.Center,
+                        fontSize = 13.sp,
+                        color = Color(0xFF888888)
+                    )
                 }
             }
 
@@ -658,7 +697,6 @@ fun CalendarHomepage(viewModel: AppointmentViewModel, onDayClick: (LocalDate) ->
         ) { DatePicker(state = datePickerState) }
     }
 }
-
 @Composable
 fun Buttons_HomePage(modifier: Modifier = Modifier, onNavigateListPacient: () -> Unit, onNavigateBoxCalendar: () -> Unit, onNavigateBoxMaterials: () -> Unit) {
     Column(

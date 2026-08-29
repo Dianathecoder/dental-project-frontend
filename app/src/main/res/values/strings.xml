@@ -288,9 +288,33 @@
     <string name="error_page_title">Pàgina d\'Error</string>
     <string name="error_image_desc">Error</string>
     <string name="language_label">Idioma</string>
+    <!-- Strings para los botones de opción -->
+    <string name="option_none">Cap</string>
+    <string name="option_specify">Especificar</string>
 
-    <!-- Error de Conexión -->
-    <!-- Error de Connexió -->
+    <!-- Strings para las opciones de sexo -->
+    <string name="sex_male">Home</string>
+    <string name="sex_female">Dona</string>
+    <string name="sex_other">Altre</string>
+    <!-- Errors de Validació de Login -->
+    <string name="error_fields_empty">Si us plau, omple tots els camps.</string>
+    <string name="error_invalid_email_format">El format del correu electrònic no és vàlid.</string>
+    <string name="error_password_length">El contrasenya ha de tenir almenys 6 caràcters.</string>
+
+    <!-- Errors de Servidor / Autenticació -->
+    <string name="error_invalid_credentials">El correu electrònic o la contrasenya són incorrectes.</string>
+    <string name="error_user_not_found">Usuari no trobat.</string>
+    <string name="error_server_connection">No s\'ha pogut connectar amb el servidor. Està encès?</string>
+    <string name="error_generic">S\'ha produït un error inesperat.</string>
+    <!-- Alertes de Pacients -->
+    <string name="patient_allergy_prefix">Al·lèrgia: %1$s</string>
+
     <string name="error_connection_title">Error de connexió</string>
+
+    <!-- Canviar Avatar -->
+    <string name="change_avatar_title">Canviar Avatar</string>
+    <string name="change_avatar_subtitle">Selecciona el teu nou avatar</string>
+    <string name="change_avatar_description">Tria la imatge que millor et representi al teu perfil.</string>
+    <string name="btn_save_changes">Desar canvis</string>
     <string name="error_connection_desc">Comprova la teva connexió a internet i torna-ho a provar.</string>
 </resources>

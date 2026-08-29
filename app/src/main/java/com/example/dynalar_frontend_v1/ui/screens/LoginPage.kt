@@ -2,7 +2,6 @@ package com.example.dynalar_frontend_v1.ui.screens
 
 import android.content.Context
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -17,7 +16,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Visibility
@@ -48,7 +49,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -58,16 +58,13 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.os.LocaleListCompat
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
-import com.example.dynalar_frontend_v1.model.LoginUiState
 import com.example.dynalar_frontend_v1.model.auth.AuthResponse
-import com.example.dynalar_frontend_v1.utils.changeLanguage
 import com.example.dynalar_frontend_v1.viewmodel.AuthViewModel
 import com.example.dynalar_frontend_v1.viewmodel.UserViewModel
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
@@ -80,16 +77,13 @@ fun LoginPage(
     viewModel: UserViewModel = viewModel(),
     authViewModel: AuthViewModel = viewModel(),
     onLoginSuccess: () -> Unit = {},
-    onAdminLoginSuccess: () -> Unit = {},   // <--- NUEVO
+    onAdminLoginSuccess: () -> Unit = {},
     onPatientLoginSuccess: () -> Unit = {},
     onForgotPasswordClick: () -> Unit = {},
     onRegisterClick: () -> Unit = {},
-    onLanguageChange: (String) -> Unit = {} // ← NUEVO
-
-
+    onLanguageChange: (String) -> Unit = {}
 ) {
     val webClientId = stringResource(R.string.web_client_id)
-
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -105,8 +99,9 @@ fun LoginPage(
     val authUiState by authViewModel.authUiState.collectAsState()
 
     LaunchedEffect(loginUiState) {
-        if (loginUiState is LoginUiState.Success) {
-            val role = (loginUiState as LoginUiState.Success).authResponse.role.toString()
+        if (loginUiState is InterfaceGlobal.Success) {
+            val response = (loginUiState as InterfaceGlobal.Success<AuthResponse>).data
+            val role = response.role.toString()
             if (role == "ADMIN" || role == "DENTIST") {
                 onAdminLoginSuccess()
             } else {
@@ -170,7 +165,8 @@ fun LoginPage(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 32.dp, end = 16.dp),
-            horizontalArrangement = Arrangement.End
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.Top
         ) {
             LoginLanguageSelector(onLanguageChange = onLanguageChange)
         }
@@ -178,10 +174,13 @@ fun LoginPage(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 48.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = Alignment.CenterHorizontally
+
         ) {
+            Spacer(modifier = Modifier.height(100.dp))
+
             Image(
                 painter = painterResource(id = R.drawable.general_logo),
                 contentDescription = "Logo",
@@ -190,10 +189,10 @@ fun LoginPage(
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            //Email
+            // Email
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = stringResource(id = R.string.login_email_label), // <-- CORREGIDO
+                    text = stringResource(id = R.string.login_email_label),
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color.DarkGray,
                     fontWeight = FontWeight.Medium
@@ -214,10 +213,10 @@ fun LoginPage(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-
+            // Password
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = stringResource(id = R.string.login_password_label), // <-- CORREGIDO
+                    text = stringResource(id = R.string.login_password_label),
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color.DarkGray,
                     fontWeight = FontWeight.Medium
@@ -248,20 +247,30 @@ fun LoginPage(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Error login normal
-            if (loginUiState is LoginUiState.Error) {
+
+            if (loginUiState is InterfaceGlobal.Error) {
+                val errorState = loginUiState as InterfaceGlobal.Error
+                val errorText = when {
+                    errorState.stringResId != null -> stringResource(id = errorState.stringResId)
+                    else -> errorState.message ?: stringResource(id = R.string.error_generic)
+                }
                 Text(
-                    text = (loginUiState as LoginUiState.Error).message,
+                    text = errorText,
                     color = Color.Red,
                     fontSize = 14.sp,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
 
-            // Error Google
+
             if (authUiState is InterfaceGlobal.Error) {
+                val authErrorState = authUiState as InterfaceGlobal.Error
+                val authErrorText = when {
+                    authErrorState.stringResId != null -> stringResource(id = authErrorState.stringResId)
+                    else -> authErrorState.message ?: stringResource(id = R.string.error_msg_format, "Google")
+                }
                 Text(
-                    text = (authUiState as InterfaceGlobal.Error).message ?: stringResource(id = R.string.error_msg_format, "Google"),
+                    text = authErrorText,
                     color = Color.Red,
                     fontSize = 14.sp,
                     modifier = Modifier.fillMaxWidth()
@@ -276,14 +285,33 @@ fun LoginPage(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            //Botón Login
+            // Botón Login con validaciones locales
             Button(
-                onClick = { viewModel.login(email, password) },
+                onClick = {
+                    val trimmedEmail = email.trim()
+                    val trimmedPassword = password.trim()
+                    val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[a-zA-Z]{2,}$".toRegex()
+
+                    when {
+                        trimmedEmail.isEmpty() || trimmedPassword.isEmpty() -> {
+                            viewModel.setLocalError(R.string.error_fields_empty)
+                        }
+                        !trimmedEmail.matches(emailRegex) -> {
+                            viewModel.setLocalError(R.string.error_invalid_email_format)
+                        }
+                        trimmedPassword.length < 6 -> {
+                            viewModel.setLocalError(R.string.error_password_length)
+                        }
+                        else -> {
+                            viewModel.login(trimmedEmail, trimmedPassword)
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF537895))
             ) {
-                if (loginUiState is LoginUiState.Loading) {
+                if (loginUiState is InterfaceGlobal.Loading) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                 } else {
                     Text(text = stringResource(id = R.string.login_button), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
@@ -298,7 +326,7 @@ fun LoginPage(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            //Separador
+            // Separador
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 HorizontalDivider(modifier = Modifier.weight(1f), color = Color.LightGray)
                 Text(stringResource(id = R.string.login_or_continue), fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(horizontal = 8.dp))
@@ -307,7 +335,7 @@ fun LoginPage(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            //Botón Google
+            // Botón Google
             OutlinedButton(
                 onClick = {
                     scope.launch {
@@ -315,7 +343,6 @@ fun LoginPage(
                             context = context,
                             webClientId = webClientId,
                             onSuccess = { idToken ->
-
                                 viewModel.googleLogin(idToken)
                             },
                             onError = { error -> Toast.makeText(context, error, Toast.LENGTH_SHORT).show() }
@@ -334,7 +361,7 @@ fun LoginPage(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
-                    // Logo Google con colores reales
+
                     Text("G", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF4285F4))
                     Text("o", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFFEA4335))
                     Text("o", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFFFBBC05))
@@ -349,7 +376,7 @@ fun LoginPage(
                         color = Color(0xFF3C4043)
                     )
 
-                    // Spinner mientras carga Google
+
                     if (authUiState is InterfaceGlobal.Loading) {
                         Spacer(modifier = Modifier.width(8.dp))
                         CircularProgressIndicator(
@@ -364,7 +391,7 @@ fun LoginPage(
     }
 }
 
-//Selector de Idioma Minimalista para el Login
+// Selector de Idioma Minimalista para el Login
 @Composable
 fun LoginLanguageSelector(onLanguageChange: (String) -> Unit = {}) {
     val context = LocalContext.current
@@ -398,7 +425,6 @@ fun LoginLanguageSelector(onLanguageChange: (String) -> Unit = {}) {
                         Text(
                             name,
                             fontWeight = FontWeight.Medium,
-
                             color = if (code == currentLangCode) Color(0xFF537895) else Color.Black
                         )
                     },
@@ -412,7 +438,8 @@ fun LoginLanguageSelector(onLanguageChange: (String) -> Unit = {}) {
         }
     }
 }
-//Diálogo de bienvenida Google
+
+// Diálogo de bienvenida Google
 @Composable
 private fun WelcomeGoogleDialog(name: String, onConfirm: () -> Unit) {
     AlertDialog(

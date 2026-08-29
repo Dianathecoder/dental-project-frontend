@@ -1,8 +1,10 @@
 package com.example.dynalar_frontend_v1.viewmodel
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.dynalar_frontend_v1.model.LoginUiState
+import com.example.dynalar_frontend_v1.R
+import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.auth.AuthResponse
 import com.example.dynalar_frontend_v1.network.RetrofitClient
 import com.example.dynalar_frontend_v1.repository.UserRepository
@@ -10,32 +12,36 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.net.ConnectException
+import java.net.UnknownHostException
 
 class UserViewModel : ViewModel() {
 
-    private val _userUiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
-    val userUiState: StateFlow<LoginUiState> = _userUiState.asStateFlow()
+    // CAMBIO CLAVE: Se usa InterfaceGlobal<AuthResponse> en lugar de LoginUiState
+    private val _userUiState = MutableStateFlow<InterfaceGlobal<AuthResponse>>(InterfaceGlobal.Idle)
+    val userUiState: StateFlow<InterfaceGlobal<AuthResponse>> = _userUiState.asStateFlow()
+
     private val userRepository = UserRepository()
 
     fun isLoggedIn(): Boolean {
-        return _userUiState.value is LoginUiState.Success
+        return _userUiState.value is InterfaceGlobal.Success
     }
 
     fun getAllUsers() {
         viewModelScope.launch {
-            _userUiState.value = LoginUiState.Loading
+            _userUiState.value = InterfaceGlobal.Loading
             try {
                 val users = userRepository.getAllUsers()
             } catch (e: Exception) {
                 e.printStackTrace()
-                _userUiState.value = LoginUiState.Error("Error al obtener usuarios")
+                _userUiState.value = InterfaceGlobal.Error(message = "Error al obtener usuarios")
             }
         }
     }
 
     fun getUserById(userId: Long) {
         viewModelScope.launch {
-            _userUiState.value = LoginUiState.Loading
+            _userUiState.value = InterfaceGlobal.Loading
             try {
                 val user = userRepository.getUserById(userId)
                 if (user != null) {
@@ -47,62 +53,66 @@ class UserViewModel : ViewModel() {
                         email = user.email ?: "",
                         role = user.role ?: "USER"
                     )
-                    _userUiState.value = LoginUiState.Success(mappedResponse)
+                    _userUiState.value = InterfaceGlobal.Success(mappedResponse)
                 } else {
-                    _userUiState.value = LoginUiState.Error("Usuario no encontrado")
+                    _userUiState.value = InterfaceGlobal.Error(stringResId = R.string.error_user_not_found)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                _userUiState.value = LoginUiState.Error("Error al cargar datos")
+                _userUiState.value = InterfaceGlobal.Error(stringResId = R.string.error_generic)
             }
         }
     }
+
     fun googleLogin(idToken: String) {
         viewModelScope.launch {
-            _userUiState.value = LoginUiState.Loading
+            _userUiState.value = InterfaceGlobal.Loading
             try {
-                // Supongamos que tu repositorio tiene una función googleLogin
                 val authResponse = userRepository.googleLogin(idToken)
 
                 if (authResponse != null && authResponse.token.isNotEmpty()) {
-
-                    // ¡ESTA ES LA LÍNEA CLAVE QUE FALTA AQUÍ!
                     RetrofitClient.saveAuthToken(authResponse.token)
-
-                    _userUiState.value = LoginUiState.Success(authResponse)
+                    _userUiState.value = InterfaceGlobal.Success(authResponse)
                 } else {
-                    _userUiState.value = LoginUiState.Error("Fallo en login de Google")
+                    _userUiState.value = InterfaceGlobal.Error(stringResId = R.string.error_invalid_credentials)
                 }
             } catch (e: Exception) {
-                _userUiState.value = LoginUiState.Error("Error: ${e.message}")
+                _userUiState.value = InterfaceGlobal.Error(message = e.message)
             }
         }
     }
-
 
     fun login(mail: String, pass: String) {
         viewModelScope.launch {
-            _userUiState.value = LoginUiState.Loading
+            _userUiState.value = InterfaceGlobal.Loading
             try {
                 val authResponse = userRepository.login(mail, pass)
 
-                // --- AÑADE ESTO PARA VERIFICAR ---
-                android.util.Log.d("SEGURIDAD_API", "Respuesta del Backend recibida. Token: ${authResponse?.token}")
-                // ---------------------------------
-
                 if (authResponse != null && authResponse.token.isNotEmpty()) {
                     RetrofitClient.saveAuthToken(authResponse.token)
-                    _userUiState.value = LoginUiState.Success(authResponse)
+                    _userUiState.value = InterfaceGlobal.Success(authResponse)
                 } else {
-                    _userUiState.value = LoginUiState.Error("Credenciales incorrectas")
+                    _userUiState.value = InterfaceGlobal.Error(stringResId = R.string.error_invalid_credentials)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                _userUiState.value = LoginUiState.Error(e.message ?: "Error al iniciar sesión")
+                when (e) {
+                    is ConnectException, is UnknownHostException -> {
+                        _userUiState.value = InterfaceGlobal.Error(stringResId = R.string.error_server_connection)
+                    }
+                    else -> {
+                        _userUiState.value = InterfaceGlobal.Error(stringResId = R.string.error_invalid_credentials)
+                    }
+                }
             }
         }
     }
+
+    fun setLocalError(@StringRes stringResId: Int) {
+        _userUiState.value = InterfaceGlobal.Error(stringResId = stringResId)
+    }
+
     fun setLoggedInUser(authResponse: AuthResponse) {
-        _userUiState.value = LoginUiState.Success(authResponse)
+        _userUiState.value = InterfaceGlobal.Success(authResponse)
     }
 }

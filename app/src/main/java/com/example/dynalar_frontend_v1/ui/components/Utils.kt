@@ -6,25 +6,36 @@ import com.example.dynalar_frontend_v1.model.CountryInfo
 import com.example.dynalar_frontend_v1.model.patient.Sex
 import java.util.Locale
 
-// Lista completa de imágenes disponibles
+
 val patientImages = listOf(
-    R.drawable.usuario1,  // Índice 0
-    R.drawable.usuario2,  // Índice 1
-    R.drawable.usuario3,  // Índice 2
-    R.drawable.usuario4,  // Índice 3
-    R.drawable.usuario5,  // Índice 4
-    R.drawable.usuario6,  // Índice 5
-    R.drawable.usuario7,  // Índice 6
-    R.drawable.usuario8,  // Índice 7
-    R.drawable.usuario9,  // Índice 8
-    R.drawable.usuario10, // Índice 9
-    R.drawable.usuario11, // Índice 10
-    R.drawable.usuario12, // Índice 11
-    R.drawable.usuario13, // Índice 12
-    R.drawable.usuario20 // Índice 13
+    R.drawable.usuario1,
+    R.drawable.usuario2,
+    R.drawable.usuario3,
+    R.drawable.usuario4,
+    R.drawable.usuario5,
+    R.drawable.usuario6,
+    R.drawable.usuario7,
+    R.drawable.usuario8,
+    R.drawable.usuario9,
+    R.drawable.usuario10,
+    R.drawable.usuario11,
+    R.drawable.usuario12,
+    R.drawable.usuario13,
+    R.drawable.usuario20
 )
 
-
+val doctorImages = listOf(
+    R.drawable.doctor1,
+    R.drawable.doctor2,
+    R.drawable.doctor3,
+    R.drawable.doctor4,
+    R.drawable.doctor5,
+    R.drawable.doctor6,
+    R.drawable.doctor7,
+    R.drawable.doctor8,
+    R.drawable.doctor9,
+    R.drawable.doctorincog
+)
 
 fun getPatientImage(patientId: Long?, sex: Sex?): Int {
     val id = patientId ?: 0L
@@ -38,8 +49,7 @@ fun getPatientImage(patientId: Long?, sex: Sex?): Int {
             )
             femaleOptions[(id % femaleOptions.size).toInt()]
         }
-
-        else -> {
+        Sex.MALE -> {
             val maleOptions = listOf(
                 R.drawable.usuario2, R.drawable.usuario3, R.drawable.usuario9,
                 R.drawable.usuario10, R.drawable.usuario12, R.drawable.usuario13,
@@ -47,9 +57,11 @@ fun getPatientImage(patientId: Long?, sex: Sex?): Int {
             )
             maleOptions[(id % maleOptions.size).toInt()]
         }
+        Sex.OTHER, null -> {
+            R.drawable.incog
+        }
     }
 }
-
 
 
 val countriesList = listOf(
