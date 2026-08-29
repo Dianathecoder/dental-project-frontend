@@ -1,5 +1,7 @@
 package com.example.dynalar_frontend_v1.ui.screens
 
+
+import PatientFilterDropdown
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -8,7 +10,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -37,8 +38,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -79,7 +83,8 @@ fun ListPatientsScreen(
     val uiState = viewModel.uiStatePatient
     val textFieldState = rememberTextFieldState()
     val listState = rememberLazyListState()
-
+    var selectedLetter by remember { mutableStateOf<Char?>(null) }
+    var sortAscending by remember { mutableStateOf(true) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var patientToDelete by remember { mutableStateOf<Long?>(null) }
 
@@ -91,8 +96,26 @@ fun ListPatientsScreen(
                 onNavigateBack = onNavigateBack
             )
 
+            Spacer(modifier = Modifier.height(8.dp))
+
             SearchPatientBar(textFieldState = textFieldState, viewModel = viewModel)
 
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End
+            ) {
+                PatientFilterDropdown(
+                    selectedLetter = selectedLetter,
+                    sortAscending = sortAscending,
+                    onLetterSelected = { selectedLetter = it },
+                    onSortChanged = { sortAscending = it }
+                )
+            }
             Spacer(modifier = Modifier.height(16.dp))
 
             when (uiState) {
@@ -106,12 +129,21 @@ fun ListPatientsScreen(
                 }
 
                 is InterfaceGlobal.Success -> {
-                    val filteredPatients = remember(uiState.data) {
+                    val filteredPatients = remember(uiState.data, selectedLetter, sortAscending) {
                         uiState.data
-                            .filter { !it.name.isNullOrBlank() || !it.lastName.isNullOrBlank() }
-                            .sortedBy { (it.name ?: it.lastName ?: "").uppercase() }
+                            .filter { patient -> !patient.name.isNullOrBlank() || !patient.lastName.isNullOrBlank() }
+                            .filter { patient ->
+                                selectedLetter == null ||
+                                        (patient.name ?: patient.lastName ?: "").firstOrNull()?.uppercaseChar() == selectedLetter
+                            }
+                            .let { list ->
+                                if (sortAscending) {
+                                    list.sortedBy { (it.name ?: it.lastName ?: "").uppercase() }
+                                } else {
+                                    list.sortedByDescending { (it.name ?: it.lastName ?: "").uppercase() }
+                                }
+                            }
                     }
-
                     // Si la lista está vacía, mostramos el nuevo Empty State
                     if (filteredPatients.isEmpty()) {
                         EmptyPatientsState(modifier = Modifier.weight(1f).fillMaxWidth())
@@ -213,11 +245,25 @@ fun ListPatientsScreen(
             }
         }
     }
+    if (showDeleteDialog && patientToDelete != null) {
+        DeleteConfirmationDialog(
+            onConfirm = {
+                patientToDelete?.let { id ->
+                    viewModel.deletePatient(id)
+                }
+                showDeleteDialog = false
+                patientToDelete = null
+            },
+            onDismiss = {
+                showDeleteDialog = false
+                patientToDelete = null
+            }
+        )
+    }
 }
 
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchPatientBar(
     textFieldState: TextFieldState,
@@ -234,29 +280,35 @@ fun SearchPatientBar(
         }
     }
 
-    SearchBar(
-        inputField = {
-            SearchBarDefaults.InputField(
-                query = query,
-                onQueryChange = { text ->
-                    textFieldState.edit { replace(0, length, text) }
-                },
-                onSearch = {},
-                expanded = false,
-                onExpandedChange = {},
-                placeholder = { Text(stringResource(R.string.patients_search_placeholder)) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }
-            )
+    OutlinedTextField(
+        value = query,
+        onValueChange = { text ->
+            textFieldState.edit { replace(0, length, text) }
         },
-        expanded = false,
-        onExpandedChange = {},
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        content = {}
+        leadingIcon = {
+
+            Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray)
+        },
+        placeholder = {
+            Text(
+                stringResource(R.string.patients_search_placeholder),
+                color = Color.Gray.copy(alpha = 0.8f)
+            )
+        },
+        shape = RoundedCornerShape(30.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedContainerColor = Color.Transparent,
+            focusedContainerColor = Color.Transparent,
+            unfocusedBorderColor = Color(0xFFA0B2C0),
+            focusedBorderColor = ButtonPrimary,
+            cursorColor = ButtonPrimary
+        ),
+        singleLine = true
     )
 }
-
 @Composable
 fun AddPatientButton(
     onClick: () -> Unit,

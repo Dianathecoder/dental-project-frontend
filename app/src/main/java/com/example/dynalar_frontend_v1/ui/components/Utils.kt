@@ -25,6 +25,7 @@ val patientImages = listOf(
 )
 
 
+
 fun getPatientImage(patientId: Long?, sex: Sex?): Int {
     val id = patientId ?: 0L
 
