@@ -6,14 +6,14 @@ plugins {
 android {
     namespace = "com.example.dynalar_frontend_v1"
     compileSdk {
-        version = release(36)
+        version = release(37)
     }
 
 
     defaultConfig {
         applicationId = "com.example.dynalar_frontend_v1"
         minSdk = 27
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -78,6 +78,9 @@ dependencies {
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.compose.ui.unit)
     implementation(libs.androidx.appcompat)
+    implementation(libs.runtime)
+    implementation(libs.foundation.layout)
+    implementation(libs.foundation)
 
     //implementation(libs.runtime)
 
