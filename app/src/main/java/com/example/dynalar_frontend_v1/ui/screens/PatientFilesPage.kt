@@ -5,8 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import androidx.compose.foundation.background
+import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,12 +43,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
+import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.model.patient.Document
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.components.DeleteConfirmationDialog
@@ -55,9 +60,6 @@ import com.example.dynalar_frontend_v1.ui.components.Navegate_Button
 import com.example.dynalar_frontend_v1.ui.components.SwipeToDeleteContainer
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.viewmodel.PatientViewModel
-import androidx.compose.ui.platform.LocalContext
-import android.widget.Toast
-import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.URL
@@ -80,11 +82,13 @@ fun PatientFilesPage(
     }
 
     val files = patientViewModel.selectedPatient?.documents.orEmpty()
+    val chooserTitle = stringResource(id = R.string.files_title)
+    val errorMsg = stringResource(id = R.string.files_unknown_type) // O un string de error específico
 
     Scaffold(
         topBar = {
             CustomTopBar(
-                title = "Arxius del pacient",
+                title = stringResource(id = R.string.files_title),
                 onNavigateBack = onBackClick
             )
         }
@@ -98,7 +102,7 @@ fun PatientFilesPage(
             Spacer(modifier = Modifier.height(8.dp))
 
             Navegate_Button(
-                text = "Pujar arxiu",
+                text = stringResource(id = R.string.files_upload_btn),
                 onClick = onNavigateUpload,
                 modifier = Modifier.align(Alignment.End),
                 icon = Icons.Default.UploadFile,
@@ -126,7 +130,7 @@ fun PatientFilesPage(
                         ) {
                             FileCard(
                                 file = file,
-                                onOpen = { openFileExternally(context, file) }
+                                onOpen = { openFileExternally(context, file, chooserTitle, errorMsg) }
                             )
                         }
                     }
@@ -137,9 +141,9 @@ fun PatientFilesPage(
 
     if (showDeleteDialog && fileToDelete != null) {
         DeleteConfirmationDialog(
-            message = "Estàs segur que vols eliminar aquest arxiu? Aquesta acció no es pot desfer.",
-            confirmText = "Sí, eliminar",
-            cancelText = "Cancel·lar",
+            message = stringResource(id = R.string.files_delete_confirm),
+            confirmText = stringResource(id = R.string.files_yes_delete),
+            cancelText = stringResource(id = R.string.btn_cancel),
             onConfirm = {
                 val documentId = fileToDelete?.id
                 if (documentId != null) {
@@ -171,13 +175,13 @@ private fun EmptyFilesState(modifier: Modifier = Modifier) {
             )
             Spacer(modifier = Modifier.height(10.dp))
             Text(
-                text = "Encara no hi ha arxius",
+                text = stringResource(id = R.string.files_empty_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "Afegeix imatges o documents per veure'ls aqui.",
+                text = stringResource(id = R.string.files_empty_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.Gray
             )
@@ -190,6 +194,8 @@ private fun FileCard(
     file: Document,
     onOpen: () -> Unit
 ) {
+    val defaultName = stringResource(id = R.string.files_file_default_name)
+    val defaultType = stringResource(id = R.string.files_unknown_type)
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -231,13 +237,13 @@ private fun FileCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = file.documentUrl?.substringAfterLast('/')?.ifBlank { "Arxiu" } ?: "Arxiu",
+                    text = file.documentUrl?.substringAfterLast('/')?.ifBlank { defaultName } ?: defaultName,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(3.dp))
                 Text(
-                    text = file.type ?: "Tipus desconegut",
+                    text = file.type ?: defaultType,
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
@@ -303,7 +309,7 @@ private fun isImageByExtension(url: String): Boolean {
         lowercase.endsWith(".webp")
 }
 
-private fun openFileExternally(context: Context, file: Document) {
+private fun openFileExternally(context: Context, file: Document, title: String, errorMsg: String) {
     val fileId = file.id ?: return
     val mimeType = resolveMimeType(file)
     val uri = "http://10.0.2.2:8080/document/$fileId".toUri()
@@ -314,13 +320,13 @@ private fun openFileExternally(context: Context, file: Document) {
     }
 
     try {
-        val chooser = Intent.createChooser(viewIntent, "Obrir arxiu amb")
+        val chooser = Intent.createChooser(viewIntent, title)
         chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(chooser)
     } catch (_: ActivityNotFoundException) {
         Toast.makeText(
             context,
-            "No s'ha trobat cap app per obrir aquest arxiu",
+            errorMsg,
             Toast.LENGTH_SHORT
         ).show()
     }
@@ -336,4 +342,3 @@ private fun resolveMimeType(file: Document): String {
         else -> "*/*"
     }
 }
-

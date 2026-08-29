@@ -45,6 +45,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.ui.components.Navegate_Button
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
@@ -62,14 +64,12 @@ fun PatientFileUploadPage(
     var selectedUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var showSourceDialog by remember { mutableStateOf(false) }
     var uploadError by remember { mutableStateOf<String?>(null) }
-
+    val defaultErrorMsg = stringResource(id = R.string.upload_error_default)
     val uploadState = patientViewModel.uploadState
 
     LaunchedEffect(uploadState) {
         if (uploadState is InterfaceGlobal.Error) {
-            uploadError = uploadState.message ?: "No s'han pogut pujar els arxius"
-        }
-    }
+            uploadError = uploadState.message ?: defaultErrorMsg    }}
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
@@ -90,7 +90,7 @@ fun PatientFileUploadPage(
     Scaffold(
         topBar = {
             CustomTopBar(
-                title = "Pujar arxiu",
+                title = stringResource(id = R.string.files_upload_btn),
                 onNavigateBack = onBackClick
             )
         }
@@ -132,7 +132,7 @@ fun PatientFileUploadPage(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Navegate_Button(
-                        text = "Pujar Arxiu",
+                        text = stringResource(id = R.string.files_upload_btn),
                         onClick = { showSourceDialog = true }
                     )
                 }
@@ -142,7 +142,7 @@ fun PatientFileUploadPage(
 
             if (selectedUris.isNotEmpty()) {
                 Text(
-                    text = "Seleccionats (${selectedUris.size})",
+                    text = stringResource(id = R.string.upload_selected_count, selectedUris.size),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -188,8 +188,8 @@ fun PatientFileUploadPage(
     if (showSourceDialog) {
         AlertDialog(
             onDismissRequest = { showSourceDialog = false },
-            title = { Text("Selecciona origen") },
-            text = { Text("Pots pujar des de galeria o documents.") },
+            title = { Text(stringResource(id = R.string.upload_source_title)) },
+            text = { Text(stringResource(id = R.string.upload_source_desc)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -199,7 +199,7 @@ fun PatientFileUploadPage(
                 ) {
                     Icon(imageVector = Icons.Default.PhotoLibrary, contentDescription = null)
                     Spacer(modifier = Modifier.size(8.dp))
-                    Text("Galeria")
+                    Text(stringResource(id = R.string.upload_gallery))
                 }
             },
             dismissButton = {
@@ -211,7 +211,7 @@ fun PatientFileUploadPage(
                 ) {
                     Icon(imageVector = Icons.Default.UploadFile, contentDescription = null)
                     Spacer(modifier = Modifier.size(8.dp))
-                    Text("Documents")
+                    Text(stringResource(id = R.string.upload_documents))
                 }
             }
         )

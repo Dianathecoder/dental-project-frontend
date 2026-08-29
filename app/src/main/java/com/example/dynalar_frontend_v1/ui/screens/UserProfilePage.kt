@@ -1,8 +1,11 @@
 package com.example.dynalar_frontend_v1.ui.screens
 
+import android.content.Context
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -10,9 +13,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.model.LoginUiState
@@ -25,7 +31,8 @@ import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.ui.theme.Dynalar_frontend_v1Theme
 import com.example.dynalar_frontend_v1.ui.theme.FondoPagina
 import com.example.dynalar_frontend_v1.viewmodel.UserViewModel
-
+import androidx.compose.ui.platform.LocalConfiguration
+import com.example.dynalar_frontend_v1.utils.changeLanguage
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,15 +52,17 @@ fun UserProfilePage(
                 .padding(paddingValues)
         ) {
             val authData = (uiState as? LoginUiState.Success)?.authResponse
-
             BannerGenericProfile(
                 userName = authData?.name ?: "",
-                // 2. Extraemos el rol desde authData
-                userRole = if (authData?.role?.toString()?.uppercase() == "ADMIN") "Administrador" else "Usuari",
+                userRole = if (authData?.role?.toString()?.uppercase() == "ADMIN") {
+                    stringResource(id = R.string.role_admin)
+                } else {
+                    stringResource(id = R.string.role_user)
+                },
                 profileImage = {
                     Image(
                         painter = painterResource(R.drawable.avatar_color),
-                        contentDescription = "Foto de perfil",
+                        contentDescription = stringResource(id = R.string.profile_picture_desc),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
@@ -76,13 +85,13 @@ fun UserProfilePage(
 
                 is LoginUiState.Success -> {
                     Box(modifier = Modifier.weight(1f)) {
-                        // 3. Pasamos el authData en lugar del modelo User
+
                         UserInfoContent(authData = authData!!)
                     }
                 }
 
                 is LoginUiState.Error -> {
-                    val message = (uiState as LoginUiState.Error).message ?: "No s'ha pogut carregar el perfil"
+                    val message = (uiState as LoginUiState.Error).message
                     ErrorScreenWithImage(
                         message = message,
                         modifier = Modifier.weight(1f)
@@ -103,11 +112,15 @@ fun UserInfoContent(authData: AuthResponse) {
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 24.dp)
     ) {
-        InputField(label = "Nom", value = authData.name ?: "")
-        InputField(label = "Cognoms", value = authData.surname ?: "")
-        InputField(label = "Correu electrònic", value = authData.email ?: "")
+        InputField(label = stringResource(id = R.string.user_name_label), value = authData.name ?: "")
+        InputField(label = stringResource(id = R.string.user_surname_label), value = authData.surname ?: "")
+        InputField(label = stringResource(id = R.string.user_email_label), value = authData.email ?: "")
+
+        Spacer(modifier = Modifier.height(8.dp))
+
     }
 }
+
 
 @Preview(showBackground = true, backgroundColor = 0xFFF7F6F4)
 @Composable

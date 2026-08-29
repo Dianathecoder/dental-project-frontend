@@ -9,15 +9,16 @@ android {
         version = release(36)
     }
 
+
     defaultConfig {
         applicationId = "com.example.dynalar_frontend_v1"
         minSdk = 27
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+
 
     buildTypes {
         release {
@@ -76,6 +77,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.geometry)
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.compose.ui.unit)
+    implementation(libs.androidx.appcompat)
 
     //implementation(libs.runtime)
 
@@ -111,4 +113,5 @@ dependencies {
 
     // DataStore (guardar JWT)
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.appcompat:appcompat:1.7.0")
 }

@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -33,10 +34,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.Treatment
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
@@ -56,7 +59,9 @@ fun ListProtocolsPage(
 
     val uiState = viewModel.uiStateTreatment
 
-    Scaffold { paddingValues ->
+    Scaffold(
+        containerColor = Color(0xFFF8F9FB) // Mismo fondo que en Materiales y Boxes
+    ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
 
             CustomTopBar(
@@ -68,36 +73,42 @@ fun ListProtocolsPage(
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 when (uiState) {
                     is InterfaceGlobal.Idle -> { }
-                    is InterfaceGlobal.Loading -> { 
-                        CircularProgressIndicator(color = ButtonPrimary) 
+                    is InterfaceGlobal.Loading -> {
+                        CircularProgressIndicator(color = ButtonPrimary)
                     }
                     is InterfaceGlobal.Success -> {
-                        val groupedProtocols = uiState.data
-                            .filter { !it.name.isNullOrBlank() }
-                            .groupBy { it.name!!.first().uppercaseChar() }
+                        val validProtocols = uiState.data.filter { !it.name.isNullOrBlank() }
 
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 24.dp)
-                        ) {
-                            groupedProtocols.forEach { (initial, protocolList) ->
-                                item { CharacterHeaderProtocol(initial) }
+                        if (validProtocols.isEmpty()) {
+                            // Mostrar icono si la lista está vacía
+                            EmptyProtocolsState(modifier = Modifier.fillMaxSize())
+                        } else {
+                            val groupedProtocols = validProtocols.groupBy { it.name!!.first().uppercaseChar() }
 
-                                items(protocolList, key = { it.id ?: 0L }) { treatment ->
-                                    TreatmentItem(
-                                        treatment = treatment,
-                                        onClick = { onTreatmentClick(treatment) }
-                                    )
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(bottom = 24.dp)
+                            ) {
+                                groupedProtocols.forEach { (initial, protocolList) ->
+                                    item { CharacterHeaderProtocol(initial) }
+
+                                    items(protocolList, key = { it.id ?: 0L }) { treatment ->
+                                        TreatmentItem(
+                                            treatment = treatment,
+                                            onClick = { onTreatmentClick(treatment) }
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                     is InterfaceGlobal.NotFound -> {
-                        Text(text = "No s'han trobat protocolos.")
+                        // Mostrar icono si el estado es NotFound
+                        EmptyProtocolsState(modifier = Modifier.fillMaxSize())
                     }
                     is InterfaceGlobal.Error -> {
                         Text(
-                            text = "Error: ${uiState.message}",
+                            text = stringResource(id = R.string.error_msg_format, uiState.message ?: ""),
                             color = MaterialTheme.colorScheme.error
                         )
                     }
@@ -107,12 +118,35 @@ fun ListProtocolsPage(
     }
 }
 
+// Nuevo componente para el estado vacío (Igual que en Stock y Box)
+@Composable
+private fun EmptyProtocolsState(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Assignment,
+            contentDescription = null,
+            modifier = Modifier.size(72.dp),
+            tint = Color(0xFFA0B2C0) // Color gris azulado
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = stringResource(id = R.string.protocols_not_found), // Usamos tu recurso de string
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Normal,
+            color = Color.Gray
+        )
+    }
+}
+
 @Composable
 fun CharacterHeaderProtocol(initial: Char) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = Color(0xFFF4F6F9),
-        tonalElevation = 1.dp
+        color = Color.Transparent // Transparente para que se vea el fondo gris del Scaffold
     ) {
         Text(
             text = initial.toString(),
@@ -136,7 +170,8 @@ fun TreatmentItem(treatment: Treatment, onClick: () -> Unit) {
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 1.dp
-        )
+        ),
+        shape = RoundedCornerShape(12.dp) // Esquinas un poco más suaves
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -161,9 +196,10 @@ fun TreatmentItem(treatment: Treatment, onClick: () -> Unit) {
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = treatment.name ?: "Sin nombre",
+                    text = treatment.name ?: stringResource(id = R.string.protocol_unspecified_name),
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF2C3E50)
                 )
             }
         }

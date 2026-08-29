@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,7 +38,7 @@ import com.example.dynalar_frontend_v1.model.odontogram.ToothSymbol
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.components.SwipeToDeleteContainer
 import com.example.dynalar_frontend_v1.viewmodel.OdontogramViewModel
-import kotlinx.coroutines.launch
+import com.example.dynalar_frontend_v1.R
 
 enum class OdontogramState {
     FULL, VERTICAL, QUADRANT
@@ -91,10 +92,10 @@ fun OdontogramPage(
     val filteredEntries = entries.sortedBy { it.tooth?.number }
 
     when (selectedQuadrant) {
-        1 -> quadrantName = "Superior Dret"
-        2 -> quadrantName = "Superior Esquerra"
-        3 -> quadrantName = "Inferior Dret"
-        4 -> quadrantName = "Inferior Esquerra"
+        1 -> quadrantName = stringResource(R.string.odontogram_quadrant_1)
+        2 -> quadrantName = stringResource(R.string.odontogram_quadrant_2)
+        3 -> quadrantName = stringResource(R.string.odontogram_quadrant_3)
+        4 -> quadrantName = stringResource(R.string.odontogram_quadrant_4)
     }
 
     if (showEntries) {
@@ -132,9 +133,9 @@ fun OdontogramPage(
     ) {
 
         val dynamicTitle = when (currentState) {
-            OdontogramState.FULL     -> "Odontograma"
-            OdontogramState.VERTICAL -> "Odontograma"
-            OdontogramState.QUADRANT -> "Quadrant $quadrantName"
+            OdontogramState.FULL     -> stringResource(R.string.odontogram_title)
+            OdontogramState.VERTICAL -> stringResource(R.string.odontogram_title)
+            OdontogramState.QUADRANT -> stringResource(R.string.odontogram_quadrant_dynamic, quadrantName)
         }
 
         CustomTopBar(
@@ -171,8 +172,7 @@ fun OdontogramPage(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(onClick = { viewModel.getOdontogramById(odontogramId) }) {
-                            Text("Reintentar")
-                        }
+                            Text(stringResource(R.string.btn_retry))                        }
                     }
                 }
                 is OdontogramUiState.Success -> {
@@ -229,14 +229,12 @@ fun OdontogramPage(
                     onClick = { currentState = OdontogramState.VERTICAL },
                     modifier = Modifier.padding(bottom = 16.dp)
                 ) {
-                    Text("Ver Verticalment")
-                }
+                    Text(stringResource(R.string.odontogram_view_vertical))                }
                 Button(
                     onClick = { showEntries = true },
                     modifier = Modifier.padding(bottom = 16.dp)
                 ) {
-                    Text("Ver Registres")
-                }
+                    Text(stringResource(R.string.odontogram_see_entries))                }
             }
         }
 
@@ -250,14 +248,12 @@ fun OdontogramPage(
                     onClick = { currentState = OdontogramState.FULL },
                     modifier = Modifier.padding(bottom = 16.dp)
                 ) {
-                    Text("Ver complet")
-                }
+                    Text(stringResource(R.string.odontogram_view_full))                }
                 Button(
                     onClick = { showEntries = true },
                     modifier = Modifier.padding(bottom = 16.dp)
                 ) {
-                    Text("Ver Registres")
-                }
+                    Text(stringResource(R.string.odontogram_see_entries))                }
             }
         }
     }
@@ -289,7 +285,7 @@ fun OdontogramEntries(
             .padding(bottom = 32.dp)
     ) {
         Text(
-            text = "Registres",
+            text = stringResource(R.string.odontogram_records_title),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 16.dp)
@@ -297,7 +293,7 @@ fun OdontogramEntries(
 
         if (entries.isEmpty()) {
             Text(
-                text = "No hi ha registres guardats",
+                text = stringResource(R.string.odontogram_no_entries),
                 color = Color.Gray,
                 modifier = Modifier
                     .padding(vertical = 16.dp)
@@ -334,23 +330,19 @@ fun DeleteConfirmationDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(text = "Confirmació d'esborrat", fontWeight = FontWeight.Bold)
-        },
+            Text(text = stringResource(R.string.dialog_confirm_delete_title), fontWeight = FontWeight.Bold)        },
         text = {
-            Text("Segur que vols esborrar aquest registre?")
-        },
+            Text(stringResource(R.string.odontogram_delete_entry_msg))        },
         confirmButton = {
             Button(
                 onClick = onConfirm,
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
             ) {
-                Text("Esborrar", color = Color.White)
-            }
+                Text(stringResource(R.string.btn_delete), color = Color.White)            }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel·lar")
-            }
+                Text(stringResource(R.string.btn_cancel))            }
         }
     )
 }
@@ -394,8 +386,7 @@ fun EntryItem(entry: OdontogramEntry) {
         Column(modifier = Modifier.weight(1f)) {
 
             Text(
-                text = entry.dentalProcess?.name ?: "Prùces: ${entry.dentalProcess?.name}}",
-                fontWeight = FontWeight.SemiBold,
+                text = entry.dentalProcess?.name ?: stringResource(R.string.odontogram_unknown_process),                fontWeight = FontWeight.SemiBold,
                 fontSize = 13.sp
             )
             Text(
@@ -413,8 +404,8 @@ fun EntryItem(entry: OdontogramEntry) {
             ) {
                 Text(
                     text = when (entry.processStatus) {
-                        ProcessStatus.FET -> "Fet"
-                        ProcessStatus.PER_FER -> "Per fer"
+                        ProcessStatus.FET -> stringResource(R.string.odontogram_status_done)
+                        ProcessStatus.PER_FER -> stringResource(R.string.odontogram_status_pending)
                         else -> ""
                     },
                     color = Color.White,
@@ -448,7 +439,7 @@ fun OdontogramVerticalView(
                 .padding(vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Superior Dret", fontSize = 14.sp, color = Color.DarkGray, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.odontogram_quadrant_2), fontSize = 14.sp, color = Color.DarkGray, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(12.dp))
             QuadrantTeethBlock(
                 permanentTeeth = getTeethForQuadrant(1),
@@ -471,7 +462,7 @@ fun OdontogramVerticalView(
                 .padding(vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Superior Esquerra", fontSize = 14.sp, color = Color.DarkGray, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.odontogram_quadrant_2), fontSize = 14.sp, color = Color.DarkGray, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(12.dp))
             QuadrantTeethBlock(
                 permanentTeeth = getTeethForQuadrant(2),
@@ -493,7 +484,7 @@ fun OdontogramVerticalView(
                 .padding(vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Inferior Dret", fontSize = 14.sp, color = Color.DarkGray, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.odontogram_quadrant_4), fontSize = 14.sp, color = Color.DarkGray, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(12.dp))
             QuadrantTeethBlock(
                 permanentTeeth = getTeethForQuadrant(4),
@@ -516,7 +507,7 @@ fun OdontogramVerticalView(
                 .padding(vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Inferior Esquerra", fontSize = 14.sp, color = Color.DarkGray, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.odontogram_quadrant_3), fontSize = 14.sp, color = Color.DarkGray, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(12.dp))
             QuadrantTeethBlock(
                 permanentTeeth = getTeethForQuadrant(3),
@@ -565,7 +556,7 @@ fun OdontogramGeneralView(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text("Superior Dret", fontSize = 10.sp, color = Color.DarkGray, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.odontogram_quadrant_1), fontSize = 10.sp, color = Color.DarkGray, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(4.dp))
                 QuadrantTeethBlock(
                     permanentTeeth = getTeethForQuadrant(1),
@@ -585,7 +576,7 @@ fun OdontogramGeneralView(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text("Superior Esquerra", fontSize = 10.sp, color = Color.DarkGray, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.odontogram_quadrant_2), fontSize = 10.sp, color = Color.DarkGray, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(4.dp))
                 QuadrantTeethBlock(
                     permanentTeeth = getTeethForQuadrant(2),
@@ -621,8 +612,7 @@ fun OdontogramGeneralView(
                     onClick = { onQuadrantClick(4) }
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("Inferior Dret", fontSize = 10.sp, color = Color.DarkGray, fontWeight = FontWeight.SemiBold)
-            }
+                Text(stringResource(R.string.odontogram_quadrant_4), fontSize = 10.sp, color = Color.DarkGray, fontWeight = FontWeight.SemiBold)            }
 
             Column(
                 modifier = Modifier
@@ -641,8 +631,7 @@ fun OdontogramGeneralView(
                     onClick = { onQuadrantClick(3) }
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("Inferior Esquerra", fontSize = 10.sp, color = Color.DarkGray, fontWeight = FontWeight.SemiBold)
-            }
+                Text(stringResource(R.string.odontogram_quadrant_3), fontSize = 10.sp, color = Color.DarkGray, fontWeight = FontWeight.SemiBold)            }
         }
     }
 }

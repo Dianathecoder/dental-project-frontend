@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,13 +16,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.Material
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
+import com.example.dynalar_frontend_v1.ui.components.Navegate_Button
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.viewmodel.MaterialViewModel
 
@@ -42,49 +44,68 @@ fun ListStockPage(
     val uiState = viewModel.materialsState
 
     Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddDialog = true },
-                containerColor = ButtonPrimary,
-                contentColor = Color.White
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Afegir Material")
-            }
-        }
+        // Añadimos el fondo gris claro para igualar el estilo de BoxPage
+        containerColor = Color(0xFFF8F9FB)
     ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+        ) {
             CustomTopBar(
-                title = "Estoc de Materials",
+                title = stringResource(R.string.stock_title),
                 onNavigateBack = onBack,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
+
+            // Botón superior derecho (Add Material)
+            Navegate_Button(
+                text = stringResource(id = R.string.stock_add_btn),
+                onClick = { showAddDialog = true },
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .padding(end = 22.dp),
+                height = 40.dp,
+                cornerRadius = 24.dp,
+                fillMaxWidth = false
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 when (uiState) {
                     is InterfaceGlobal.Idle -> { }
                     is InterfaceGlobal.Loading -> CircularProgressIndicator(color = ButtonPrimary)
                     is InterfaceGlobal.Success -> {
-                        val groupedMaterials = uiState.data
-                            .filter { it.name.isNotBlank() }
-                            .groupBy { it.name.first().uppercaseChar() }
+                        val validMaterials = uiState.data.filter { it.name.isNotBlank() }
 
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 80.dp) // Espacio para el FAB
-                        ) {
-                            groupedMaterials.forEach { (initial, materialList) ->
-                                item { CharacterHeaderStock(initial) }
-                                items(materialList, key = { it.id}) { material ->
-                                    MaterialStockItem(
-                                        material = material,
-                                        onClick = { onMaterialClick(material) }
-                                    )
+                        // Condición de diseño vacío
+                        if (validMaterials.isEmpty()) {
+                            EmptyMaterialsState(modifier = Modifier.fillMaxSize())
+                        } else {
+                            val groupedMaterials = validMaterials.groupBy { it.name.first().uppercaseChar() }
+
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(bottom = 80.dp)
+                            ) {
+                                groupedMaterials.forEach { (initial, materialList) ->
+                                    item { CharacterHeaderStock(initial) }
+                                    items(materialList, key = { it.id ?: it.hashCode() }) { material ->
+                                        MaterialStockItem(
+                                            material = material,
+                                            onClick = { onMaterialClick(material) }
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
-                    is InterfaceGlobal.Error -> Text("Error: ${uiState.message}", color = Color.Red)
-                    else -> {}
+                    is InterfaceGlobal.Error -> Text(
+                        text = stringResource(R.string.error_msg_format, uiState.message ?: ""),
+                        color = Color.Red
+                    )
+                    else -> {} // Evita el error 'when expression must be exhaustive'
                 }
             }
         }
@@ -94,9 +115,34 @@ fun ListStockPage(
         CreateMaterialDialog(
             onDismiss = { showAddDialog = false },
             onConfirm = { name, minStock ->
-                viewModel.createMaterial(Material(id = 0, name = name, minimumStock = minStock, availableStock = 0))
+                val minStockInt = minStock.toIntOrNull() ?: 0
+                viewModel.createMaterial(Material(id = 0, name = name, minimumStock = minStockInt, availableStock = 0))
                 showAddDialog = false
             }
+        )
+    }
+}
+
+// Componente para el estado sin materiales (Diseño de la figura)
+@Composable
+private fun EmptyMaterialsState(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Inventory2,
+            contentDescription = null,
+            modifier = Modifier.size(72.dp),
+            tint = Color(0xFFA0B2C0) // Color azul-grisáceo suave para coincidir con el de BoxPage
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "No configured materials",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Normal,
+            color = Color.Gray
         )
     }
 }
@@ -105,8 +151,7 @@ fun ListStockPage(
 fun CharacterHeaderStock(initial: Char) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = Color(0xFFF4F6F9),
-        tonalElevation = 1.dp
+        color = Color.Transparent
     ) {
         Text(
             text = initial.toString(),
@@ -126,7 +171,8 @@ fun MaterialStockItem(material: Material, onClick: () -> Unit) {
             .padding(horizontal = 22.dp, vertical = 8.dp)
             .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(12.dp)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -150,11 +196,11 @@ fun MaterialStockItem(material: Material, onClick: () -> Unit) {
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = material.name, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                Text(text = material.name, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2C3E50))
                 val isLowStock = material.availableStock <= material.minimumStock
                 Text(
-                    text = "Estoc: ${material.availableStock}",
-                    fontSize = 14.sp,
+                    text = stringResource(R.string.stock_available, material.availableStock),
+                    fontSize = 13.sp,
                     color = if (isLowStock) Color.Red else Color.Gray,
                     fontWeight = if (isLowStock) FontWeight.Bold else FontWeight.Normal
                 )
@@ -164,24 +210,46 @@ fun MaterialStockItem(material: Material, onClick: () -> Unit) {
 }
 
 @Composable
-fun CreateMaterialDialog(onDismiss: () -> Unit, onConfirm: (String, Int) -> Unit) {
+fun CreateMaterialDialog(onDismiss: () -> Unit, onConfirm: (String, String) -> Unit) {
     var name by remember { mutableStateOf("") }
     var minStock by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nou Material") },
+        title = { Text("Nou Material", fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nom") })
-                OutlinedTextField(value = minStock, onValueChange = { minStock = it }, label = { Text("Estoc Mínim") })
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(stringResource(R.string.material_name_label)) },
+                    shape = RoundedCornerShape(12.dp)
+                )
+                OutlinedTextField(
+                    value = minStock,
+                    onValueChange = { newValue ->
+                        if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                            minStock = newValue
+                        }
+                    },
+                    label = { Text(stringResource(R.string.material_min_stock_label)) },
+                    shape = RoundedCornerShape(12.dp)
+                )
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(name, minStock.toIntOrNull() ?: 0) }) { Text("Crear") }
+            Button(
+                onClick = { onConfirm(name, minStock) },
+                colors = ButtonDefaults.buttonColors(containerColor = ButtonPrimary)
+            ) {
+                Text(stringResource(R.string.btn_create), color = Color.White)
+            }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel·lar") }
-        }
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.btn_cancel), color = Color.Gray)
+            }
+        },
+        containerColor = Color.White
     )
 }

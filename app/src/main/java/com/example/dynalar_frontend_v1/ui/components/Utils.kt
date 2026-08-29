@@ -1,8 +1,10 @@
 package com.example.dynalar_frontend_v1.ui.components
 
+import androidx.compose.runtime.compositionLocalOf
 import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.model.CountryInfo
 import com.example.dynalar_frontend_v1.model.patient.Sex
+import java.util.Locale
 
 // Lista completa de imágenes disponibles
 val patientImages = listOf(
@@ -88,3 +90,6 @@ val countriesList = listOf(
     CountryInfo("+32", "Bèlgica", "🇧🇪"),
     CountryInfo("+31", "Països Baixos", "🇳🇱")
 ).sortedBy { if (it.code == "+34") "" else it.name }
+
+//Leanguage
+val LocalAppLocale = compositionLocalOf { Locale.getDefault() }

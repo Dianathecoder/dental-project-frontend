@@ -1,16 +1,296 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Dynalar_frontend_v1</string>
-    <string name="label_email">Email</string>
-    <string name="label_password">Contrasenya</string>
-    <string name="placeholder_value">Value</string>
-    <string name="btn_forgot_password">Forgot password</string>
-    <string name="btn_login">Login</string>
-    <string name="btn_sign_in_google">Sign in with Google</string>
-    <string name="label_nom">Nom</string>
-    <string name="label_cognom">Cognom</string>
-    <string name="label_dni_nie">DNI/NIE</string>
-    <string name="label_telefono">Telefono</string>
-    <string name="back_button_desc">Back</string>
-    <string name="profile_image_desc">Profile Image</string>
+    <!-- App & Generals -->
+    <string name="app_name">Dynalar</string>
+    <string name="btn_save">Desar</string>
+    <string name="btn_cancel">Cancel·lar</string>
+    <string name="btn_delete">Eliminar</string>
+    <string name="btn_create">Crear</string>
+    <string name="btn_accept">Acceptar</string>
+    <string name="dialog_notice">Avís</string>
+    <string name="dialog_ok">D\'acord</string>
+    <string name="dialog_confirm_delete_title">Confirmació d\'esborrat</string>
+
+    <!-- Autenticació -->
+    <string name="login_email_label">Email</string>
+    <string name="login_email_placeholder">correu@exemple.com</string>
+    <string name="login_password_label">Contrasenya</string>
+    <string name="login_password_placeholder">La teva contrasenya</string>
+    <string name="login_forgot_password">Has oblidat la contrasenya?</string>
+    <string name="login_button">Iniciar sessió</string>
+    <string name="login_register_prompt">No tens compte? Registra\'t</string>
+    <string name="login_or_continue">o continua amb</string>
+    <string name="login_continue_google">Continua amb Google</string>
+    <string name="login_welcome_title">Benvingut/da a Dynalar!</string>
+    <string name="login_welcome_greeting">Hola, %1$s!</string>
+    <string name="login_welcome_msg">Has iniciat sessió correctament amb Google.\nJa pots gestionar la teva clínica dental.</string>
+    <string name="login_start_btn">Començar</string>
+    <string name="register_title">Crear compte</string>
+    <string name="register_name">Nom</string>
+    <string name="register_surname">Cognoms</string>
+    <string name="register_confirm_password">Confirmar contrasenya</string>
+    <string name="register_btn">Registrar-se</string>
+    <string name="register_has_account">Ja tens compte? Inicia sessió</string>
+
+    <!-- Pantalla Principal (HomePage) -->
+    <string name="home_my_profile">El meu Perfil</string>
+    <string name="home_user">Usuari</string>
+    <string name="home_citas_today_one">Tens 1 cita avui</string>
+    <string name="home_citas_today_many">Tens %1$d cites avui</string>
+    <string name="home_next_appointment_title">Pròxima Cita</string>
+    <string name="home_no_more_appointments">No tens més cites avui</string>
+    <string name="home_completed_workday">Has completat la teva jornada.</string>
+    <string name="home_unspecified">Sense especificar</string>
+    <string name="home_unknown_patient">Desconegut</string>
+    <string name="home_view_summary">Veure resum</string>
+    <string name="home_view_profile">Veure perfil</string>
+    <string name="home_prev_month">Mes anterior</string>
+    <string name="home_next_month">Mes següent</string>
+    <string name="home_btn_patients">Pacients</string>
+    <string name="home_btn_agenda">Agenda</string>
+    <string name="home_btn_management">Gestió</string>
+
+    <!-- Pacients & Perfil -->
+    <string name="patients_topbar_title">Llista de Pacients</string>
+    <string name="patients_search_placeholder">Busca pacients…</string>
+    <string name="patients_no_alerts">Sense alertes mèdiques</string>
+    <string name="patients_empty_list">No hi ha pacients registrats.</string>
+    <string name="patients_delete_confirm">Estàs segur que vols eliminar aquest pacient?</string>
+    <string name="patient_profile_title">Perfil del Pacient</string>
+    <string name="patient_profile_treatments">Cites / Tractaments</string>
+    <string name="patient_profile_empty_treatments">No hi ha tractaments registrats</string>
+    <string name="patient_allergies_prefix">Al·lèrgies: %1$s</string>
+    <string name="patient_infectious_prefix">Infeccioses: %1$s</string>
+    <string name="files_unknown_type">Tipus desconegut</string>
+    <string name="files_file_default_name">Arxiu</string>
+    <string name="files_yes_delete">Yes, delete</string>
+    <!-- Formularis Pacient & Historial -->
+    <string name="patient_new_title">Nou Pacient</string>
+    <string name="patient_edit_title">Editar Pacient</string>
+    <string name="patient_medical_history_title">Historial Mèdic</string>
+    <string name="patient_tab_info">Informació</string>
+    <string name="patient_tab_history">Historial Clínic</string>
+    <string name="patient_sex">Sexe</string>
+    <string name="patient_sex_male">Home</string>
+    <string name="patient_sex_female">Dona</string>
+    <string name="patient_phone">Telèfon</string>
+    <string name="patient_family_history">Historial Familiar</string>
+    <string name="patient_dental_conditions">Condicions Dentals</string>
+    <string name="patient_medication">Medicació</string>
+    <string name="patient_allergies">Al·lèrgies</string>
+    <string name="patient_infectious_diseases">Malalties Infeccioses</string>
+    <string name="patient_save_continue">Guarda i Continua</string>
+    <string name="patient_save_changes">Guardar Canvis</string>
+    <string name="patient_no_data">Sense dades registrades</string>
+
+    <!-- Validacions -->
+    <string name="validation_fill_all_fields">Per favor, emplena tots els camps</string>
+    <string name="validation_invalid_email">Correu electrònic invàlid</string>
+    <string name="validation_invalid_phone">Format de telèfon invàlid (han de ser 9 dígits)</string>
+    <string name="validation_invalid_dni">Format de DNI o NIE invàlid</string>
+
+    <!-- Signatures & Consentiments -->
+    <string name="medical_history_title">Historial Mèdic</string>
+    <string name="consent_anesthesia_title">Consentiment Anestèsia</string>
+    <string name="consent_anesthesia_label">Consentiment Anestèsia:</string>
+    <string name="consent_history_title">Confirmació d\'Historial</string>
+    <string name="consent_history_label">Confirmació de dades:</string>
+    <string name="consent_history_msg">El pacient confirma que les dades de l\'historial mèdic, malalties i al·lèrgies revisades són correctes.</string>
+    <string name="signature_saved_success">Signatura guardada correctament</string>
+    <string name="label_family_history">Historial Familiar</string>
+    <string name="label_diseases">Malalties i Condicions</string>
+    <string name="label_medication">Medicació</string>
+    <string name="label_allergies">Al·lèrgies</string>
+    <string name="label_infectious_diseases">Malalties Infeccioses</string>
+    <string name="btn_add_signature">Afegir Signatura</string>
+    <string name="no_data_registered">Sense dades registrades</string>
+
+    <!-- Placeholders Formularis Mèdic -->
+    <string name="placeholder_family_history">Ex: Observacions...</string>
+    <string name="placeholder_dental_conditions">Ex: Mal de dents...</string>
+    <string name="placeholder_medication">Paracetamol, Ibuprofèn, etc.</string>
+    <string name="placeholder_allergies">Ex: Penicil·lina, Làtex...</string>
+    <string name="placeholder_infectious_diseases">Hepatitis, VIH, etc.</string>
+
+    <!-- Arxius Pacient -->
+    <string name="files_title">Arxius del pacient</string>
+    <string name="files_upload_btn">Pujar arxiu</string>
+    <string name="files_empty_title">Encara no hi ha arxius</string>
+    <string name="files_empty_subtitle">Afegeix imatges o documents per veure\'ls aquí.</string>
+    <string name="files_delete_confirm">Estàs segur que vols eliminar aquest arxiu? Aquesta acció no es pot desfer.</string>
+    <string name="files_accept_save">Acceptar i guardar</string>
+
+    <!-- Boxes -->
+    <string name="box_title">Gestió de Boxes</string>
+    <string name="box_add_btn">Afegir Box</string>
+    <string name="box_empty">No hi ha boxes configurats</string>
+    <string name="box_new_dialog_title">Nou Box</string>
+    <string name="box_new_dialog_msg">Introdueix el número del nou box de la clínica:</string>
+    <string name="box_delete_confirm">Estàs segur que vols eliminar el box número %1$s?</string>
+
+    <!-- Calendari & Cites -->
+    <string name="calendar_title">Calendari</string>
+    <string name="calendar_today">Avui</string>
+    <string name="calendar_add_appointment">Afegir cita</string>
+    <string name="appointment_new_title">Nova Cita</string>
+    <string name="appointment_summary_title">Resum de la visita</string>
+    <string name="appointment_confirm_btn">Confirmar Cita</string>
+    <string name="appointment_warning_title">Avís Mèdic</string>
+    <string name="appointment_view_summary">Veure Resum Cita</string>
+
+    <!-- Odontograma -->
+    <string name="odontogram_title">Odontograma</string>
+    <string name="odontogram_see_entries">Ver Registres</string>
+    <string name="odontogram_no_entries">No hi ha registres guardats</string>
+    <string name="odontogram_quadrant_1">Superior Dret</string>
+    <string name="odontogram_quadrant_2">Superior Esquerra</string>
+    <string name="odontogram_quadrant_3">Inferior Esquerra</string>
+    <string name="odontogram_quadrant_4">Inferior Dret</string>
+    <string name="tooth_title">Dent número %1$d</string>
+    <string name="tooth_select_prompt">Selecciona un dent</string>
+    <string name="tooth_entire">Escollir Dent Complet (COMPLET)</string>
+
+    <!-- Gestió, Inventari i Protocols -->
+    <string name="management_title">Gestió</string>
+    <string name="stock_title">Estoc de Materials</string>
+    <string name="stock_add_btn">Afegir Material</string>
+    <string name="stock_available">Estoc disponible: %1$d</string>
+    <string name="stock_min_alert">Alerta: Estoc sota el mínim requerit.</string>
+    <string name="stock_update_btn">Actualitzar Estoc</string>
+    <string name="protocols_title">Protocols</string>
+    <string name="protocol_detail_title">Detalls del Protocol</string>
+    <string name="protocol_add_material">Afegir material</string>
+
+    <string name="patient_update_success">Canvis guardats correctament</string>
+    <string name="patient_dni">DNI / NIE</string>
+    <string name="patient_dni_placeholder">12345678X</string>
+    <string name="protocols_not_found">No s\'han trobat protocols.</string>
+    <string name="protocol_unspecified_name">Sense nom</string>
+    <string name="error_msg_format">Error: %1$s</string>
+    <string name="material_new_title">Nou Material</string>
+    <string name="material_name_label">Nom</string>
+    <string name="material_min_stock_label">Estoc Mínim</string>
+    <!-- Menú Gestió (MaterialsHome) -->
+    <string name="box_label">Box</string>
+    <string name="management_box_subtitle">Gestió de Boxes</string>
+    <string name="management_stock_subtitle">Gestió d\'inventari estoc</string>
+    <string name="management_protocol_subtitle">Materials de dentista</string>
+    <!-- Odontograma (Noves) -->
+    <string name="btn_retry">Reintentar</string>
+    <string name="odontogram_view_vertical">Veure verticalment</string>
+    <string name="odontogram_view_full">Veure complet</string>
+    <string name="odontogram_records_title">Registres</string>
+    <string name="odontogram_delete_entry_msg">Segur que vols esborrar aquest registre?</string>
+    <string name="odontogram_unknown_process">Procés desconegut</string>
+    <string name="odontogram_surface_label">Superfície: %1$s</string>
+    <string name="odontogram_status_done">Fet</string>
+    <string name="odontogram_status_pending">Per fer</string>
+    <string name="odontogram_quadrant_dynamic">Quadrant %1$s</string>
+    <string name="odontogram_symbol_ort">ORT</string>
+    <string name="odontogram_symbol_e">E</string>
+
+    <!-- Pujada d'Arxius -->
+    <string name="upload_error_default">No s\'han pogut pujar els arxius</string>
+    <string name="upload_selected_count">Seleccionats (%1$d)</string>
+    <string name="upload_source_title">Selecciona origen</string>
+    <string name="upload_source_desc">Pots pujar des de galeria o documents.</string>
+    <string name="upload_gallery">Galeria</string>
+    <string name="upload_documents">Documents</string>
+
+    <!-- Perfil del Pacient (PatientProfilePage) -->
+
+    <string name="patient_profile_treatment_default">Tractament</string>
+    <string name="patient_profile_no_date">Sense data</string>
+    <string name="patient_profile_at_time">a les</string>
+
+    <!-- Detalls de Protocol (ProtocolPage) -->
+
+    <string name="protocol_delete_confirm">Estàs segur que vols eliminar %1$s d\'aquest protocol?</string>
+    <string name="protocol_edit_qty_title">Editar quantitat</string>
+    <string name="protocol_edit_qty_desc">Indica la quantitat necessària per a %1$s:</string>
+    <string name="protocol_qty_label">Quantitat</string>
+    <string name="protocol_select_material_title">Seleccionar Material</string>
+    <string name="protocol_btn_close">Tancar</string>
+    <string name="protocol_qty_value">Quantitat: %1$d</string>
+
+    <string name="protocol_empty_title">No hi ha materials</string>
+    <string name="protocol_empty_desc">Afegeix materials per veure\'ls aquí.</string>
     <string name="web_client_id">237928135138-2u59spbose7pkmnb8cm7oeqhci23akpk.apps.googleusercontent.com</string>
+
+    <!-- Registre (RegisterPage) -->
+    <string name="register_name_label">Nom</string>
+    <string name="register_name_placeholder">El teu nom</string>
+    <string name="register_surname_label">Cognoms</string>
+    <string name="register_surname_placeholder">Els teus cognoms</string>
+    <string name="register_email_label">Email</string>
+    <string name="register_email_placeholder">correu@exemple.com</string>
+    <string name="register_password_label">Contrasenya</string>
+    <string name="register_password_placeholder">Mínim 8 caràcters</string>
+    <string name="register_confirm_password_label">Confirmar contrasenya</string>
+    <string name="register_confirm_password_placeholder">Repeteix la contrasenya</string>
+    <string name="register_error_unknown">Error desconegut</string>
+    <string name="register_btn_submit">Registrar-se</string>
+    <string name="register_toast_empty_fields">Omple tots els camps</string>
+    <string name="register_toast_password_mismatch">Les contrasenyes no coincideixen</string>
+    <string name="register_toast_password_length">La contrasenya ha de tenir mínim 8 caràcters</string>
+    <string name="register_already_have_account">Ja tens compte? Inicia sessió</string>
+
+    <!-- Resum de cita (ResumeDateScreen) -->
+    <!-- Detalls de Cita -->
+    <string name="appointment_date_label">Data:</string>
+    <string name="appointment_time_label">Horari:</string>
+    <string name="appointment_time_to">a</string>
+    <string name="appointment_treatment_label">Tractament:</string>
+    <string name="appointment_none">Cap</string>
+    <string name="appointment_notes_label">Observacions:</string>
+    <string name="appointment_no_notes">Cap observació</string>
+    <string name="appointment_delete_title">Eliminar cita</string>
+    <string name="appointment_delete_msg">Estàs segur que vols eliminar aquesta cita? Aquesta acció no es pot desfer.</string>
+    <string name="appointment_details_title">Detalls de la Cita</string>
+    <!-- Nova Cita (ScheduleAppointmentPage) -->
+    <string name="appointment_warning_msg">Aquest pacient té registrades malalties infeccioses: %1$s.\n\nSi us plau, prengui les mesures de seguretat necessàries.</string>
+    <string name="btn_understood">Entès</string>
+    <string name="appointment_assigning">Assignant...</string>
+    <!-- Detall d'Estoc (StockPage) -->
+    <string name="stock_detail_title">Detall del Material</string>
+    <string name="stock_management">Gestió d\'Estoc</string>
+    <string name="btn_subtract">Restar</string>
+    <string name="btn_add">Sumar</string>
+    <string name="btn_update_stock">Actualitzar Estoc</string>
+    <string name="stock_min_label">Estoc Mínim</string>
+    <string name="stock_alert_low">Alerta: Estoc sota el mínim requerit.</string>
+    <string name="btn_delete_material">Eliminar Material</string>
+    <string name="stock_delete_confirm">Estàs segur que vols eliminar aquest material?</string>
+    <!-- Detall Dent (ToothPage) -->
+    <string name="tooth_page_title">Dent número %1$d</string>
+    <string name="tooth_select_full">Escollir Dent Complet (COMPLET)</string>
+    <string name="tooth_register_process">Registrar Procés</string>
+    <string name="tooth_surface_selected">Superfície: %1$s</string>
+    <string name="tooth_select_process">Seleccioni un Procés:</string>
+    <string name="tooth_process_status">Status del Procés:</string>
+    <string name="tooth_status_pending">PER FER</string>
+    <string name="tooth_status_done">FET</string>
+    <string name="tooth_save_process">Desar Procés</string>
+    <string name="tooth_see_records">Veure Registres</string>
+    <string name="tooth_replace_title">Confirmació de reemplaçament</string>
+    <string name="tooth_replace_desc">Ja existeix un registre per a la superfície %1$s d\'aquesta dent. N\'estàs segur que vols reemplaçar-lo?</string>
+    <string name="btn_replace">Reemplaçar</string>
+    <string name="tooth_dropdown_placeholder">Tria una opció</string>
+    <!-- Perfil d'Usuari (UserProfilePage) -->
+    <string name="role_admin">Administrador</string>
+    <string name="role_user">Usuari</string>
+    <string name="profile_picture_desc">Foto de perfil</string>
+    <string name="user_name_label">Nom</string>
+    <string name="user_surname_label">Cognoms</string>
+    <string name="user_email_label">Correu electrònic</string>
+    <!-- Pantalla d'Error (ErrorScreenWithImage) -->
+    <string name="error_unexpected_default">Ha ocorregut un error inesperat</string>
+    <string name="error_page_title">Pàgina d\'Error</string>
+    <string name="error_image_desc">Error</string>
+    <string name="language_label">Idioma</string>
+
+    <!-- Error de Conexión -->
+    <!-- Error de Connexió -->
+    <string name="error_connection_title">Error de connexió</string>
+    <string name="error_connection_desc">Comprova la teva connexió a internet i torna-ho a provar.</string>
 </resources>

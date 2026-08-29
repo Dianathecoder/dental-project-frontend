@@ -21,10 +21,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.Appointment
 import com.example.dynalar_frontend_v1.model.patient.Patient
@@ -66,7 +68,7 @@ fun PatientProfilePage(
             Column(modifier = Modifier.background(Color(0xFFF5F7FA))) {
                 Spacer(modifier = Modifier.height(27.dp))
                 Box(modifier = Modifier.fillMaxWidth()) {
-                    CustomTopBar(title = "Perfil del Pacient", onNavigateBack = onBackClick)
+                    CustomTopBar(title = stringResource(R.string.patient_profile_title), onNavigateBack = onBackClick)
                     IconButton(
                         onClick = { patient.id?.let { onEditClick(it) } },
                         modifier = Modifier.align(Alignment.CenterEnd).padding(end = 16.dp)
@@ -105,7 +107,7 @@ fun PatientProfilePage(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Cites / Tractaments",
+                text = stringResource(R.string.patient_profile_treatments),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF1E293B)
@@ -131,9 +133,12 @@ fun PatientProfilePage(
                             item { EmptyTreatmentsCard() }
                         } else {
                             items(patientAppointments) { appointment ->
+                                val defaultTreatment = stringResource(R.string.patient_profile_treatment_default)
+                                val noDateStr = stringResource(R.string.patient_profile_no_date)
+                                val atTimeStr = stringResource(R.string.patient_profile_at_time)
                                 TreatmentItemRow(
-                                    title = appointment.treatment?.name ?: "Tractament",
-                                    date = formatDateLabel(appointment.startTime),
+                                    title = appointment.treatment?.name ?: defaultTreatment,
+                                    date = formatDateLabel(appointment.startTime, noDateStr, atTimeStr),
                                     onClick = { onAppointmentClick(appointment) }
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
@@ -193,12 +198,13 @@ fun TreatmentItemRow(title: String, date: String, onClick: () -> Unit, ) {
         }
     }
 }
-fun formatDateLabel(dateTime: String?): String {
-    if (dateTime == null) return "Sense data"
+fun formatDateLabel(dateTime: String?, noDateStr: String, atTimeStr: String): String {
+    if (dateTime == null) return noDateStr
     return try {
         val inputFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
         val date = LocalDateTime.parse(dateTime, inputFormatter)
-        val outputFormatter = DateTimeFormatter.ofPattern("dd-MM yyyy 'a les' HH:mm")
+        // Sustituimos "a les" por la variable atTimeStr
+        val outputFormatter = DateTimeFormatter.ofPattern("dd-MM yyyy '$atTimeStr' HH:mm")
         date.format(outputFormatter)
     } catch (e: Exception) {
         dateTime.take(10)
@@ -211,13 +217,24 @@ fun ActionGridSection(
     appointmentCount: Int,
     onOdontogramClick: () -> Unit,
     onCalendarClick: () -> Unit,
-    onFilesClick: () -> Unit, // Asegúrate de que este parámetro esté en la firma
+    onFilesClick: () -> Unit,
     onDateInformationClick: () -> Unit
 ) {
     Column {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            ActionCard(title = "Odontograma", icon = Icons.Default.Face, modifier = Modifier.weight(1f), onClick = onOdontogramClick)
-            ActionCard(title = "Calendari", icon = Icons.Default.DateRange, badgeCount = appointmentCount, modifier = Modifier.weight(1f), onClick = onCalendarClick)
+            ActionCard(
+                title = stringResource(R.string.odontogram_title),
+                icon = Icons.Default.Face,
+                modifier = Modifier.weight(1f),
+                onClick = onOdontogramClick
+            )
+            ActionCard(
+                title = stringResource(R.string.calendar_title),
+                icon = Icons.Default.DateRange,
+                badgeCount = appointmentCount,
+                modifier = Modifier.weight(1f),
+                onClick = onCalendarClick
+            )
         }
         Spacer(modifier = Modifier.height(16.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -229,7 +246,7 @@ fun ActionGridSection(
                 modifier = Modifier.weight(1f),
                 onClick = onFilesClick
             )
-            ActionCard(title = "Historial Clínic", icon = Icons.Default.List, modifier = Modifier.weight(1f), onClick = onDateInformationClick)
+            ActionCard(title = stringResource(R.string.patient_tab_history), icon = Icons.Default.List, modifier = Modifier.weight(1f), onClick = onDateInformationClick)
         }
     }
 }
@@ -273,7 +290,6 @@ fun EmptyTreatmentsCard() {
         ) {
             Icon(Icons.Default.Info, null, tint = Color.LightGray, modifier = Modifier.size(28.dp))
             Spacer(modifier = Modifier.height(8.dp))
-            Text("No hi ha tractaments registrats", color = Color.Gray, fontSize = 14.sp)
-        }
+            Text(stringResource(R.string.patient_profile_empty_treatments), color = Color.Gray, fontSize = 14.sp)        }
     }
 }

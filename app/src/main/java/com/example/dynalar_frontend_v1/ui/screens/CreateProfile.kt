@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,10 +31,9 @@ import com.example.dynalar_frontend_v1.ui.components.Navegate_Button
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.components.InputFieldEditable
 import com.example.dynalar_frontend_v1.ui.components.PhoneInputField
-import com.example.dynalar_frontend_v1.ui.components.SignaturePadControlled
 import com.example.dynalar_frontend_v1.ui.components.ValidationAndSignatureDialog
 import com.example.dynalar_frontend_v1.viewmodel.PatientViewModel
-
+import com.example.dynalar_frontend_v1.R
 @Composable
 fun CreateProfilePage(
     onNavigateBack: () -> Unit,
@@ -75,6 +75,11 @@ fun CreateProfileForm(
 
     val context = LocalContext.current
 
+    val fillAllFieldsMsg = stringResource(R.string.validation_fill_all_fields)
+    val invalidEmailMsg = stringResource(R.string.validation_invalid_email)
+    val invalidPhoneMsg = stringResource(R.string.validation_invalid_phone)
+    val invalidDniMsg = stringResource(R.string.validation_invalid_dni)
+
     // Muestra Toast si createPatient falla, sin romper el estado de la lista
     LaunchedEffect(patientViewModel.crudError) {
         patientViewModel.crudError?.let { error ->
@@ -111,8 +116,8 @@ fun CreateProfileForm(
 
     if (signatureStep == 1) {
         ValidationAndSignatureDialog(
-            title = "Consentiment Anestèsia",
-            consentTitle = "Consentiment Anestèsia:",
+            title = stringResource(R.string.consent_anesthesia_title),
+            consentTitle = "${stringResource(R.string.consent_anesthesia_title)}:",
             infectiousDeceases = infectiousDeceases,
             allergies = allergies,
             onConfirm = { signature ->
@@ -123,9 +128,9 @@ fun CreateProfileForm(
         )
     } else if (signatureStep == 2) {
         ValidationAndSignatureDialog(
-            title = "Confirmació d'Historial",
-            consentTitle = "Confirmació de dades:",
-            consentText = "El pacient confirma que les dades de l'historial mèdic, malalties i al·lèrgies revisades són correctes.",
+            title = stringResource(R.string.consent_history_title),
+            consentTitle = stringResource(R.string.consent_history_title),
+            consentText = stringResource(R.string.consent_history_msg),
             infectiousDeceases = infectiousDeceases,
             allergies = allergies,
             isOptional = false,
@@ -151,28 +156,28 @@ fun CreateProfileForm(
                     contentAlignment = Alignment.Center
                 ) {
                     Navegate_Button(
-                        text = "Guarda i Continua",
+                        text = stringResource(R.string.patient_save_continue),
                         onClick = {
                             if (name.isBlank() || lastName.isBlank() || email.isBlank() || dni.isBlank() || phone.isBlank()) {
-                                Toast.makeText(context, "Per favor, emplena tots els camps", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, fillAllFieldsMsg, Toast.LENGTH_SHORT).show()
                                 return@Navegate_Button
                             }
 
                             val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[a-zA-Z]{2,}$".toRegex()
                             if (!email.matches(emailRegex)) {
-                                Toast.makeText(context, "Correu electrònic invàlid", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, invalidEmailMsg, Toast.LENGTH_SHORT).show()
                                 return@Navegate_Button
                             }
 
                             val phoneRegex = "^[0-9]{9}$".toRegex()
                             if (!phone.trim().matches(phoneRegex)) {
-                                Toast.makeText(context, "Format de telèfon invàlid (han de ser 9 dígits)", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, invalidPhoneMsg, Toast.LENGTH_SHORT).show()
                                 return@Navegate_Button
                             }
 
                             val dniRegex = "^[XYZxyz]?\\d{7,8}[A-Za-z]$".toRegex()
                             if (!dni.trim().matches(dniRegex)) {
-                                Toast.makeText(context, "Format de DNI o NIE invàlid", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, invalidDniMsg, Toast.LENGTH_SHORT).show()
                                 return@Navegate_Button
                             }
 
@@ -234,7 +239,7 @@ fun Header_ButtonNavigator(
 ) {
     Column {
         CustomTopBar(
-            title = "Nou Pacient",
+            title = stringResource(R.string.patient_new_title),
             titleFontSize = 20.sp,
             onNavigateBack = onNavigateBack
         )
@@ -248,13 +253,13 @@ fun Header_ButtonNavigator(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             TabButton(
-                text = "Informació",
+                text = stringResource(R.string.patient_tab_info),
                 isSelected = selectedTab == 0,
                 onClick = { onTabSelected(0) },
                 modifier = Modifier.weight(1f)
             )
             TabButton(
-                text = "Historial Clínic",
+                text = stringResource(R.string.patient_tab_history),
                 isSelected = selectedTab == 1,
                 onClick = { onTabSelected(1) },
                 modifier = Modifier.weight(1f)
@@ -293,12 +298,12 @@ fun InformationPersonal(
     sex: Sex, onSexChange: (Sex) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(20.dp), modifier = Modifier.fillMaxWidth()) {
-        InputFieldEditable(label = "Nom", value = name, onValueChange = onNameChange, placeholder = "Nom")
-        InputFieldEditable(label = "Cognoms", value = lastName, onValueChange = onLastNameChange, placeholder = "Cognoms")
+        InputFieldEditable(label = stringResource(R.string.register_name), value = name, onValueChange = onNameChange, placeholder = stringResource(R.string.register_name))
+        InputFieldEditable(label = stringResource(R.string.register_surname), value = lastName, onValueChange = onLastNameChange, placeholder = stringResource(R.string.register_surname))
 
         Column {
             Text(
-                text = "Sexe",
+                text = stringResource(R.string.patient_sex),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Gray,
@@ -323,7 +328,7 @@ fun InformationPersonal(
             }
         }
 
-        InputFieldEditable(label = "Email", value = email, onValueChange = onEmailChange, placeholder = "correu@exemple.com")
+        InputFieldEditable(label = stringResource(R.string.login_email_label), value = email, onValueChange = onEmailChange, placeholder = stringResource(R.string.login_email_placeholder))
 
         InputFieldEditable(
             label = "DNI",
@@ -339,7 +344,7 @@ fun InformationPersonal(
         )
 
         PhoneInputField(
-            label = "Telèfon",
+            label = stringResource(R.string.patient_phone),
             countryCode = countryCode,
             onCountryCodeChange = onCountryCodeChange,
             phoneNumber = phone,
@@ -365,34 +370,34 @@ fun InformationMedical(
         modifier = Modifier.fillMaxWidth()
     ) {
         InputFieldEditable(
-            label = "Historial Familiar",
+            label = stringResource(R.string.patient_family_history),
             value = familyHistory,
             onValueChange = onFamilyHistoryChange,
-            placeholder = "Ej: Observacions..."
+            placeholder = stringResource(R.string.placeholder_family_history)
         )
         InputFieldEditable(
-            label = "Condicions Dentals",
+            label = stringResource(R.string.patient_dental_conditions),
             value = dentalConditions,
             onValueChange = onDentalConditionsChange,
-            placeholder = "Ej: Mal de dents"
+            placeholder = stringResource(R.string.placeholder_dental_conditions)
         )
         InputFieldEditable(
-            label = "Medicació",
+            label = stringResource(R.string.patient_medication),
             value = medicalNotes,
             onValueChange = onMedicalNotesChange,
-            placeholder = "Paracetamol"
+            placeholder = stringResource(R.string.placeholder_medication)
         )
         InputFieldEditable(
-            label = "Al·lèrgies",
+            label = stringResource(R.string.patient_allergies),
             value = allergies,
             onValueChange = onAllergiesChange,
-            placeholder = "Ej: Penicilina"
+            placeholder = stringResource(R.string.placeholder_allergies)
         )
         InputFieldEditable(
-            label = "Malalties Infeccioses",
+            label = stringResource(R.string.patient_infectious_diseases),
             value = infectiousDeceases,
             onValueChange = onInfectiousDeceasesChange,
-            placeholder = "Hepatitis, VIH, etc."
+            placeholder = stringResource(R.string.placeholder_infectious_diseases)
         )
     }
 }
