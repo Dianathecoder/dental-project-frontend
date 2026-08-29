@@ -310,7 +310,25 @@ class MainActivity : ComponentActivity() {
                         composable(AppRoutes.UserProfile.route) {
                             UserProfilePage(
                                 viewModel = userViewModel,
-                                onNavigateBack = { navController.popBackStack() }
+                                onNavigateBack = { navController.popBackStack() },
+                                onNavigateToChangeAvatar = {
+                                    navController.navigate(AppRoutes.ChangeAvatar.route)
+                                }
+                            )
+                        }
+
+                        composable(AppRoutes.ChangeAvatar.route) {
+                            val context = androidx.compose.ui.platform.LocalContext.current
+                            val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                            val currentAvatarResId = prefs.getInt("user_avatar", R.drawable.avatar_color)
+
+                            ChangeAvatarPage(
+                                currentAvatarResId = currentAvatarResId,
+                                onAvatarSelected = { newAvatarResId ->
+                                    prefs.edit().putInt("user_avatar", newAvatarResId).apply()
+                                    navController.popBackStack()
+                                },
+                                onBack = { navController.popBackStack() }
                             )
                         }
 

@@ -24,16 +24,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.model.patient.MedicalRecord
 import com.example.dynalar_frontend_v1.model.patient.Patient
 import com.example.dynalar_frontend_v1.model.patient.Sex
-import com.example.dynalar_frontend_v1.ui.components.Navegate_Button
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.components.InputFieldEditable
+import com.example.dynalar_frontend_v1.ui.components.Navegate_Button
 import com.example.dynalar_frontend_v1.ui.components.PhoneInputField
 import com.example.dynalar_frontend_v1.ui.components.ValidationAndSignatureDialog
 import com.example.dynalar_frontend_v1.viewmodel.PatientViewModel
-import com.example.dynalar_frontend_v1.R
+
 @Composable
 fun CreateProfilePage(
     onNavigateBack: () -> Unit,
@@ -67,8 +68,14 @@ fun CreateProfileForm(
     var familyHistory by remember { mutableStateOf("") }
     var dentalConditions by remember { mutableStateOf("") }
     var medicalNotes by remember { mutableStateOf("") }
-    var allergies by remember { mutableStateOf("") }
-    var infectiousDeceases by remember { mutableStateOf("") }
+
+    // Alergias
+    var hasAllergies by remember { mutableStateOf(false) }
+    var allergiesText by remember { mutableStateOf("") }
+
+    // Enfermedades Infecciosas
+    var hasInfectious by remember { mutableStateOf(false) }
+    var infectiousText by remember { mutableStateOf("") }
 
     var signatureStep by remember { mutableStateOf(0) }
     var tempAnesthesiaSignature by remember { mutableStateOf<String?>(null) }
@@ -80,7 +87,6 @@ fun CreateProfileForm(
     val invalidPhoneMsg = stringResource(R.string.validation_invalid_phone)
     val invalidDniMsg = stringResource(R.string.validation_invalid_dni)
 
-    // Muestra Toast si createPatient falla, sin romper el estado de la lista
     LaunchedEffect(patientViewModel.crudError) {
         patientViewModel.crudError?.let { error ->
             Toast.makeText(context, error, Toast.LENGTH_LONG).show()
@@ -89,6 +95,9 @@ fun CreateProfileForm(
     }
 
     val performSave = { anesthesiaSig: String?, historySig: String? ->
+        val finalAllergies = if (hasAllergies) allergiesText.trim() else ""
+        val finalInfectious = if (hasInfectious) infectiousText.trim() else ""
+
         val newPatient = Patient(
             name = name,
             lastName = lastName,
@@ -99,10 +108,10 @@ fun CreateProfileForm(
             anesthesiaConsent = !anesthesiaSig.isNullOrBlank(),
             medicalRecord = MedicalRecord(
                 familyHistory = familyHistory,
-                allergies = allergies,
+                allergies = finalAllergies,
                 medication = medicalNotes,
                 deceases = dentalConditions,
-                infectiousDeceases = infectiousDeceases,
+                infectiousDeceases = finalInfectious,
                 signatureBase64 = anesthesiaSig,
                 signatureConfirmation = historySig
             )
@@ -114,12 +123,15 @@ fun CreateProfileForm(
         }
     }
 
+    val currentAllergies = if (hasAllergies) allergiesText.trim() else ""
+    val currentInfectious = if (hasInfectious) infectiousText.trim() else ""
+
     if (signatureStep == 1) {
         ValidationAndSignatureDialog(
             title = stringResource(R.string.consent_anesthesia_title),
             consentTitle = "${stringResource(R.string.consent_anesthesia_title)}:",
-            infectiousDeceases = infectiousDeceases,
-            allergies = allergies,
+            infectiousDeceases = currentInfectious,
+            allergies = currentAllergies,
             onConfirm = { signature ->
                 tempAnesthesiaSignature = signature
                 signatureStep = 2
@@ -131,8 +143,8 @@ fun CreateProfileForm(
             title = stringResource(R.string.consent_history_title),
             consentTitle = stringResource(R.string.consent_history_title),
             consentText = stringResource(R.string.consent_history_msg),
-            infectiousDeceases = infectiousDeceases,
-            allergies = allergies,
+            infectiousDeceases = currentInfectious,
+            allergies = currentAllergies,
             isOptional = false,
             onConfirm = { signature ->
                 val historySignature = signature
@@ -219,9 +231,10 @@ fun CreateProfileForm(
                         familyHistory = familyHistory, onFamilyHistoryChange = { familyHistory = it },
                         dentalConditions = dentalConditions, onDentalConditionsChange = { dentalConditions = it },
                         medicalNotes = medicalNotes, onMedicalNotesChange = { medicalNotes = it },
-                        allergies = allergies, onAllergiesChange = { allergies = it },
-                        infectiousDeceases = infectiousDeceases,
-                        onInfectiousDeceasesChange = { infectiousDeceases = it }
+                        hasAllergies = hasAllergies, onHasAllergiesChange = { hasAllergies = it },
+                        allergiesText = allergiesText, onAllergiesTextChange = { allergiesText = it },
+                        hasInfectious = hasInfectious, onHasInfectiousChange = { hasInfectious = it },
+                        infectiousText = infectiousText, onInfectiousTextChange = { infectiousText = it }
                     )
                 }
             }
@@ -313,12 +326,12 @@ fun InformationPersonal(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                listOf(Sex.MALE, Sex.FEMALE).forEach { option ->
+                listOf(Sex.MALE, Sex.FEMALE, Sex.OTHER).forEach { option ->
                     TabButton(
                         text = when(option) {
-                            Sex.MALE -> "Home"
-                            Sex.FEMALE -> "Dona"
-                            else -> ""
+                            Sex.MALE -> stringResource(R.string.sex_male)
+                            Sex.FEMALE -> stringResource(R.string.sex_female)
+                            Sex.OTHER -> stringResource(R.string.sex_other)
                         },
                         isSelected = sex == option,
                         onClick = { onSexChange(option) },
@@ -361,9 +374,10 @@ fun InformationMedical(
     familyHistory: String, onFamilyHistoryChange: (String) -> Unit,
     dentalConditions: String, onDentalConditionsChange: (String) -> Unit,
     medicalNotes: String, onMedicalNotesChange: (String) -> Unit,
-    allergies: String, onAllergiesChange: (String) -> Unit,
-    infectiousDeceases: String,
-    onInfectiousDeceasesChange: (String) -> Unit
+    hasAllergies: Boolean, onHasAllergiesChange: (Boolean) -> Unit,
+    allergiesText: String, onAllergiesTextChange: (String) -> Unit,
+    hasInfectious: Boolean, onHasInfectiousChange: (Boolean) -> Unit,
+    infectiousText: String, onInfectiousTextChange: (String) -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -387,17 +401,79 @@ fun InformationMedical(
             onValueChange = onMedicalNotesChange,
             placeholder = stringResource(R.string.placeholder_medication)
         )
-        InputFieldEditable(
-            label = stringResource(R.string.patient_allergies),
-            value = allergies,
-            onValueChange = onAllergiesChange,
-            placeholder = stringResource(R.string.placeholder_allergies)
-        )
-        InputFieldEditable(
-            label = stringResource(R.string.patient_infectious_diseases),
-            value = infectiousDeceases,
-            onValueChange = onInfectiousDeceasesChange,
-            placeholder = stringResource(R.string.placeholder_infectious_diseases)
-        )
+
+        // --- Campo Alergias ---
+        Column {
+            Text(
+                text = stringResource(R.string.patient_allergies),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Gray,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TabButton(
+                    text = stringResource(R.string.option_none),
+                    isSelected = !hasAllergies,
+                    onClick = { onHasAllergiesChange(false) },
+                    modifier = Modifier.weight(1f)
+                )
+                TabButton(
+                    text = stringResource(R.string.option_specify),
+                    isSelected = hasAllergies,
+                    onClick = { onHasAllergiesChange(true) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            if (hasAllergies) {
+                Spacer(modifier = Modifier.height(10.dp))
+                InputFieldEditable(
+                    label = "",
+                    value = allergiesText,
+                    onValueChange = onAllergiesTextChange,
+                    placeholder = stringResource(R.string.placeholder_allergies)
+                )
+            }
+        }
+
+        // --- Campo Enfermedades Infecciosas ---
+        Column {
+            Text(
+                text = stringResource(R.string.patient_infectious_diseases),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Gray,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TabButton(
+                    text = stringResource(R.string.option_none),
+                    isSelected = !hasInfectious,
+                    onClick = { onHasInfectiousChange(false) },
+                    modifier = Modifier.weight(1f)
+                )
+                TabButton(
+                    text = stringResource(R.string.option_specify),
+                    isSelected = hasInfectious,
+                    onClick = { onHasInfectiousChange(true) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            if (hasInfectious) {
+                Spacer(modifier = Modifier.height(10.dp))
+                InputFieldEditable(
+                    label = "",
+                    value = infectiousText,
+                    onValueChange = onInfectiousTextChange,
+                    placeholder = stringResource(R.string.placeholder_infectious_diseases)
+                )
+            }
+        }
     }
 }

@@ -463,7 +463,7 @@ fun PatientItem(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Al·lèrgia: $allergies",
+                            text = stringResource(R.string.patient_allergy_prefix, allergies),
                             color = Color(0xFFE65100),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold
