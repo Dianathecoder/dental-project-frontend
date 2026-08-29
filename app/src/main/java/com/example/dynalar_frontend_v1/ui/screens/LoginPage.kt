@@ -1,6 +1,8 @@
 package com.example.dynalar_frontend_v1.ui.screens
 
+import android.content.Context
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -17,12 +19,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -52,6 +58,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.os.LocaleListCompat
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
@@ -60,6 +67,7 @@ import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.LoginUiState
 import com.example.dynalar_frontend_v1.model.auth.AuthResponse
+import com.example.dynalar_frontend_v1.utils.changeLanguage
 import com.example.dynalar_frontend_v1.viewmodel.AuthViewModel
 import com.example.dynalar_frontend_v1.viewmodel.UserViewModel
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
@@ -76,6 +84,8 @@ fun LoginPage(
     onPatientLoginSuccess: () -> Unit = {},
     onForgotPasswordClick: () -> Unit = {},
     onRegisterClick: () -> Unit = {},
+    onLanguageChange: (String) -> Unit = {} // ← NUEVO
+
 
 ) {
     val webClientId = stringResource(R.string.web_client_id)
@@ -94,12 +104,9 @@ fun LoginPage(
     val loginUiState by viewModel.userUiState.collectAsState()
     val authUiState by authViewModel.authUiState.collectAsState()
 
-    // Login normal con email
     LaunchedEffect(loginUiState) {
         if (loginUiState is LoginUiState.Success) {
-            // Ahora extraemos el rol usando "authResponse" (o como lo hayas llamado en el paso 1)
             val role = (loginUiState as LoginUiState.Success).authResponse.role.toString()
-
             if (role == "ADMIN" || role == "DENTIST") {
                 onAdminLoginSuccess()
             } else {
@@ -107,12 +114,31 @@ fun LoginPage(
             }
         }
     }
-    // Login con Google → muestra diálogo de bienvenida
+
     LaunchedEffect(authUiState) {
         if (authUiState is InterfaceGlobal.Success) {
             val response = (authUiState as InterfaceGlobal.Success<AuthResponse>).data
-            welcomeUser = response
-            showWelcomeDialog = true
+
+            // Comprobar si es la primera vez
+            val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+            val isFirstLogin = prefs.getBoolean("first_google_login_${response.userId}", true)
+
+            if (isFirstLogin) {
+                // Guardar que ya no es la primera vez
+                prefs.edit().putBoolean("first_google_login_${response.userId}", false).apply()
+                welcomeUser = response
+                showWelcomeDialog = true
+            } else {
+                // Entrar directamente sin diálogo
+                viewModel.setLoggedInUser(response)
+                authViewModel.resetState()
+                val role = response.role.toString()
+                if (role == "ADMIN" || role == "DENTIST") {
+                    onAdminLoginSuccess()
+                } else {
+                    onPatientLoginSuccess()
+                }
+            }
         }
     }
 
@@ -123,207 +149,270 @@ fun LoginPage(
             onConfirm = {
                 showWelcomeDialog = false
                 authViewModel.resetState()
-
-                // 👉 AÑADE ESTA LÍNEA: Le pasa los datos al perfil
                 viewModel.setLoggedInUser(welcomeUser!!)
-
                 val role = welcomeUser!!.role.toString()
                 if (role == "ADMIN" || role == "DENTIST") {
                     onAdminLoginSuccess()
                 } else {
-                    onPatientLoginSuccess() // (Que ahora también va al Home)
+                    onPatientLoginSuccess()
                 }
             }
         )
     }
 
-    Column(
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(horizontal = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.general_logo),
-            contentDescription = "Logo",
-            modifier = Modifier.size(180.dp)
-        )
-
-        Spacer(modifier = Modifier.height(48.dp))
-
-        // ── Email ─────────────────────────────────────────────────
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Email",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.DarkGray,
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("correu@exemple.com", color = Color.LightGray) },
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = Color.LightGray,
-                    focusedBorderColor = Color(0xFF537895)
-                )
-            )
+        // Selector de idioma en la esquina superior derecha
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 32.dp, end = 16.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
+            LoginLanguageSelector(onLanguageChange = onLanguageChange)
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Contrasenya",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.DarkGray,
-                fontWeight = FontWeight.Medium
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.general_logo),
+                contentDescription = "Logo",
+                modifier = Modifier.size(180.dp)
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("La teva contrasenya", color = Color.LightGray) },
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(
-                            imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                            contentDescription = null,
-                            tint = Color.Gray
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            //Email
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(id = R.string.login_email_label), // <-- CORREGIDO
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.DarkGray,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text(stringResource(id = R.string.login_email_placeholder), color = Color.LightGray) },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Color.LightGray,
+                        focusedBorderColor = Color(0xFF537895)
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(id = R.string.login_password_label), // <-- CORREGIDO
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.DarkGray,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text(stringResource(id = R.string.login_password_placeholder), color = Color.LightGray) },
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(
+                                imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                contentDescription = null,
+                                tint = Color.Gray
+                            )
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Color.LightGray,
+                        focusedBorderColor = Color(0xFF537895)
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Error login normal
+            if (loginUiState is LoginUiState.Error) {
+                Text(
+                    text = (loginUiState as LoginUiState.Error).message,
+                    color = Color.Red,
+                    fontSize = 14.sp,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            // Error Google
+            if (authUiState is InterfaceGlobal.Error) {
+                Text(
+                    text = (authUiState as InterfaceGlobal.Error).message ?: stringResource(id = R.string.error_msg_format, "Google"),
+                    color = Color.Red,
+                    fontSize = 14.sp,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                TextButton(onClick = onForgotPasswordClick) {
+                    Text(text = stringResource(id = R.string.login_forgot_password), color = Color(0xFFADD4D9), fontSize = 14.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            //Botón Login
+            Button(
+                onClick = { viewModel.login(email, password) },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF537895))
+            ) {
+                if (loginUiState is LoginUiState.Loading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                } else {
+                    Text(text = stringResource(id = R.string.login_button), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            TextButton(onClick = onRegisterClick) {
+                Text(text = stringResource(id = R.string.login_register_prompt), color = Color(0xFF537895), fontSize = 14.sp)
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            //Separador
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                HorizontalDivider(modifier = Modifier.weight(1f), color = Color.LightGray)
+                Text(stringResource(id = R.string.login_or_continue), fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(horizontal = 8.dp))
+                HorizontalDivider(modifier = Modifier.weight(1f), color = Color.LightGray)
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            //Botón Google
+            OutlinedButton(
+                onClick = {
+                    scope.launch {
+                        googleSignIn(
+                            context = context,
+                            webClientId = webClientId,
+                            onSuccess = { idToken ->
+
+                                viewModel.googleLogin(idToken)
+                            },
+                            onError = { error -> Toast.makeText(context, error, Toast.LENGTH_SHORT).show() }
                         )
                     }
                 },
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = Color.LightGray,
-                    focusedBorderColor = Color(0xFF537895)
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(1.dp, Color(0xFFDDDDDD)),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color.White,
+                    contentColor = Color(0xFF3C4043)
                 )
-            )
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // Error login normal
-        if (loginUiState is LoginUiState.Error) {
-            Text(
-                text = (loginUiState as LoginUiState.Error).message,
-                color = Color.Red,
-                fontSize = 14.sp,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        // Error Google
-        if (authUiState is InterfaceGlobal.Error) {
-            Text(
-                text = (authUiState as InterfaceGlobal.Error).message ?: "Error amb Google",
-                color = Color.Red,
-                fontSize = 14.sp,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-            TextButton(onClick = onForgotPasswordClick) {
-                Text(text = "Forgot password", color = Color(0xFFADD4D9), fontSize = 14.sp)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // ── Botón Login ───────────────────────────────────────────
-        Button(
-            onClick = { viewModel.login(email, password) },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF537895))
-        ) {
-            if (loginUiState is LoginUiState.Loading) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-            } else {
-                Text(text = "Iniciar sessió", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        TextButton(onClick = onRegisterClick) {
-            Text(text = "No tens compte? Registra't", color = Color(0xFF537895), fontSize = 14.sp)
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // ── Separador ─────────────────────────────────────────────
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            HorizontalDivider(modifier = Modifier.weight(1f), color = Color.LightGray)
-            Text("  o continua amb  ", fontSize = 12.sp, color = Color.Gray)
-            HorizontalDivider(modifier = Modifier.weight(1f), color = Color.LightGray)
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // ── Botón Google ──────────────────────────────────────────
-        OutlinedButton(
-            onClick = {
-                scope.launch {
-                    googleSignIn(
-                        context = context,
-                        webClientId = webClientId,  // ← variable, no stringResource() aquí
-                        onSuccess = { idToken -> authViewModel.googleLogin(idToken) },
-                        onError = { error -> Toast.makeText(context, error, Toast.LENGTH_SHORT).show() }
-                    )
-                }
-            },
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape = RoundedCornerShape(10.dp),
-            border = BorderStroke(1.dp, Color(0xFFDDDDDD)),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = Color.White,
-                contentColor = Color(0xFF3C4043)
-            )
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
             ) {
-                // Logo Google con colores reales
-                Text("G", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF4285F4))
-                Text("o", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFFEA4335))
-                Text("o", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFFFBBC05))
-                Text("g", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF4285F4))
-                Text("l", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF34A853))
-                Text("e", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFFEA4335))
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Continua amb Google",
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 15.sp,
-                    color = Color(0xFF3C4043)
-                )
-
-                // Spinner mientras carga Google
-                if (authUiState is InterfaceGlobal.Loading) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        color = Color(0xFF537895),
-                        strokeWidth = 2.dp
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    // Logo Google con colores reales
+                    Text("G", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF4285F4))
+                    Text("o", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFFEA4335))
+                    Text("o", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFFFBBC05))
+                    Text("g", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF4285F4))
+                    Text("l", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF34A853))
+                    Text("e", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFFEA4335))
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = stringResource(id = R.string.login_continue_google),
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 15.sp,
+                        color = Color(0xFF3C4043)
                     )
+
+                    // Spinner mientras carga Google
+                    if (authUiState is InterfaceGlobal.Loading) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = Color(0xFF537895),
+                            strokeWidth = 2.dp
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-// ── Diálogo de bienvenida Google ─────────────────────────────────
+//Selector de Idioma Minimalista para el Login
+@Composable
+fun LoginLanguageSelector(onLanguageChange: (String) -> Unit = {}) {
+    val context = LocalContext.current
+    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+
+    var currentLangCode by remember {
+        mutableStateOf(prefs.getString("language", "ca") ?: "ca")
+    }
+
+    val languages = listOf("ca" to "CA", "es" to "ES", "en" to "EN")
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        TextButton(onClick = { expanded = true }) {
+            Icon(Icons.Default.Language, contentDescription = "Idioma", tint = Color.Gray)
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = currentLangCode.uppercase(),
+                color = Color.Gray,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(Color.White)
+        ) {
+            languages.forEach { (code, name) ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            name,
+                            fontWeight = FontWeight.Medium,
+
+                            color = if (code == currentLangCode) Color(0xFF537895) else Color.Black
+                        )
+                    },
+                    onClick = {
+                        expanded = false
+                        currentLangCode = code
+                        onLanguageChange(code)
+                    }
+                )
+            }
+        }
+    }
+}
+//Diálogo de bienvenida Google
 @Composable
 private fun WelcomeGoogleDialog(name: String, onConfirm: () -> Unit) {
     AlertDialog(
@@ -332,7 +421,7 @@ private fun WelcomeGoogleDialog(name: String, onConfirm: () -> Unit) {
         shape = RoundedCornerShape(20.dp),
         title = {
             Text(
-                text = " Benvingut/da a Dynalar!",
+                text = stringResource(id = R.string.login_welcome_title),
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp,
                 textAlign = TextAlign.Center,
@@ -345,7 +434,7 @@ private fun WelcomeGoogleDialog(name: String, onConfirm: () -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Hola, $name! ",
+                    text = stringResource(id = R.string.login_welcome_greeting, name),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF537895),
@@ -353,7 +442,7 @@ private fun WelcomeGoogleDialog(name: String, onConfirm: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Has iniciat sessió correctament amb Google.\nJa pots gestionar la teva clínica dental.",
+                    text = stringResource(id = R.string.login_welcome_msg),
                     fontSize = 14.sp,
                     color = Color.Gray,
                     textAlign = TextAlign.Center,
@@ -371,13 +460,13 @@ private fun WelcomeGoogleDialog(name: String, onConfirm: () -> Unit) {
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF537895))
             ) {
-                Text("Començar", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                Text(stringResource(id = R.string.login_start_btn), color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
             }
         }
     )
 }
 
-// ── Google Sign-In con CredentialManager ─────────────────────────
+// Google Sign-In con CredentialManager
 private suspend fun googleSignIn(
     context: android.content.Context,
     webClientId: String,

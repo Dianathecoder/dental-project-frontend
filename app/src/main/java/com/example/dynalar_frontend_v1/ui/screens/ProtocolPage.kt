@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Assignment // <-- El import está ahora arriba del todo
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material3.*
@@ -19,10 +20,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.Material
 import com.example.dynalar_frontend_v1.model.TreatmentMaterial
@@ -57,7 +60,7 @@ fun ProtocolPage(
     Scaffold(
         topBar = {
             CustomTopBar(
-                title = "Detalls del Protocol",
+                title = stringResource(id = R.string.protocol_detail_title),
                 onNavigateBack = onBack
             )
         }
@@ -83,7 +86,7 @@ fun ProtocolPage(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Navegate_Button(
-                            text = "Afegir material",
+                            text = stringResource(id = R.string.protocol_add_material),
                             onClick = {
                                 materialViewModel.getAllMaterials()
                                 showMaterialSelector = true
@@ -94,13 +97,14 @@ fun ProtocolPage(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
-                            text = treatment.name ?: "Protocol",
+                            text = treatment.name ?: stringResource(id = R.string.protocols_title),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.SemiBold
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        // Aquí se usa materials.isEmpty() correctamente
                         if (materials.isEmpty()) {
                             EmptyMaterialsState(modifier = Modifier.fillMaxSize())
                         } else {
@@ -129,7 +133,11 @@ fun ProtocolPage(
                     }
                 }
                 is InterfaceGlobal.Error -> {
-                    Text("Error: ${uiState.message}", Modifier.align(Alignment.Center), color = Color.Red)
+                    Text(
+                        stringResource(id = R.string.error_msg_format, uiState.message ?: ""),
+                        Modifier.align(Alignment.Center),
+                        color = Color.Red
+                    )
                 }
                 else -> {}
             }
@@ -162,7 +170,7 @@ fun ProtocolPage(
 
     if (showDeleteDialog && materialToDelete != null) {
         DeleteConfirmationDialog(
-            message = "Estàs segur que vols eliminar ${materialToDelete?.material?.name} d'aquest protocol?",
+            message = stringResource(id = R.string.protocol_delete_confirm, materialToDelete?.material?.name ?: ""),
             onConfirm = {
                 viewModel.deleteMaterialToTreatment(treatmentId, materialToDelete!!.material.id)
                 showDeleteDialog = false
@@ -187,16 +195,16 @@ fun UpdateQuantityDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Editar quantitat") },
+        title = { Text(stringResource(id = R.string.protocol_edit_qty_title)) },
         text = {
             Column {
-                Text("Indica la quantitat necessària per a $materialName:")
+                Text(stringResource(id = R.string.protocol_edit_qty_desc, materialName))
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = quantityText,
                     onValueChange = { if (it.all { char -> char.isDigit() }) quantityText = it },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    label = { Text("Quantitat") },
+                    label = { Text(stringResource(id = R.string.protocol_qty_label)) },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -208,12 +216,12 @@ fun UpdateQuantityDialog(
                     onConfirm(q)
                 }
             ) {
-                Text("Guardar")
+                Text(stringResource(id = R.string.btn_save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel·lar")
+                Text(stringResource(id = R.string.btn_cancel))
             }
         }
     )
@@ -229,7 +237,7 @@ fun MaterialSelectorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Seleccionar Material") },
+        title = { Text(stringResource(id = R.string.protocol_select_material_title)) },
         text = {
             Box(modifier = Modifier.heightIn(max = 400.dp).fillMaxWidth()) {
                 when (materialsState) {
@@ -241,7 +249,7 @@ fun MaterialSelectorDialog(
                             items(materialsState.data) { material ->
                                 ListItem(
                                     headlineContent = { Text(material.name) },
-                                    supportingContent = { Text("Stock: ${material.availableStock}") },
+                                    supportingContent = { Text(stringResource(id = R.string.stock_available, material.availableStock)) },
                                     modifier = Modifier.clickable { onMaterialSelected(material) }
                                 )
                                 HorizontalDivider()
@@ -249,14 +257,14 @@ fun MaterialSelectorDialog(
                         }
                     }
                     is InterfaceGlobal.Error -> {
-                        Text("Error: ${materialsState.message}", color = Color.Red)
+                        Text(stringResource(id = R.string.error_msg_format, materialsState.message ?: ""), color = Color.Red)
                     }
                     else -> {}
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Tancar") }
+            TextButton(onClick = onDismiss) { Text(stringResource(id = R.string.protocol_btn_close)) }
         }
     )
 }
@@ -311,7 +319,7 @@ fun TreatmentMaterialCard(
 
                 val stockColor = if (treatmentMaterial.material.availableStock < treatmentMaterial.quantityRequired) Color.Red else Color(0xFF7A7A7A)
                 Text(
-                    text = "Stock disponible: ${treatmentMaterial.material.availableStock}",
+                    text = stringResource(id = R.string.stock_available, treatmentMaterial.material.availableStock),
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                     color = stockColor
                 )
@@ -320,14 +328,32 @@ fun TreatmentMaterialCard(
     }
 }
 
+// El Empty State con el icono correcto (Assignment) está aquí al final
 @Composable
 private fun EmptyMaterialsState(modifier: Modifier = Modifier) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.Inventory, null, Modifier.size(72.dp), tint = ButtonPrimary)
-            Spacer(Modifier.height(10.dp))
-            Text("No hi ha materials", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text("Afegeix materials per veure'ls aquí.", color = Color.Gray)
-        }
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Assignment,
+            contentDescription = null,
+            modifier = Modifier.size(72.dp),
+            tint = Color(0xFFA0B2C0)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = stringResource(id = R.string.protocol_empty_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Normal,
+            color = Color.Gray
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = stringResource(id = R.string.protocol_empty_desc),
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.LightGray
+        )
     }
 }

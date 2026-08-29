@@ -37,6 +37,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,6 +50,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -109,70 +112,82 @@ fun ListPatientsScreen(
                             .sortedBy { (it.name ?: it.lastName ?: "").uppercase() }
                     }
 
-                    val patients = remember(filteredPatients) {
-                        filteredPatients.groupBy { 
-                            (it.name ?: it.lastName ?: "?").first().uppercaseChar() 
-                        }
-                    }
-
-                    val lastPatientId = remember(filteredPatients) {
-                        filteredPatients.lastOrNull()?.id
-                    }
-
-                    val firstPatientId = remember(filteredPatients) {
-                        filteredPatients.firstOrNull()?.id
-                    }
-
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
-                        contentPadding = PaddingValues(bottom = 24.dp)
-                    ) {
-                        patients.forEach { (initial, patientList) ->
-                            item { CharacterHeader(initial) }
-
-
-                            items(patientList, key = { it.id ?: 0L }) { patient ->
-
-                                if (patient.id == lastPatientId) {
-                                    LaunchedEffect(patient.id) {
-                                        android.util.Log.d("Pagination", ">>> S'ha arribat al final de la llista (ID: ${patient.id}). Disparant carga...")
-                                        viewModel.loadNextPage()
-                                    }
-                                }
-
-                                val isFirstElement = (patient.id == firstPatientId)
-                                SwipeToDeleteContainer(
-                                    enableHintAnimation = isFirstElement,
-                                    hintAlreadyShown = viewModel.isDeleteHintShown,
-                                    onHintShown = { viewModel.isDeleteHintShown = true },
-                                    onDelete = {
-                                        patientToDelete = patient.id
-                                        showDeleteDialog = true
-                                    }
-                                ) {
-                                    PatientItem(
-                                        patient = patient,
-                                        onClick = { selectedPatient ->
-                                            selectedPatient.id?.let { onNavigateToPatientProfile(it) }
-                                        }
-                                    )
-                                }
+                    // Si la lista está vacía, mostramos el nuevo Empty State
+                    if (filteredPatients.isEmpty()) {
+                        EmptyPatientsState(modifier = Modifier.weight(1f).fillMaxWidth())
+                    } else {
+                        val patients = remember(filteredPatients) {
+                            filteredPatients.groupBy {
+                                (it.name ?: it.lastName ?: "?").first().uppercaseChar()
                             }
                         }
 
-                        if (viewModel.isFetching) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp),
-                                        color = ButtonPrimary
-                                    )
+                        val lastPatientId = remember(filteredPatients) {
+                            filteredPatients.lastOrNull()?.id
+                        }
+
+                        val firstPatientId = remember(filteredPatients) {
+                            filteredPatients.firstOrNull()?.id
+                        }
+
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                            contentPadding = PaddingValues(bottom = 24.dp)
+                        ) {
+                            patients.forEach { (initial, patientList) ->
+                                item { CharacterHeader(initial) }
+
+
+                                items(patientList, key = { it.id ?: 0L }) { patient ->
+
+                                    if (patient.id == lastPatientId) {
+                                        LaunchedEffect(patient.id) {
+                                            android.util.Log.d(
+                                                "Pagination",
+                                                ">>> S'ha arribat al final de la llista (ID: ${patient.id}). Disparant carga..."
+                                            )
+                                            viewModel.loadNextPage()
+                                        }
+                                    }
+
+                                    val isFirstElement = (patient.id == firstPatientId)
+                                    SwipeToDeleteContainer(
+                                        enableHintAnimation = isFirstElement,
+                                        hintAlreadyShown = viewModel.isDeleteHintShown,
+                                        onHintShown = { viewModel.isDeleteHintShown = true },
+                                        onDelete = {
+                                            patientToDelete = patient.id
+                                            showDeleteDialog = true
+                                        }
+                                    ) {
+                                        PatientItem(
+                                            patient = patient,
+                                            onClick = { selectedPatient ->
+                                                selectedPatient.id?.let {
+                                                    onNavigateToPatientProfile(
+                                                        it
+                                                    )
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (viewModel.isFetching) {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            color = ButtonPrimary
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -180,37 +195,27 @@ fun ListPatientsScreen(
                 }
 
                 is InterfaceGlobal.Error -> {
-                    ErrorScreenWithImage(
-                        message = uiState.message ?: "No s'han pogut carregar els pacients",
-                        modifier = Modifier.weight(1f)
-                    )
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = uiState.message ?: stringResource(R.string.patients_empty_list),
+                            color = Color.Red,
+                            fontSize = 16.sp
+                        )
+                    }
                 }
 
                 InterfaceGlobal.NotFound -> {
-                    ErrorScreenWithImage(
-                        message = "No hi ha pacients registrats.",
-                        modifier = Modifier.weight(1f)
-                    )
+                    EmptyPatientsState(modifier = Modifier.weight(1f).fillMaxWidth())
                 }
             }
         }
     }
-
-    if (showDeleteDialog) {
-        DeleteConfirmationDialog(
-            message = "¿Estàs segur que vols eliminar aquest pacient?",
-            onConfirm = {
-                patientToDelete?.let { id -> viewModel.deletePatient(id) }
-                showDeleteDialog = false
-                patientToDelete = null
-            },
-            onDismiss = {
-                showDeleteDialog = false
-                patientToDelete = null
-            }
-        )
-    }
 }
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -221,7 +226,8 @@ fun SearchPatientBar(
     val query = textFieldState.text.toString()
 
     LaunchedEffect(query) {
-        if (query.isNotEmpty()) {
+        kotlinx.coroutines.delay(300)
+        if (query.isNotBlank()) {
             viewModel.searchPatients(query)
         } else {
             viewModel.getPatients()
@@ -238,7 +244,7 @@ fun SearchPatientBar(
                 onSearch = {},
                 expanded = false,
                 onExpandedChange = {},
-                placeholder = { Text("Busca pacients…") },
+                placeholder = { Text(stringResource(R.string.patients_search_placeholder)) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }
             )
         },
@@ -272,7 +278,7 @@ fun PatientsTopBar(
         modifier = Modifier.fillMaxWidth()
     ) {
         CustomTopBar(
-            title = "Llista de Pacients",
+            title = stringResource(R.string.patients_topbar_title),
             onNavigateBack = onNavigateBack,
             modifier = Modifier.align(Alignment.CenterStart)
         )
@@ -299,6 +305,28 @@ fun CharacterHeader(initial: Char) {
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp,
             color = ButtonPrimary
+        )
+    }
+}
+@Composable
+private fun EmptyPatientsState(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Group, // Icono de múltiples personas
+            contentDescription = null,
+            modifier = Modifier.size(72.dp),
+            tint = Color(0xFFA0B2C0) // Color gris azulado para seguir el estilo
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "No registered patients.", // Puedes cambiarlo a stringResource(R.string...)
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Normal,
+            color = Color.Gray
         )
     }
 }
@@ -391,7 +419,7 @@ fun PatientItem(
                     }
                 }
 
-                // --- 3. Si está limpio (Sin alertas) ---
+
                 if (!hasInfections && !hasAllergies) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -402,7 +430,7 @@ fun PatientItem(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Sense alertes mèdiques",
+                            text = stringResource(R.string.patients_no_alerts),
                             color = Color(0xFF388E3C),
                             fontSize = 12.sp
                         )
@@ -410,5 +438,7 @@ fun PatientItem(
                 }
             }
         }
+
     }
+
 }

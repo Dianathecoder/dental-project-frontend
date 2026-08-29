@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -29,6 +30,8 @@ import com.example.dynalar_frontend_v1.ui.components.Navegate_Button
 import com.example.dynalar_frontend_v1.ui.components.SwipeToDeleteContainer
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.viewmodel.BoxViewModel
+import com.example.dynalar_frontend_v1.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun BoxPage(
@@ -52,13 +55,13 @@ fun BoxPage(
                 .fillMaxSize()
         ) {
             CustomTopBar(
-                title = "Gestió de Boxes",
+                title = stringResource(id = R.string.box_title),
                 onNavigateBack = onBack,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
             Navegate_Button(
-                text = "Afegir Box",
+                text = stringResource(id = R.string.box_add_btn),
                 onClick = { showAddDialog = true },
                 modifier = Modifier
                     .align(Alignment.End)
@@ -132,7 +135,7 @@ fun BoxPage(
 
     if (showDeleteDialog && boxToDelete != null) {
         DeleteConfirmationDialog(
-            message = "Estàs segur que vols eliminar el box número ${boxToDelete?.number}?",
+            message = stringResource(id = R.string.box_delete_confirm, boxToDelete?.number ?: 0),
             onConfirm = {
                 boxToDelete?.number?.let { viewModel.deleteBox(it) }
                 showDeleteDialog = false
@@ -149,11 +152,11 @@ fun BoxPage(
     if (errorMessage != null) {
         AlertDialog(
             onDismissRequest = { viewModel.clearError() },
-            title = { Text("Avís") },
+            title = { Text(stringResource(R.string.dialog_notice)) },
             text = { Text(errorMessage) },
             confirmButton = {
                 TextButton(onClick = { viewModel.clearError() }) {
-                    Text("D'acord")
+                    Text(stringResource(R.string.dialog_ok))
                 }
             }
         )
@@ -224,10 +227,10 @@ fun CreateBoxDialog(onDismiss: () -> Unit, onConfirm: (Long) -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nou Box") },
+        title = { Text(stringResource(id = R.string.box_new_dialog_title))},
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Introdueix el número del nou box de la clínica:")
+                Text(stringResource(id = R.string.box_new_dialog_msg))
                 OutlinedTextField(
                     value = numberText,
                     onValueChange = { if (it.all { char -> char.isDigit() }) numberText = it },
@@ -243,12 +246,12 @@ fun CreateBoxDialog(onDismiss: () -> Unit, onConfirm: (Long) -> Unit) {
                 onClick = { numberText.toLongOrNull()?.let { onConfirm(it) } },
                 enabled = numberText.isNotBlank()
             ) {
-                Text("Crear")
+                Text(stringResource(id = R.string.btn_create))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel·lar")
+                Text(stringResource(id = R.string.btn_cancel))
             }
         }
     )
@@ -269,7 +272,7 @@ private fun EmptyBoxesState(modifier: Modifier = Modifier) {
         )
         Spacer(modifier = Modifier.height(10.dp))
         Text(
-            text = "No hi ha boxes configurats",
+            text = stringResource(R.string.box_empty),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             color = Color.Gray

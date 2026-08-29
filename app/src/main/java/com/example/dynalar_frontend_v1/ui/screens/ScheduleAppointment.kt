@@ -11,11 +11,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.Treatment
 import com.example.dynalar_frontend_v1.model.patient.Patient
@@ -54,7 +56,6 @@ fun ScheduleAppointmentPage(
     var selectedPatient by remember { mutableStateOf<Patient?>(null) }
     var description by remember { mutableStateOf("") }
 
-    // --- ESTADO PARA ADVERTENCIA DE ENFERMEDADES ---
     var showInfectionWarning by remember { mutableStateOf(false) }
     var hasAcceptedInfectionWarning by remember { mutableStateOf(false) }
 
@@ -69,9 +70,10 @@ fun ScheduleAppointmentPage(
     if (showInfectionWarning) {
         AlertDialog(
             onDismissRequest = { showInfectionWarning = false },
-            title = { Text("Avís Mèdic", fontWeight = FontWeight.Bold, color = Color.Red) },
+            title = { Text(stringResource(R.string.appointment_warning_title), fontWeight = FontWeight.Bold, color = Color.Red) },
             text = {
-                Text("Aquest pacient té registrades malalties infeccioses: ${selectedPatient?.medicalRecord?.infectiousDeceases}. \n\nSi us plau, prengui les mesures de seguretat necessàries.")
+                val infections = selectedPatient?.medicalRecord?.infectiousDeceases ?: ""
+                Text(stringResource(R.string.appointment_warning_msg, infections))
             },
             confirmButton = {
                 Button(
@@ -81,7 +83,7 @@ fun ScheduleAppointmentPage(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = ButtonPrimary)
                 ) {
-                    Text("Entès")
+                    Text(stringResource(R.string.btn_understood))
                 }
             }
         )
@@ -95,8 +97,7 @@ fun ScheduleAppointmentPage(
                 val canConfirm = selectedPatient != null && selectedTreatment != null && !isLoading
 
                 Navegate_Button(
-                    text = if (isLoading) "Assignant..." else "Confirmar Cita",
-                    onClick = {
+                    text = if (isLoading) stringResource(R.string.appointment_assigning) else stringResource(R.string.appointment_confirm_btn),                    onClick = {
                         if (!canConfirm) return@Navegate_Button
 
                         val hasInfections = !selectedPatient?.medicalRecord?.infectiousDeceases.isNullOrBlank()
@@ -121,7 +122,7 @@ fun ScheduleAppointmentPage(
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).verticalScroll(rememberScrollState())) {
-            CustomTopBar(title = "Nova Cita", onNavigateBack = onBackClick)
+            CustomTopBar(title = stringResource(R.string.appointment_new_title), onNavigateBack = onBackClick)
 
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                 AppointmentFormContent(

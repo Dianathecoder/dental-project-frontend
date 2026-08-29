@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -92,14 +93,14 @@ fun RegisterPage(
 
         Image(
             painter = painterResource(id = R.drawable.general_logo),
-            contentDescription = "Logo",
+            contentDescription = stringResource(id = R.string.app_name),
             modifier = Modifier.size(130.dp)
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Crear compte",
+            text = stringResource(id = R.string.register_title),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF2C2C2C)
@@ -107,42 +108,41 @@ fun RegisterPage(
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // Nom — usa el componente InputFieldEditable del proyecto
         InputFieldEditable(
-            label = "Nom",
+            label = stringResource(id = R.string.register_name_label),
             value = name,
             onValueChange = { name = it },
-            placeholder = "El teu nom"
+            placeholder = stringResource(id = R.string.register_name_placeholder)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // Cognoms
         InputFieldEditable(
-            label = "Cognoms",
+            label = stringResource(id = R.string.register_surname_label),
             value = surname,
             onValueChange = { surname = it },
-            placeholder = "Els teus cognoms"
+            placeholder = stringResource(id = R.string.register_surname_placeholder)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // Email
         InputFieldEditable(
-            label = "Email",
+            label = stringResource(id = R.string.register_email_label),
             value = email,
             onValueChange = { email = it },
-            placeholder = "correu@exemple.com"
+            placeholder = stringResource(id = R.string.register_email_placeholder)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // Contrasenya — necesita el ojo, usamos OutlinedCard + BasicTextField igual que InputFieldEditable
         PasswordField(
-            label = "Contrasenya",
+            label = stringResource(id = R.string.register_password_label),
             value = password,
             onValueChange = { password = it },
-            placeholder = "Mínim 8 caràcters",
+            placeholder = stringResource(id = R.string.register_password_placeholder),
             visible = passwordVisible,
             onToggleVisibility = { passwordVisible = !passwordVisible }
         )
@@ -151,10 +151,10 @@ fun RegisterPage(
 
         // Confirmar contrasenya
         PasswordField(
-            label = "Confirmar contrasenya",
+            label = stringResource(id = R.string.register_confirm_password_label),
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
-            placeholder = "Repeteix la contrasenya",
+            placeholder = stringResource(id = R.string.register_confirm_password_placeholder),
             visible = confirmPasswordVisible,
             onToggleVisibility = { confirmPasswordVisible = !confirmPasswordVisible }
         )
@@ -164,7 +164,7 @@ fun RegisterPage(
         // Error del backend
         if (authUiState is InterfaceGlobal.Error) {
             Text(
-                text = (authUiState as InterfaceGlobal.Error).message ?: "Error desconegut",
+                text = (authUiState as InterfaceGlobal.Error).message ?: stringResource(id = R.string.register_error_unknown),
                 color = Color.Red,
                 fontSize = 14.sp,
                 modifier = Modifier.fillMaxWidth()
@@ -173,18 +173,21 @@ fun RegisterPage(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Botón principal — usa Navegate_Button igual que el resto del proyecto
+        val msgEmpty = stringResource(id = R.string.register_toast_empty_fields)
+        val msgMismatch = stringResource(id = R.string.register_toast_password_mismatch)
+        val msgLength = stringResource(id = R.string.register_toast_password_length)
+
         Navegate_Button(
-            text = "Registrar-se",
+            text = stringResource(id = R.string.register_btn_submit),
             isLoading = authUiState is InterfaceGlobal.Loading,
             onClick = {
                 when {
                     name.isBlank() || surname.isBlank() || email.isBlank() || password.isBlank() ->
-                        Toast.makeText(context, "Omple tots els camps", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, msgEmpty, Toast.LENGTH_SHORT).show()
                     password != confirmPassword ->
-                        Toast.makeText(context, "Les contrasenyes no coincideixen", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, msgMismatch, Toast.LENGTH_SHORT).show()
                     password.length < 8 ->
-                        Toast.makeText(context, "La contrasenya ha de tenir mínim 8 caràcters", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, msgLength, Toast.LENGTH_SHORT).show()
                     else -> viewModel.register(name.trim(), surname.trim(), email.trim(), password)
                 }
             }
@@ -194,18 +197,20 @@ fun RegisterPage(
 
         // Enlace para volver al login
         TextButton(onClick = onNavigateToLogin) {
-            Text(
-                text = "Ja tens compte? Inicia sessió",
-                color = Color(0xFF537895),
-                fontSize = 14.sp
-            )
-        }
+            TextButton(onClick = onNavigateToLogin) {
+                Text(
+                    text = stringResource(id = R.string.register_already_have_account),
+                    color = Color(0xFF537895),
+                    fontSize = 14.sp
+                )
+            }
 
         Spacer(modifier = Modifier.height(48.dp))
     }
 }
+    }
 
-// Campo de contrasenya con ojo — mismo estilo que OutlinedCard de InputFieldEditable
+// Campo de contrasenya con ojo
 @Composable
 private fun PasswordField(
     label: String,
@@ -251,7 +256,7 @@ private fun PasswordField(
                     textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(end = 40.dp), // espacio para el icono
+                        .padding(end = 40.dp),
                     decorationBox = { innerTextField ->
                         Box(contentAlignment = Alignment.CenterStart) {
                             if (value.isEmpty()) {
@@ -262,7 +267,7 @@ private fun PasswordField(
                     }
                 )
 
-                // Icono del ojo alineado a la derecha
+
                 IconButton(
                     onClick = onToggleVisibility,
                     modifier = Modifier

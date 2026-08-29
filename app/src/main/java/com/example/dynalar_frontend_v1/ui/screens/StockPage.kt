@@ -14,11 +14,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.components.DeleteConfirmationDialog
@@ -41,8 +43,7 @@ fun StockPage(
 
     Scaffold(
         topBar = {
-            CustomTopBar(title = "Detall del Material", onNavigateBack = onBack)
-        }
+            CustomTopBar(title = stringResource(R.string.stock_detail_title), onNavigateBack = onBack)        }
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -94,11 +95,11 @@ fun StockPage(
                                 modifier = Modifier.padding(16.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
-                                Text("Gestió d'Estoc", fontWeight = FontWeight.SemiBold, color = ButtonPrimary)
+                                Text(stringResource(R.string.stock_management), fontWeight = FontWeight.SemiBold, color = ButtonPrimary)
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp) // Espaciado ajustado
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                                 ) {
                                     IconButton(
                                         onClick = {
@@ -147,7 +148,6 @@ fun StockPage(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // El botón de actualizar se mantiene igual, usará el 'tempStock' convertido a Int
                         Button(
                             onClick = {
                                 val diff = tempStock - material.availableStock
@@ -164,14 +164,12 @@ fun StockPage(
                                 containerColor = if (hasChanged) ButtonPrimary else Color.LightGray
                             )
                         ) {
-                            Text("Actualitzar Estoc")
-                        }
+                            Text(stringResource(R.string.stock_alert_low), color = Color.Red, fontSize = 13.sp)                        }
 
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            InfoCard(label = "Estoc Mínim", value = material.minimumStock.toString(), modifier = Modifier.weight(1f))
-                        }
+                            InfoCard(label = stringResource(R.string.stock_min_label), value = material.minimumStock.toString(), modifier = Modifier.weight(1f))                        }
 
                         if (tempStock <= material.minimumStock) {
                             Spacer(modifier = Modifier.height(24.dp))
@@ -182,8 +180,7 @@ fun StockPage(
                                 Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.Default.Warning, null, tint = Color.Red, modifier = Modifier.size(20.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Alerta: Estoc sota el mínim requerit.", color = Color.Red, fontSize = 13.sp)
-                                }
+                                    Text(stringResource(R.string.stock_alert_low), color = Color.Red, fontSize = 13.sp)                                }
                             }
                         }
 
@@ -197,19 +194,17 @@ fun StockPage(
                         ) {
                             Icon(Icons.Default.Delete, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Eliminar Material")
-                        }
+                            Text(stringResource(R.string.btn_delete_material))                        }
                     }
                 }
-                is InterfaceGlobal.Error -> Text("Error: ${uiState.message}", Modifier.align(Alignment.Center), color = Color.Red)
-                else -> {}
+                is InterfaceGlobal.Error -> Text(stringResource(R.string.error_msg_format, uiState.message ?: ""), Modifier.align(Alignment.Center), color = Color.Red)                else -> {}
             }
         }
     }
 
     if (showDeleteDialog) {
         DeleteConfirmationDialog(
-            message = "Estàs segur que vols eliminar aquest material?",
+            message = stringResource(R.string.stock_delete_confirm),
             onConfirm = {
                 viewModel.deleteMaterial(materialId)
                 showDeleteDialog = false

@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App & Generales -->
+    <string name="app_name">Dynalar</string>
+    <string name="btn_save">Guardar</string>
+    <string name="btn_cancel">Cancelar</string>
+    <string name="btn_delete">Eliminar</string>
+    <string name="btn_create">Crear</string>
+    <string name="btn_accept">Aceptar</string>
+    <string name="dialog_notice">Aviso</string>
+    <string name="dialog_ok">De acuerdo</string>
+    <string name="dialog_confirm_delete_title">Confirmación de borrado</string>
+
+    <!-- Autenticación -->
+    <string name="login_email_label">Email</string>
+    <string name="login_email_placeholder">correo@ejemplo.com</string>
+    <string name="login_password_label">Contraseña</string>
+    <string name="login_password_placeholder">Tu contraseña</string>
+    <string name="login_forgot_password">¿Has olvidado tu contraseña?</string>
+    <string name="login_button">Iniciar sesión</string>
+    <string name="login_register_prompt">¿No tienes cuenta? Regístrate</string>
+    <string name="login_or_continue">o continúa con</string>
+    <string name="login_continue_google">Continúa con Google</string>
+    <string name="login_welcome_title">¡Bienvenido/a a Dynalar!</string>
+    <string name="login_welcome_greeting">¡Hola, %1$s!</string>
+    <string name="login_welcome_msg">Has iniciado sesión correctamente con Google.\nYa puedes gestionar tu clínica dental.</string>
+    <string name="login_start_btn">Empezar</string>
+    <string name="register_title">Crear cuenta</string>
+    <string name="register_name">Nombre</string>
+    <string name="register_surname">Apellidos</string>
+    <string name="register_confirm_password">Confirmar contraseña</string>
+    <string name="register_btn">Registrarse</string>
+    <string name="register_has_account">¿Ya tienes cuenta? Inicia sesión</string>
+
+    <!-- Pantalla Principal (HomePage) -->
+    <string name="home_my_profile">Mi Perfil</string>
+    <string name="home_user">Usuario</string>
+    <string name="home_citas_today_one">Tienes 1 cita hoy</string>
+    <string name="home_citas_today_many">Tienes %1$d citas hoy</string>
+    <string name="home_next_appointment_title">Próxima Cita</string>
+    <string name="home_no_more_appointments">No tienes más citas hoy</string>
+    <string name="home_completed_workday">Has completado tu jornada.</string>
+    <string name="home_unspecified">Sin especificar</string>
+    <string name="home_unknown_patient">Desconocido</string>
+    <string name="home_view_summary">Ver resumen</string>
+    <string name="home_view_profile">Ver perfil</string>
+    <string name="home_prev_month">Mes anterior</string>
+    <string name="home_next_month">Mes siguiente</string>
+    <string name="home_btn_patients">Pacientes</string>
+    <string name="home_btn_agenda">Agenda</string>
+    <string name="home_btn_management">Gestión</string>
+
+    <!-- Pacientes & Perfil -->
+    <string name="patients_topbar_title">Lista de Pacientes</string>
+    <string name="patients_search_placeholder">Buscar pacientes…</string>
+    <string name="patients_no_alerts">Sin alertas médicas</string>
+    <string name="patients_empty_list">No hay pacientes registrados.</string>
+    <string name="patients_delete_confirm">¿Estás seguro de que quieres eliminar a este paciente?</string>
+    <string name="patient_profile_title">Perfil del Paciente</string>
+    <string name="patient_profile_treatments">Citas / Tratamientos</string>
+    <string name="patient_profile_empty_treatments">No hay tratamientos registrados</string>
+    <string name="patient_allergies_prefix">Alergias: %1$s</string>
+    <string name="patient_infectious_prefix">Infecciosas: %1$s</string>
+    <string name="files_unknown_type">Tipo desconocido</string>
+    <string name="files_file_default_name">Archivo</string>
+    <string name="files_yes_delete">Sí, eliminar</string>
+
+    <!-- Formulario Paciente & Historial -->
+    <string name="patient_new_title">Nuevo Paciente</string>
+    <string name="patient_edit_title">Editar Paciente</string>
+    <string name="patient_medical_history_title">Historial Médico</string>
+    <string name="patient_tab_info">Información</string>
+    <string name="patient_tab_history">Historial Clínico</string>
+    <string name="patient_sex">Sexo</string>
+    <string name="patient_sex_male">Hombre</string>
+    <string name="patient_sex_female">Mujer</string>
+    <string name="patient_phone">Teléfono</string>
+    <string name="patient_family_history">Historial Familiar</string>
+    <string name="patient_dental_conditions">Condiciones Dentales</string>
+    <string name="patient_medication">Medicación</string>
+    <string name="patient_allergies">Alergias</string>
+    <string name="patient_infectious_diseases">Enfermedades Infecciosas</string>
+    <string name="patient_save_continue">Guardar y Continuar</string>
+    <string name="patient_save_changes">Guardar Cambios</string>
+    <string name="patient_no_data">Sin datos registrados</string>
+
+    <!-- Validaciones -->
+    <string name="validation_fill_all_fields">Por favor, rellena todos los campos</string>
+    <string name="validation_invalid_email">Correo electrónico inválido</string>
+    <string name="validation_invalid_phone">Formato de teléfono inválido (deben ser 9 dígitos)</string>
+    <string name="validation_invalid_dni">Formato de DNI o NIE inválido</string>
+
+    <!-- Firmas & Consentimientos -->
+    <string name="medical_history_title">Historial Médico</string>
+    <string name="consent_anesthesia_title">Consentimiento Anestesia</string>
+    <string name="consent_anesthesia_label">Consentimiento Anestesia:</string>
+    <string name="consent_history_title">Confirmación de Historial</string>
+    <string name="consent_history_label">Confirmación de datos:</string>
+    <string name="consent_history_msg">El paciente confirma que los datos del historial médico, enfermedades y alergias revisadas son correctos.</string>
+    <string name="signature_saved_success">Firma guardada correctamente</string>
+    <string name="label_family_history">Historial Familiar</string>
+    <string name="label_diseases">Enfermedades y Condiciones</string>
+    <string name="label_medication">Medicación</string>
+    <string name="label_allergies">Alergias</string>
+    <string name="label_infectious_diseases">Enfermedades Infecciosas</string>
+    <string name="btn_add_signature">Añadir Firma</string>
+    <string name="no_data_registered">Sin datos registrados</string>
+
+    <!-- Placeholders Formulario Mèdico -->
+    <string name="placeholder_family_history">Ej: Observaciones...</string>
+    <string name="placeholder_dental_conditions">Ej: Dolor de muelas...</string>
+    <string name="placeholder_medication">Paracetamol, Ibuprofeno, etc.</string>
+    <string name="placeholder_allergies">Ej: Penicilina, Látex...</string>
+    <string name="placeholder_infectious_diseases">Hepatitis, VIH, etc.</string>
+
+    <!-- Archivos Paciente -->
+    <string name="files_title">Archivos del paciente</string>
+    <string name="files_upload_btn">Subir archivo</string>
+    <string name="files_empty_title">Aún no hay archivos</string>
+    <string name="files_empty_subtitle">Añade imágenes o documentos para verlos aquí.</string>
+    <string name="files_delete_confirm">¿Estás seguro de que quieres eliminar este archivo? Esta acción no se puede deshacer.</string>
+    <string name="files_accept_save">Aceptar y guardar</string>
+
+    <!-- Boxes -->
+    <string name="box_title">Gestión de Boxes</string>
+    <string name="box_add_btn">Añadir Box</string>
+    <string name="box_empty">No hay boxes configurados</string>
+    <string name="box_new_dialog_title">Nuevo Box</string>
+    <string name="box_new_dialog_msg">Introduce el número del nuevo box de la clínica:</string>
+    <string name="box_delete_confirm">¿Estás seguro de que quieres eliminar el box número %1$s?</string>
+
+    <!-- Calendario & Citas -->
+    <string name="calendar_title">Calendario</string>
+    <string name="calendar_today">Hoy</string>
+    <string name="calendar_add_appointment">Añadir cita</string>
+    <string name="appointment_new_title">Nueva Cita</string>
+    <string name="appointment_summary_title">Resumen de la visita</string>
+    <string name="appointment_confirm_btn">Confirmar Cita</string>
+    <string name="appointment_warning_title">Aviso Médico</string>
+    <string name="appointment_view_summary">Ver Resumen Cita</string>
+
+    <!-- Odontograma -->
+    <string name="odontogram_title">Odontograma</string>
+    <string name="odontogram_see_entries">Ver Registros</string>
+    <string name="odontogram_no_entries">No hay registros guardados</string>
+    <string name="odontogram_quadrant_1">Superior Derecho</string>
+    <string name="odontogram_quadrant_2">Superior Izquierdo</string>
+    <string name="odontogram_quadrant_3">Inferior Izquierdo</string>
+    <string name="odontogram_quadrant_4">Inferior Derecho</string>
+    <string name="tooth_title">Diente número %1$d</string>
+    <string name="tooth_select_prompt">Selecciona un diente</string>
+    <string name="tooth_entire">Escoger Diente Completo (COMPLETO)</string>
+
+    <!-- Gestión, Inventario y Protocolos -->
+    <string name="management_title">Gestión</string>
+    <string name="stock_title">Stock de Materiales</string>
+    <string name="stock_add_btn">Añadir Material</string>
+    <string name="stock_available">Stock disponible: %1$d</string>
+    <string name="stock_min_alert">Alerta: Stock bajo el mínimo requerido.</string>
+    <string name="stock_update_btn">Actualizar Stock</string>
+    <string name="protocols_title">Protocolos</string>
+    <string name="protocol_detail_title">Detalles del Protocolo</string>
+    <string name="protocol_add_material">Añadir material</string>
+
+    <string name="patient_update_success">Cambios guardados correctamente</string>
+    <string name="patient_dni">DNI / NIE</string>
+    <string name="patient_dni_placeholder">12345678X</string>
+    <string name="protocols_not_found">No se han encontrado protocolos.</string>
+    <string name="protocol_unspecified_name">Sin nombre</string>
+    <string name="error_msg_format">Error: %1$s</string>
+    <string name="material_new_title">Nuevo Material</string>
+    <string name="material_name_label">Nombre</string>
+    <string name="material_min_stock_label">Stock mínimo</string>
+    <string name="box_label">Box</string>
+    <string name="management_box_subtitle">Gestión de Boxes</string>
+    <string name="management_stock_subtitle">Gestión de inventario stock</string>
+    <string name="management_protocol_subtitle">Materiales de dentista</string>
+    <!-- Odontograma (Nuevas) -->
+    <string name="btn_retry">Reintentar</string>
+    <string name="odontogram_view_vertical">Ver verticalmente</string>
+    <string name="odontogram_view_full">Ver completo</string>
+    <string name="odontogram_records_title">Registros</string>
+    <string name="odontogram_delete_entry_msg">¿Seguro que quieres borrar este registro?</string>
+    <string name="odontogram_unknown_process">Proceso desconocido</string>
+    <string name="odontogram_surface_label">Superficie: %1$s</string>
+    <string name="odontogram_status_done">Hecho</string>
+    <string name="odontogram_status_pending">Por hacer</string>
+    <string name="odontogram_quadrant_dynamic">Cuadrante %1$s</string>
+    <string name="odontogram_symbol_ort">ORT</string>
+    <string name="odontogram_symbol_e">E</string>
+    <!-- Subida de Archivos -->
+    <string name="upload_error_default">No se han podido subir los archivos</string>
+    <string name="upload_selected_count">Seleccionados (%1$d)</string>
+    <string name="upload_source_title">Selecciona origen</string>
+    <string name="upload_source_desc">Puedes subir desde galería o documentos.</string>
+    <string name="upload_gallery">Galería</string>
+    <string name="upload_documents">Documentos</string>
+
+    <!-- Perfil del Paciente (PatientProfilePage) -->
+
+    <string name="patient_profile_treatment_default">Tratamiento</string>
+    <string name="patient_profile_no_date">Sin fecha</string>
+    <string name="patient_profile_at_time">a las</string>
+
+    <!-- Detalles de Protocolo (ProtocolPage) -->
+
+    <string name="protocol_delete_confirm">¿Estás seguro de que quieres eliminar %1$s de este protocolo?</string>
+    <string name="protocol_edit_qty_title">Editar cantidad</string>
+    <string name="protocol_edit_qty_desc">Indica la cantidad necesaria para %1$s:</string>
+    <string name="protocol_qty_label">Cantidad</string>
+    <string name="protocol_select_material_title">Seleccionar Material</string>
+    <string name="protocol_btn_close">Cerrar</string>
+    <string name="protocol_qty_value">Cantidad: %1$d</string>
+
+    <string name="protocol_empty_title">No hay materiales</string>
+    <string name="protocol_empty_desc">Añade materiales para verlos aquí.</string>
+    <!-- Registro (RegisterPage) -->
+    <string name="register_name_label">Nombre</string>
+    <string name="register_name_placeholder">Tu nombre</string>
+    <string name="register_surname_label">Apellidos</string>
+    <string name="register_surname_placeholder">Tus apellidos</string>
+    <string name="register_email_label">Email</string>
+    <string name="register_email_placeholder">correo@ejemplo.com</string>
+    <string name="register_password_label">Contraseña</string>
+    <string name="register_password_placeholder">Mínimo 8 caracteres</string>
+    <string name="register_confirm_password_label">Confirmar contraseña</string>
+    <string name="register_confirm_password_placeholder">Repite la contraseña</string>
+    <string name="register_error_unknown">Error desconocido</string>
+    <string name="register_btn_submit">Registrarse</string>
+    <string name="register_toast_empty_fields">Rellena todos los campos</string>
+    <string name="register_toast_password_mismatch">Las contraseñas no coinciden</string>
+    <string name="register_toast_password_length">La contraseña debe tener mínimo 8 caracteres</string>
+    <string name="register_already_have_account">¿Ya tienes cuenta? Inicia sesión</string>
+
+    <!-- Resumen de cita (ResumeDateScreen) -->
+    <!-- Detalles de Cita -->
+    <string name="appointment_date_label">Fecha:</string>
+    <string name="appointment_time_label">Horario:</string>
+    <string name="appointment_time_to">a</string>
+    <string name="appointment_treatment_label">Tratamiento:</string>
+    <string name="appointment_none">Ninguno</string>
+    <string name="appointment_notes_label">Observaciones:</string>
+    <string name="appointment_no_notes">Ninguna observación</string>
+    <string name="appointment_delete_title">Eliminar cita</string>
+    <string name="appointment_delete_msg">¿Estás seguro de que quieres eliminar esta cita? Esta acción no se puede deshacer.</string>
+    <string name="appointment_details_title">Detalles de la Cita</string>
+    <!-- Nueva Cita (ScheduleAppointmentPage) -->
+    <string name="appointment_warning_msg">Este paciente tiene registradas enfermedades infecciosas: %1$s.\n\nPor favor, tome las medidas de seguridad necesarias.</string>
+    <string name="btn_understood">Entendido</string>
+    <string name="appointment_assigning">Asignando...</string>
+    <!-- Detalle de Stock (StockPage) -->
+    <string name="stock_detail_title">Detalle del Material</string>
+    <string name="stock_management">Gestión de Stock</string>
+    <string name="btn_subtract">Restar</string>
+    <string name="btn_add">Sumar</string>
+    <string name="btn_update_stock">Actualizar Stock</string>
+    <string name="stock_min_label">Stock Mínimo</string>
+    <string name="stock_alert_low">Alerta: Stock por debajo del mínimo requerido.</string>
+    <string name="btn_delete_material">Eliminar Material</string>
+    <string name="stock_delete_confirm">¿Estás seguro de que quieres eliminar este material?</string>
+    <!-- Detalle Diente (ToothPage) -->
+    <string name="tooth_page_title">Diente número %1$d</string>
+    <string name="tooth_select_full">Elegir Diente Completo (COMPLETO)</string>
+    <string name="tooth_register_process">Registrar Proceso</string>
+    <string name="tooth_surface_selected">Superficie: %1$s</string>
+    <string name="tooth_select_process">Seleccione un Proceso:</string>
+    <string name="tooth_process_status">Estado del Proceso:</string>
+    <string name="tooth_status_pending">POR HACER</string>
+    <string name="tooth_status_done">HECHO</string>
+    <string name="tooth_save_process">Guardar Proceso</string>
+    <string name="tooth_see_records">Ver Registros</string>
+    <string name="tooth_replace_title">Confirmación de reemplazo</string>
+    <string name="tooth_replace_desc">Ya existe un registro para la superficie %1$s de este diente. ¿Estás seguro de que quieres reemplazarlo?</string>
+    <string name="btn_replace">Reemplazar</string>
+    <string name="tooth_dropdown_placeholder">Elige una opción</string>
+    <!-- Perfil de Usuario (UserProfilePage) -->
+    <string name="role_admin">Administrador</string>
+    <string name="role_user">Usuario</string>
+    <string name="profile_picture_desc">Foto de perfil</string>
+    <string name="user_name_label">Nombre</string>
+    <string name="user_surname_label">Apellidos</string>
+    <string name="user_email_label">Correo electrónico</string>
+    <!-- Pantalla de Error (ErrorScreenWithImage) -->
+    <string name="error_unexpected_default">Ocurrió un error inesperado</string>
+    <string name="error_page_title">Página de Error</string>
+    <string name="error_image_desc">Error</string>
+    <!-- Error de Conexión -->
+    <string name="error_connection_title">Error de conexión</string>
+    <string name="error_connection_desc">Comprueba tu conexión a internet e inténtalo de nuevo.</string>
+    <string name="language_label">Idioma</string>
+
+    <string name="web_client_id">237928135138-2u59spbose7pkmnb8cm7oeqhci23akpk.apps.googleusercontent.com</string>
+</resources>

@@ -13,10 +13,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.Appointment
 import com.example.dynalar_frontend_v1.ui.components.AppointmentFormContent
@@ -49,8 +51,7 @@ fun ResumeDateScreen(
         topBar = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Spacer(modifier = Modifier.statusBarsPadding())
-                CustomTopBar(title = "Resum de la visita", onNavigateBack = onBackClick)
-            }
+                CustomTopBar(title = stringResource(R.string.appointment_summary_title), onNavigateBack = onBackClick)            }
         }
     ) { paddingValues ->
         LazyColumn(
@@ -126,25 +127,24 @@ fun AppointmentDetailsCard(
 
     val totalMin = hour * 60 + minute + (editedTreatment?.durationMinutes ?: 30) + 5
     val endHour = (totalMin / 60) % 24
-    val endMinute = totalMin % 60
+    val endMinute = totalMin % 6
 
-    // --- DIÁLOGO DE SEGURIDAD ---
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Eliminar cita", fontWeight = FontWeight.Bold) },
-            text = { Text("Estàs segur que vols eliminar aquesta cita? Aquesta acció no es pot desfer.") },
+            title = { Text(stringResource(R.string.appointment_delete_title), fontWeight = FontWeight.Bold) },
+            text = { Text(stringResource(R.string.appointment_delete_msg)) },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteConfirm = false
                     onDelete()
                 }) {
-                    Text("Eliminar", color = Color.Red, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.btn_delete), color = Color.Red, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Cancel·lar")
+                    Text(stringResource(R.string.btn_cancel))
                 }
             },
             containerColor = Color.White,
@@ -165,7 +165,8 @@ fun AppointmentDetailsCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Detalls de la Cita", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.appointment_details_title),
+                    fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 if (!isEditing) {
                     Row {
                         IconButton(onClick = { isEditing = true }) {
@@ -197,7 +198,9 @@ fun AppointmentDetailsCard(
                 )
 
                 Row(Modifier.padding(top = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    TextButton(onClick = { isEditing = false }, modifier = Modifier.weight(1f)) { Text("Cancel·lar") }
+                    TextButton(onClick = { isEditing = false }, modifier = Modifier.weight(1f)) {
+                        Text(stringResource(R.string.btn_cancel))
+                    }
                     Navegate_Button(
                         text = "Guardar",
                         onClick = {
@@ -211,22 +214,23 @@ fun AppointmentDetailsCard(
                 }
             } else {
                 // VISTA DE LECTURA
-                DetailRow(label = "Data:", value = editedDate.toString())
-                DetailRow(label = "Horari:", value = "%02d:%02d a %02d:%02d".format(hour, minute, endHour, endMinute))
-                DetailRow(label = "Tractament:", value = editedTreatment?.name ?: "Cap")
+                DetailRow(label = stringResource(R.string.appointment_date_label), value = editedDate.toString())
+
+                val toWord = stringResource(R.string.appointment_time_to)
+                DetailRow(label = stringResource(R.string.appointment_time_label), value = "%02d:%02d $toWord %02d:%02d".format(hour, minute, endHour, endMinute))
+
+                DetailRow(label = stringResource(R.string.appointment_treatment_label), value = editedTreatment?.name ?: stringResource(R.string.appointment_none))
 
                 // Mostramos la nota guardada o el texto por defecto
                 DetailRow(
-                    label = "Observacions:",
-                    value = if (editedNotes.isNullOrBlank()) "Cap observació" else editedNotes
+                    label = stringResource(R.string.appointment_notes_label),
+                    value = if (editedNotes.isNullOrBlank()) stringResource(R.string.appointment_no_notes) else editedNotes
                 )
-
-
-
             }
         }
     }
 }
+
 @Composable
 fun DetailRow(label: String, value: String) {
     Column(modifier = Modifier.padding(vertical = 8.dp)) {

@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -25,6 +26,7 @@ import com.example.dynalar_frontend_v1.model.patient.Patient
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.components.SignatureView
 import com.example.dynalar_frontend_v1.ui.components.ValidationAndSignatureDialog
+import com.example.dynalar_frontend_v1.R
 
 val ButtonPrimary = Color(0xFF4A6D8C)
 val FondoPagina = Color(0xFFF7F6F4)
@@ -47,10 +49,12 @@ fun DateInformationPage(
     if (activeSignatureType != null) {
         val isAnesthesia = activeSignatureType == SignatureType.ANESTHESIA
 
+        val signatureSavedMsg = stringResource(R.string.signature_saved_success)
+
         ValidationAndSignatureDialog(
-            title = if (isAnesthesia) "Consentiment Anestèsia" else "Confirmació d'Historial",
-            consentTitle = if (isAnesthesia) "Consentiment Anestèsia:" else "Confirmació de dades:",
-            consentText = if (isAnesthesia) null else "El pacient confirma que les dades de l'historial mèdic, malalties i al·lèrgies revisades són correctes.",
+            title = stringResource(if (isAnesthesia) R.string.consent_anesthesia_title else R.string.consent_history_title),
+            consentTitle = stringResource(if (isAnesthesia) R.string.consent_anesthesia_label else R.string.consent_history_label),
+            consentText = if (isAnesthesia) null else stringResource(R.string.consent_history_msg),
             infectiousDeceases = patient.medicalRecord?.infectiousDeceases,
             allergies = patient.medicalRecord?.allergies,
             isOptional = isAnesthesia, // Si es anestesia es opcional, si es historial es obligatorio
@@ -73,7 +77,7 @@ fun DateInformationPage(
 
                 onUpdatePatient(updatedPatient)
                 activeSignatureType = null
-                Toast.makeText(context, "Signatura guardada correctament", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, signatureSavedMsg, Toast.LENGTH_SHORT).show()
             },
             onDismiss = { activeSignatureType = null }
         )
@@ -84,7 +88,7 @@ fun DateInformationPage(
             Column(modifier = Modifier.background(FondoPagina)) {
                 Spacer(modifier = Modifier.height(27.dp))
                 CustomTopBar(
-                    title = "Historial Mèdic",
+                    title = stringResource(R.string.medical_history_title),
                     onNavigateBack = onBackClick
                 )
             }
@@ -104,24 +108,24 @@ fun DateInformationPage(
                 modifier = Modifier.padding(horizontal = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                InfoCardReadOnly(label = "Historial Familiar", value = patient.medicalRecord?.familyHistory, icon = Icons.Default.FamilyRestroom)
-                InfoCardReadOnly(label = "Malalties i Condicions", value = patient.medicalRecord?.deceases, icon = Icons.Default.MedicalServices)
-                InfoCardReadOnly(label = "Medicació", value = patient.medicalRecord?.medication, icon = Icons.Default.Medication)
-                InfoCardReadOnly(label = "Al·lèrgies", value = patient.medicalRecord?.allergies, icon = Icons.Default.Warning)
-                InfoCardReadOnly(label = "Malalties Infeccioses", value = patient.medicalRecord?.infectiousDeceases, icon = Icons.Default.Coronavirus)
+                InfoCardReadOnly(label = stringResource(R.string.label_family_history), value = patient.medicalRecord?.familyHistory, icon = Icons.Default.FamilyRestroom)
+                InfoCardReadOnly(label = stringResource(R.string.label_diseases), value = patient.medicalRecord?.deceases, icon = Icons.Default.MedicalServices)
+                InfoCardReadOnly(label = stringResource(R.string.label_medication), value = patient.medicalRecord?.medication, icon = Icons.Default.Medication)
+                InfoCardReadOnly(label = stringResource(R.string.label_allergies), value = patient.medicalRecord?.allergies, icon = Icons.Default.Warning)
+                InfoCardReadOnly(label = stringResource(R.string.label_infectious_diseases), value = patient.medicalRecord?.infectiousDeceases, icon = Icons.Default.Coronavirus)
 
                 Spacer(modifier = Modifier.height(12.dp))
 
 
                 SignatureSection(
-                    title = "Consentiment Anestèsia",
+                    title = stringResource(R.string.consent_anesthesia_title),
                     signatureBase64 = patient.medicalRecord?.signatureBase64,
                     onRequestSignature = { activeSignatureType = SignatureType.ANESTHESIA }
                 )
 
 
                 SignatureSection(
-                    title = "Confirmació d'Historial",
+                    title = stringResource(R.string.consent_history_title),
                     signatureBase64 = patient.medicalRecord?.signatureConfirmation,
                     onRequestSignature = { activeSignatureType = SignatureType.HISTORY }
                 )
@@ -173,7 +177,7 @@ fun SignatureSection(
                     ) {
                         Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Afegir Signatura")
+                        Text(stringResource(R.string.btn_add_signature))
                     }
                 }
             }
@@ -224,7 +228,7 @@ fun InfoCardReadOnly(
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(
-                    text = if (value.isNullOrBlank()) "Sense dades registrades" else value,
+                    text = if (value.isNullOrBlank()) stringResource(R.string.no_data_registered) else value,
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontSize = 15.sp,
                         color = if (value.isNullOrBlank()) Color.LightGray else Color.Black.copy(alpha = 0.9f)

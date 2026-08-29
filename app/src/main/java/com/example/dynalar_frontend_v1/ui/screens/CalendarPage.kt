@@ -23,6 +23,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -36,7 +37,7 @@ import com.example.dynalar_frontend_v1.viewmodel.AppointmentViewModel
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
-
+import com.example.dynalar_frontend_v1.R
 
 private const val SLOT_HEIGHT_DP = 80
 private const val DAY_START_HOUR = 8
@@ -89,7 +90,7 @@ fun CalendarPage(
                     Box(modifier = Modifier.weight(1f),
                         contentAlignment = Alignment.CenterStart) {
                         CustomTopBar(
-                            title = "Calendari",
+                            title = stringResource(R.string.calendar_title),
                             onNavigateBack = onNavigateBack
                         )
                     }
@@ -108,13 +109,13 @@ fun CalendarPage(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
-                            contentDescription = "Afegir cita",
+                            contentDescription = stringResource(R.string.calendar_add_appointment),
                             tint = Color.White,
                             modifier = Modifier.size(22.dp)
                         )
                     }
                 }
-                // 2. ACTUALIZAMOS usando el ViewModel en lugar de variables locales
+                //ACTUALIZAMOS usando el ViewModel en lugar de variables locales
                 CalendarHeader(
                     selectedDate = selectedDate,
                     onPrevDay = { viewModel.updateSelectedDate(selectedDate.minusDays(1)) },
@@ -206,7 +207,7 @@ fun CalendarHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
 
-        // AVUI IZQUIERDA
+
         OutlinedButton(
             onClick = onTodayClick,
             shape = RoundedCornerShape(10.dp),
@@ -217,7 +218,7 @@ fun CalendarHeader(
             modifier = Modifier.height(50.dp)
         ) {
             Text(
-                text = "Avui",
+                text = stringResource(R.string.calendar_today),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -225,21 +226,21 @@ fun CalendarHeader(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // FLECHA IZQUIERDA
+
         IconButton(
             onClick = onPrevDay,
             modifier = Modifier.size(38.dp)
         ) {
             Icon(
                 Icons.Default.ChevronLeft,
-                contentDescription = "Anterior",
+                contentDescription = null,
                 tint = Color(0xFF537895)
             )
         }
 
         Spacer(modifier = Modifier.width(5.dp))
 
-        // FLECHA DERECHA
+
         IconButton(
             onClick = onNextDay,
             modifier = Modifier.size(38.dp)
@@ -300,11 +301,11 @@ fun AppointmentsColumn(
 ) {
     val totalHeightDp = TOTAL_HOURS * SLOT_HEIGHT_DP
 
-    // USAMOS BoxWithConstraints PARA SABER EL ANCHO DE LA PANTALLA
+
     BoxWithConstraints(
         modifier = Modifier.fillMaxWidth().padding(top = TOP_MARGIN_DP.dp).height(totalHeightDp.dp)
     ) {
-        val columnMaxWidth = maxWidth // Guardamos el ancho disponible
+        val columnMaxWidth = maxWidth
 
 
         Column(modifier = Modifier.height(totalHeightDp.dp).fillMaxWidth()) {
@@ -338,7 +339,7 @@ fun AppointmentsColumn(
             if (startMinutes != null) {
                 val endMinutes = startMinutes + duration
 
-                // --- LÓGICA MÁGICA DE SOLAPAMIENTO ---
+
                 // Buscamos qué otras citas chocan con esta en el tiempo
                 val overlappingApps = appointments.filter { other ->
                     val oStart = parseTimeToMinutes(other.startTime) ?: 0
@@ -425,7 +426,7 @@ fun AppointmentCard(
             )
 
             Text(
-                text = patientName.ifEmpty { "Pacient Desconegut" },
+                text = patientName,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.DarkGray,
@@ -436,7 +437,7 @@ fun AppointmentCard(
             // ALERTAS
             if (hasAllergies) {
                 Text(
-                    text = "Al·lèrgies: $allergies",
+                    text = stringResource(R.string.patient_allergies_prefix, allergies!!),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFFD32F2F),
@@ -447,7 +448,7 @@ fun AppointmentCard(
 
             if (hasInfectious) {
                 Text(
-                    text = "Infeccioses: $infectiousDeceases",
+                    text = stringResource(R.string.patient_infectious_prefix, infectiousDeceases!!),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFFD32F2F),
@@ -484,7 +485,7 @@ fun AppointmentCard(
                 Spacer(modifier = Modifier.width(4.dp))
 
                 Text(
-                    text = "Veure Resum Cita",
+                    text = stringResource(R.string.appointment_view_summary),
                     fontSize = 10.sp,
                     color = color,
                     fontWeight = FontWeight.SemiBold

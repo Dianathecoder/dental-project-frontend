@@ -49,9 +49,11 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.model.odontogram.OdontogramEntry
 import com.example.dynalar_frontend_v1.model.odontogram.OdontogramUiState
 import com.example.dynalar_frontend_v1.model.odontogram.DentalProcess
@@ -99,14 +101,14 @@ fun ToothPage(number: Int, odontogramId: Long, viewModel: OdontogramViewModel = 
         when (selectedDentalProcess?.name) {
             "Absència natural" -> {
                 selectedSurface = ToothSurface.COMPLET
-                surfaceColor = Color(0xFF2D2D2D) // Negro
+                surfaceColor = Color(0xFF2D2D2D)
                 selectedProcessStatus = null
             }
             "Càries radiogràfica" -> {
-                surfaceColor = Color(0xFF00B050) // Verde
+                surfaceColor = Color(0xFF00B050)
             }
             "Segellat de foses i fissures" -> {
-                surfaceColor = Color(0xFFFFD700) // Amarillo
+                surfaceColor = Color(0xFFFFD700)
             }
             "Exodòncia", "Endodòncia", "Corona", "Exodòncia per ortodòncia" -> {
                 selectedSurface = ToothSurface.COMPLET
@@ -176,7 +178,7 @@ fun ToothPage(number: Int, odontogramId: Long, viewModel: OdontogramViewModel = 
         Spacer(modifier = Modifier.height(12.dp))
 
         CustomTopBar(
-            title = "Dent numero $number",
+            title = stringResource(id = R.string.tooth_page_title, number),
             onNavigateBack = { onBack() },
             modifier = Modifier.padding(bottom = 16.dp)
         )
@@ -231,7 +233,7 @@ fun ToothPage(number: Int, odontogramId: Long, viewModel: OdontogramViewModel = 
 
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedButton(onClick = { selectedSurface = ToothSurface.COMPLET }) {
-                Text("Escollir Dent Complet (COMPLET)")
+                Text(stringResource(id = R.string.tooth_select_full))
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -244,18 +246,18 @@ fun ToothPage(number: Int, odontogramId: Long, viewModel: OdontogramViewModel = 
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "Registrar Procés",
+                            text = stringResource(id = R.string.tooth_register_process),
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleLarge
                         )
 
                         Text(
-                            text = "Superficie: $selectedSurface",
+                            text = stringResource(id = R.string.tooth_surface_selected, selectedSurface.name),
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
                         )
 
-                        Text("Seleccioni un Procés:", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(id = R.string.tooth_select_process), fontWeight = FontWeight.SemiBold)
 
                         Spacer(modifier = Modifier.height(12.dp))
 
@@ -270,8 +272,7 @@ fun ToothPage(number: Int, odontogramId: Long, viewModel: OdontogramViewModel = 
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        Text("Status del Procés:", fontWeight = FontWeight.SemiBold)
-
+                        Text(stringResource(id = R.string.tooth_process_status), fontWeight = FontWeight.SemiBold)
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                             horizontalArrangement = Arrangement.SpaceEvenly
@@ -280,7 +281,7 @@ fun ToothPage(number: Int, odontogramId: Long, viewModel: OdontogramViewModel = 
                             FilterChip(
                                 selected = selectedProcessStatus == ProcessStatus.PER_FER,
                                 onClick = { selectedProcessStatus = ProcessStatus.PER_FER },
-                                label = { Text("PER FER", color = Color.White) },
+                                label = { Text(stringResource(id = R.string.tooth_status_pending), color = Color.White) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = Color(0xFFFF0000)
                                 )
@@ -289,7 +290,7 @@ fun ToothPage(number: Int, odontogramId: Long, viewModel: OdontogramViewModel = 
                             FilterChip(
                                 selected = selectedProcessStatus == ProcessStatus.FET,
                                 onClick = { selectedProcessStatus = ProcessStatus.FET },
-                                label = { Text(ProcessStatus.FET.name, color = Color.White) },
+                                label = { Text(stringResource(id = R.string.tooth_status_done), color = Color.White) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = Color(0xFF0070C0)
                                 )
@@ -314,8 +315,7 @@ fun ToothPage(number: Int, odontogramId: Long, viewModel: OdontogramViewModel = 
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Desar Procés")
-                        }
+                            Text(stringResource(id = R.string.tooth_save_process))                        }
                     }
                 }
             }
@@ -324,7 +324,7 @@ fun ToothPage(number: Int, odontogramId: Long, viewModel: OdontogramViewModel = 
             onClick = { showEntries = true },
             modifier = Modifier.padding(bottom = 48.dp)
         ) {
-            Text("Ver Registres")
+            Text(stringResource(id = R.string.tooth_see_records))
         }
     }
 }
@@ -339,26 +339,23 @@ fun ReplaceTreatmentDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Confirmació de reemplaçament",
+                text = stringResource(id = R.string.tooth_replace_title),
                 fontWeight = FontWeight.Bold
             )
         },
         text = {
-            Text("Ja existeix un registre per a la superfície $surface d'aquesta dent. N'estàs segur que vols reemplaçar-lo?")
-        },
+            Text(stringResource(id = R.string.tooth_replace_desc, surface.name))        },
         confirmButton = {
             Button(
                 onClick = onConfirm
             ) {
-                Text("Reemplaçar")
-            }
+                Text(stringResource(id = R.string.btn_replace))            }
         },
         dismissButton = {
             TextButton(
                 onClick = onDismiss
             ) {
-                Text("Cancel·lar")
-            }
+                Text(stringResource(id = R.string.btn_cancel))            }
         }
     )
 }
@@ -614,8 +611,7 @@ fun DentalProcessList(
         modifier = Modifier.fillMaxWidth()
     ) {
         OutlinedTextField(
-            value = selectedDentalProcess?.name ?: "Tria una opció",
-            onValueChange = {},
+            value = selectedDentalProcess?.name ?: stringResource(id = R.string.tooth_dropdown_placeholder),            onValueChange = {},
             readOnly = true,
             modifier = Modifier
                 .menuAnchor()
