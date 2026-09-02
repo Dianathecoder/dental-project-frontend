@@ -1,4 +1,5 @@
-package com.example.dynalar_frontend_v1.ui.screens.appointment
+package com.example.dynalar_frontend_v1.ui.screens
+
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -6,13 +7,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -24,11 +24,11 @@ import com.example.dynalar_frontend_v1.ui.components.AppointmentFormContent
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.components.Navegate_Button
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
+import com.example.dynalar_frontend_v1.utils.SessionManager
 import com.example.dynalar_frontend_v1.viewmodel.AppointmentViewModel
 import com.example.dynalar_frontend_v1.viewmodel.PatientViewModel
 import com.example.dynalar_frontend_v1.viewmodel.TreatmentViewModel
 import java.time.LocalDate
-
 
 @Composable
 fun ScheduleAppointmentPage(
@@ -39,13 +39,16 @@ fun ScheduleAppointmentPage(
     treatmentViewModel: TreatmentViewModel = viewModel(),
     appointmentViewModel: AppointmentViewModel = viewModel(),
     onBackClick: () -> Unit,
+) {
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+    val isPatient = sessionManager.hasRole("PATIENT") || sessionManager.hasRole("ROLE_PATIENT")
+    val loggedInUserId = sessionManager.getUserId()
 
-    ) {
     var selectedDate by remember { mutableStateOf(initialDate) }
     var hour by remember { mutableIntStateOf(initialHour) }
     var minute by remember { mutableIntStateOf(initialMinute) }
 
-    // Calcular fin automáticamente
     var selectedTreatment by remember { mutableStateOf<Treatment?>(null) }
     val margen = 5
     val totalMinutes = hour * 60 + minute + (selectedTreatment?.durationMinutes ?: 30) + margen
@@ -57,6 +60,24 @@ fun ScheduleAppointmentPage(
 
     var showInfectionWarning by remember { mutableStateOf(false) }
     var hasAcceptedInfectionWarning by remember { mutableStateOf(false) }
+
+    // --- MAGIA PARA EL PACIENTE ---
+    // 1. Si es paciente, lanzamos la petición para cargar sus datos en 2º plano
+    LaunchedEffect(isPatient, loggedInUserId) {
+        if (isPatient && loggedInUserId != -1L) {
+            patientViewModel.getPatientById(loggedInUserId)
+        }
+    }
+
+    // 2. Observamos la respuesta y lo auto-asignamos
+    if (isPatient) {
+        val patientData = patientViewModel.selectedPatient
+        LaunchedEffect(patientData) {
+            if (patientData != null && patientData.id == loggedInUserId) {
+                selectedPatient = patientData
+            }
+        }
+    }
 
     // Éxito al crear
     LaunchedEffect(appointmentViewModel.uiStateAutoAssign) {
@@ -96,7 +117,8 @@ fun ScheduleAppointmentPage(
                 val canConfirm = selectedPatient != null && selectedTreatment != null && !isLoading
 
                 Navegate_Button(
-                    text = if (isLoading) stringResource(R.string.appointment_assigning) else stringResource(R.string.appointment_confirm_btn),                    onClick = {
+                    text = if (isLoading) stringResource(R.string.appointment_assigning) else stringResource(R.string.appointment_confirm_btn),
+                    onClick = {
                         if (!canConfirm) return@Navegate_Button
 
                         val hasInfections = !selectedPatient?.medicalRecord?.infectiousDeceases.isNullOrBlank()
@@ -124,6 +146,24 @@ fun ScheduleAppointmentPage(
             CustomTopBar(title = stringResource(R.string.appointment_new_title), onNavigateBack = onBackClick)
 
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+
+                // 3. CARTEL VISUAL PARA EL PACIENTE
+                if (isPatient && selectedPatient != null) {
+                    Surface(
+                        color = Color(0xFFE3F2FD),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                    ) {
+                        Text(
+                            text = "Reserva a nom de: ${selectedPatient!!.name} ${selectedPatient!!.lastName}",
+                            color = Color(0xFF1A5BB2),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                }
+
                 AppointmentFormContent(
                     selectedDate = selectedDate,
                     onDateChange = { selectedDate = it },
@@ -132,7 +172,8 @@ fun ScheduleAppointmentPage(
                     endHour = endHour, endMinute = endMinute,
                     onEndTimeChange = { _, _ -> }, // Se calcula auto
                     selectedPatient = selectedPatient,
-                    onPatientSelected = { selectedPatient = it },
+                    // 4. EL BLOQUEO: Si es paciente, pasamos null para que el componente deshabilite la búsqueda
+                    onPatientSelected = if (isPatient) null else { it -> selectedPatient = it },
                     selectedTreatment = selectedTreatment,
                     onTreatmentSelected = { selectedTreatment = it },
                     description = description,
@@ -146,91 +187,5 @@ fun ScheduleAppointmentPage(
         }
     }
 }
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun TimeSlotGrid(slots: List<String>, selH: Int, selM: Int, onSelect: (Int, Int) -> Unit) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        slots.forEach { time ->
-            val parts = time.split(":")
-            val h = parts[0].toInt()
-            val m = parts[1].toInt()
-            val isSelected = selH == h && selM == m
 
-            Surface(
-                onClick = { onSelect(h, m) },
-                shape = RoundedCornerShape(8.dp),
-                color = if (isSelected) ButtonPrimary else Color(0xFFF0F4F8),
-                modifier = Modifier.width(74.dp)
-            ) {
-                Text(
-                    text = time,
-                    modifier = Modifier.padding(vertical = 10.dp),
-                    textAlign = TextAlign.Center,
-                    fontSize = 13.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    color = if (isSelected) Color.White else Color(0xFF455A64)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun EditableChip(text: String, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        color = Color(0xFFE8EEF1),
-        shape = RoundedCornerShape(10.dp),
-        modifier = Modifier.height(44.dp)
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        ) {
-            Text(text = text, fontSize = 14.sp, color = ButtonPrimary, fontWeight = FontWeight.SemiBold)
-        }
-    }
-}
-
-@Composable
-fun SectionLabel(icon: Int, text: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(bottom = 10.dp)
-    ) {
-        Icon(
-            painter = painterResource(id = icon),
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = ButtonPrimary
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(
-            text = text.uppercase(),
-            fontSize = 11.sp,
-            color = Color.Gray,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 0.5.sp
-        )
-    }
-}
-
-@Composable
-fun UnavailableChip(text: String) {
-    Surface(
-        color = Color(0xFFF5F5F5),
-        shape = RoundedCornerShape(10.dp),
-        modifier = Modifier.fillMaxWidth().height(52.dp)
-    ) {
-        Box(
-            contentAlignment = Alignment.CenterStart,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        ) {
-            Text(text = text, fontSize = 14.sp, color = Color.LightGray)
-        }
-    }
-}
+// ... (No hace falta que borres TimeSlotGrid, EditableChip, SectionLabel y UnavailableChip, déjalos tal y como estaban al final del archivo)
