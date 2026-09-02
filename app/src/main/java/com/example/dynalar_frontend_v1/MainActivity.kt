@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -28,7 +29,7 @@ import com.example.dynalar_frontend_v1.ui.screens.*
 import com.example.dynalar_frontend_v1.ui.theme.Dynalar_frontend_v1Theme
 import com.example.dynalar_frontend_v1.viewmodel.*
 import java.util.Locale
-
+import com.example.dynalar_frontend_v1.utils.SessionManager
 class MainActivity : ComponentActivity() {
 
     override fun attachBaseContext(newBase: Context) {
@@ -56,6 +57,8 @@ class MainActivity : ComponentActivity() {
             val appointmentViewModel: AppointmentViewModel = viewModel()
             val odontogramViewModel: OdontogramViewModel = viewModel()
             val boxViewModel: BoxViewModel = viewModel()
+            val context = LocalContext.current
+            val sessionManager = remember { SessionManager(context) }
 
             var currentLang by remember {
                 mutableStateOf(
@@ -80,7 +83,7 @@ class MainActivity : ComponentActivity() {
                 Dynalar_frontend_v1Theme {
                     val navController = rememberNavController()
 
-                    val startDestination = if (userViewModel.isLoggedIn()) {
+                    val startDestination = if (sessionManager.hasToken()) {
                         AppRoutes.Home.route
                     } else {
                         AppRoutes.Login.route
