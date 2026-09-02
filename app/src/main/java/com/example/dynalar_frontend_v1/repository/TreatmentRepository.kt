@@ -1,8 +1,8 @@
 package com.example.dynalar_frontend_v1.repository
 
 
-import com.example.dynalar_frontend_v1.model.Treatment
-import com.example.dynalar_frontend_v1.model.user.TreatmentMaterialRequest
+import com.example.dynalar_frontend_v1.model.management.Treatment
+import com.example.dynalar_frontend_v1.model.management.TreatmentMaterialRequest
 import com.example.dynalar_frontend_v1.network.RetrofitClient
 import retrofit2.Response
 

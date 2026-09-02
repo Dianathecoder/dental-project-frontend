@@ -3,7 +3,7 @@ package com.example.dynalar_frontend_v1.repository
 import android.content.ContentResolver
 import android.net.Uri
 import android.util.Log
-import com.example.dynalar_frontend_v1.model.PageResponse
+import com.example.dynalar_frontend_v1.model.common.PageResponse
 import com.example.dynalar_frontend_v1.model.patient.Patient
 import com.example.dynalar_frontend_v1.network.RetrofitClient
 import okhttp3.MediaType.Companion.toMediaType

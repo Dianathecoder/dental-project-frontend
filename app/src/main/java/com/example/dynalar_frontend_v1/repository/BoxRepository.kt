@@ -1,6 +1,6 @@
 package com.example.dynalar_frontend_v1.repository
 
-import com.example.dynalar_frontend_v1.model.Box
+import com.example.dynalar_frontend_v1.model.management.Box
 import com.example.dynalar_frontend_v1.network.RetrofitClient
 import retrofit2.Response
 

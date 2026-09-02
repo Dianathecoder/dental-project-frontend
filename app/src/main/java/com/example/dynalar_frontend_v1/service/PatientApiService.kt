@@ -1,6 +1,6 @@
 package com.example.dynalar_frontend_v1.service
 
-import com.example.dynalar_frontend_v1.model.PageResponse
+import com.example.dynalar_frontend_v1.model.common.PageResponse
 import com.example.dynalar_frontend_v1.model.patient.Patient
 import okhttp3.MultipartBody
 import okhttp3.RequestBody

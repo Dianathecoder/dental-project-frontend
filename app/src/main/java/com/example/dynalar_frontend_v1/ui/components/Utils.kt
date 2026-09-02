@@ -2,7 +2,7 @@ package com.example.dynalar_frontend_v1.ui.components
 
 import androidx.compose.runtime.compositionLocalOf
 import com.example.dynalar_frontend_v1.R
-import com.example.dynalar_frontend_v1.model.CountryInfo
+import com.example.dynalar_frontend_v1.model.common.CountryInfo
 import com.example.dynalar_frontend_v1.model.patient.Sex
 import java.util.Locale
 

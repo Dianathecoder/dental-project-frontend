@@ -7,8 +7,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
-import com.example.dynalar_frontend_v1.model.Treatment
-import com.example.dynalar_frontend_v1.model.user.TreatmentMaterialRequest
+import com.example.dynalar_frontend_v1.model.management.Treatment
+import com.example.dynalar_frontend_v1.model.management.TreatmentMaterialRequest
 import com.example.dynalar_frontend_v1.repository.TreatmentRepository
 import kotlinx.coroutines.launch
 

@@ -42,5 +42,12 @@ class SessionManager(context: Context) {
     fun hasToken(): Boolean {
         return fetchAuthToken() != null
     }
+//Recuperar la ID del usuario
+    fun saveUserId(id: Long) {
+        prefs.edit().putLong("USER_ID", id).apply()
+    }
 
+    fun getUserId(): Long {
+        return prefs.getLong("USER_ID", -1L)
+    }
 }

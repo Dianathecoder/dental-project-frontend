@@ -1,6 +1,6 @@
 package com.example.dynalar_frontend_v1.model.user
 
-import com.example.dynalar_frontend_v1.model.Treatment
+import com.example.dynalar_frontend_v1.model.management.Treatment
 
 // 1. Hemos quitado la palabra 'override' de los primeros campos
 // 2. Hemos quitado el ': User(...)' del final

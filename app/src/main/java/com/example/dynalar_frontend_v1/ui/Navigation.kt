@@ -60,4 +60,9 @@ sealed class AppRoutes(val route: String) {
     }
     object ChangeAvatar : AppRoutes("changeAvatarPage")
     object Register : AppRoutes("registerPage")
+
+    object AdminDashboard : AppRoutes("admin_dashboard")
+    object AuxiliarDashboard : AppRoutes("auxiliar_dashboard")
+    object DentistAgenda : AppRoutes("dentist_agenda")
+    object PatientHome : AppRoutes("patient_home")
 }
