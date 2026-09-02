@@ -28,10 +28,6 @@ import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.appointment.Appointment
 import com.example.dynalar_frontend_v1.model.management.Treatment
 import com.example.dynalar_frontend_v1.model.patient.Patient
-import com.example.dynalar_frontend_v1.ui.screens.appointment.EditableChip
-import com.example.dynalar_frontend_v1.ui.screens.appointment.SectionLabel
-import com.example.dynalar_frontend_v1.ui.screens.appointment.TimeSlotGrid
-import com.example.dynalar_frontend_v1.ui.screens.appointment.UnavailableChip
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.ui.theme.TextoPrincipal
 import com.example.dynalar_frontend_v1.viewmodel.AppointmentViewModel
@@ -239,7 +235,94 @@ fun DayAppointmentsDialog(
         }
     )
 }
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun TimeSlotGrid(slots: List<String>, selH: Int, selM: Int, onSelect: (Int, Int) -> Unit) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        slots.forEach { time ->
+            val parts = time.split(":")
+            val h = parts[0].toInt()
+            val m = parts[1].toInt()
+            val isSelected = selH == h && selM == m
 
+            Surface(
+                onClick = { onSelect(h, m) },
+                shape = RoundedCornerShape(8.dp),
+                color = if (isSelected) ButtonPrimary else Color(0xFFF0F4F8),
+                modifier = Modifier.width(74.dp)
+            ) {
+                Text(
+                    text = time,
+                    modifier = Modifier.padding(vertical = 10.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    fontSize = 13.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (isSelected) Color.White else Color(0xFF455A64)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun EditableChip(text: String, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        color = Color(0xFFE8EEF1),
+        shape = RoundedCornerShape(10.dp),
+        modifier = Modifier.height(44.dp)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        ) {
+            Text(text = text, fontSize = 14.sp, color = ButtonPrimary, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@Composable
+fun SectionLabel(icon: Int, text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(bottom = 10.dp)
+    ) {
+        Icon(
+            painter = androidx.compose.ui.res.painterResource(id = icon),
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = ButtonPrimary
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = text.uppercase(),
+            fontSize = 11.sp,
+            color = Color.Gray,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.5.sp
+        )
+    }
+}
+
+@Composable
+fun UnavailableChip(text: String) {
+    Surface(
+        color = Color(0xFFF5F5F5),
+        shape = RoundedCornerShape(10.dp),
+        modifier = Modifier.fillMaxWidth().height(52.dp)
+    ) {
+        Box(
+            contentAlignment = Alignment.CenterStart,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        ) {
+            Text(text = text, fontSize = 14.sp, color = Color.LightGray)
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -65,4 +65,5 @@ sealed class AppRoutes(val route: String) {
     object AuxiliarDashboard : AppRoutes("auxiliar_dashboard")
     object DentistAgenda : AppRoutes("dentist_agenda")
     object PatientHome : AppRoutes("patient_home")
+    object AttendanceControl : AppRoutes("attendance_control")
 }

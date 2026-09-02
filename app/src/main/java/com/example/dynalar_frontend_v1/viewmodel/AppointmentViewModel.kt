@@ -11,17 +11,17 @@ import com.example.dynalar_frontend_v1.model.appointment.AutoAssignRequest
 import com.example.dynalar_frontend_v1.model.appointment.SlotRequest
 import com.example.dynalar_frontend_v1.network.RetrofitClient
 import com.example.dynalar_frontend_v1.model.appointment.DaySummary
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-
 class AppointmentViewModel : ViewModel() {
 
     var selectedCalendarDate by mutableStateOf(LocalDate.now())
-
     var selectedAppointment by mutableStateOf<Appointment?>(null)
-
 
     var uiStateCalendar: InterfaceGlobal<List<Appointment>> by mutableStateOf(InterfaceGlobal.Loading)
         private set
@@ -38,12 +38,10 @@ class AppointmentViewModel : ViewModel() {
     var uiStateSlots: InterfaceGlobal<Map<String, List<String>>> by mutableStateOf(InterfaceGlobal.Loading)
         private set
 
-
     var uiStateAutoAssign: InterfaceGlobal<Appointment> by mutableStateOf(InterfaceGlobal.Idle)
         private set
 
     private val apiService = RetrofitClient.appointmentApiService
-
 
     private var lastStart: LocalDateTime? = null
     private var lastEnd: LocalDateTime? = null
@@ -56,12 +54,11 @@ class AppointmentViewModel : ViewModel() {
             try {
                 val startStr = start?.toString()
                 val endStr = end?.toString()
-                
+
                 val response = apiService.getAllAppointments(size = 500, start = startStr, end = endStr)
                 uiStateCalendar = InterfaceGlobal.Success(response.content)
             } catch (e: Exception) {
-                uiStateCalendar =
-                    InterfaceGlobal.Error("Error al cargar el calendario: ${e.message}")
+                uiStateCalendar = InterfaceGlobal.Error("Error al cargar el calendario: ${e.message}")
             }
         }
     }
@@ -77,8 +74,7 @@ class AppointmentViewModel : ViewModel() {
                 val response = apiService.getAppointmentsByPatientId(patientId)
                 uiStatePatientAppointments = InterfaceGlobal.Success(response)
             } catch (e: Exception) {
-                uiStatePatientAppointments =
-                    InterfaceGlobal.Error("Error al cargar citas del paciente: ${e.message}")
+                uiStatePatientAppointments = InterfaceGlobal.Error("Error al cargar citas del paciente: ${e.message}")
             }
         }
     }
@@ -124,7 +120,6 @@ class AppointmentViewModel : ViewModel() {
         }
     }
 
-
     fun fetchSlots(patientId: Long, treatmentId: Long, startDate: LocalDate, endDate: LocalDate) {
         uiStateSlots = InterfaceGlobal.Loading
         viewModelScope.launch {
@@ -148,14 +143,11 @@ class AppointmentViewModel : ViewModel() {
         }
     }
 
-
-    fun autoAssign(patientId: Long, treatmentId: Long, date: LocalDate, hour: Int, minute: Int,reason: String) {
+    fun autoAssign(patientId: Long, treatmentId: Long, date: LocalDate, hour: Int, minute: Int, reason: String) {
         uiStateAutoAssign = InterfaceGlobal.Loading
         viewModelScope.launch {
             try {
-
-                val requestedTimeStr =
-                    String.format("%sT%02d:%02d:00", date.toString(), hour, minute)
+                val requestedTimeStr = String.format("%sT%02d:%02d:00", date.toString(), hour, minute)
 
                 val request = AutoAssignRequest(
                     patientId = patientId,
@@ -178,56 +170,33 @@ class AppointmentViewModel : ViewModel() {
         }
     }
 
-
-    fun getNextAppointment(appointments: List<Appointment>): Appointment? {
-        val now = LocalDateTime.now()
-
-        return appointments.mapNotNull { appointment ->
-            try {
-                val timeStr = appointment.startTime ?: return@mapNotNull null
-
-
-                var cleanStr = timeStr.replace(" ", "T").substringBefore(".")
-
-
-                if (cleanStr.count { it == ':' } == 1) {
-                    cleanStr += ":00"
-                }
-
-                val appTime = LocalDateTime.parse(cleanStr)
-
-
-                if (appTime.isAfter(now)) {
-                    Pair(appointment, appTime)
-                } else {
-                    null
-                }
-            } catch (e: Exception) {
-                null
-            }
-        }
-            .minByOrNull { it.second }
-            ?.first
-    }
-
-
     fun resetAutoAssignState() {
         uiStateAutoAssign = InterfaceGlobal.Idle
     }
 
-
-
+    fun getNextAppointment(appointments: List<Appointment>): Appointment? {
+        val now = LocalDateTime.now()
+        return appointments.mapNotNull { appointment ->
+            try {
+                val timeStr = appointment.startTime ?: return@mapNotNull null
+                var cleanStr = timeStr.replace(" ", "T").substringBefore(".")
+                if (cleanStr.count { it == ':' } == 1) {
+                    cleanStr += ":00"
+                }
+                val appTime = LocalDateTime.parse(cleanStr)
+                if (appTime.isAfter(now)) Pair(appointment, appTime) else null
+            } catch (e: Exception) {
+                null
+            }
+        }.minByOrNull { it.second }?.first
+    }
 
     fun updateAppointment(appointment: Appointment) {
         viewModelScope.launch {
             try {
                 val response = apiService.updateAppointment(appointment)
-
                 if (response.isSuccessful && response.body() != null) {
-
                     selectedAppointment = response.body()
-
-
                     fetchCalendar()
                 } else {
                     val errorMsg = response.errorBody()?.string() ?: "Error al actualitzar la cita"
@@ -239,10 +208,10 @@ class AppointmentViewModel : ViewModel() {
         }
     }
 
-
     fun updateSelectedDate(newDate: LocalDate) {
         selectedCalendarDate = newDate
     }
+
     fun deleteAppointment(id: Long) {
         viewModelScope.launch {
             try {

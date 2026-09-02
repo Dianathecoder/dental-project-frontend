@@ -25,9 +25,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.dynalar_frontend_v1.network.RetrofitClient
 import com.example.dynalar_frontend_v1.ui.AppRoutes
+import com.example.dynalar_frontend_v1.ui.screens.ScheduleAppointmentPage
 import com.example.dynalar_frontend_v1.ui.screens.appointment.CalendarPage
 import com.example.dynalar_frontend_v1.ui.screens.appointment.ResumeDateScreen
-import com.example.dynalar_frontend_v1.ui.screens.appointment.ScheduleAppointmentPage
 import com.example.dynalar_frontend_v1.ui.screens.patient.CreateProfilePage
 import com.example.dynalar_frontend_v1.ui.screens.patient.DateInformationPage
 import com.example.dynalar_frontend_v1.ui.screens.patient.EditPatientPage
@@ -36,6 +36,7 @@ import com.example.dynalar_frontend_v1.ui.screens.patient.PatientProfilePage
 import com.example.dynalar_frontend_v1.ui.screens.auth.LoginPage
 import com.example.dynalar_frontend_v1.ui.screens.auth.RegisterPage
 import com.example.dynalar_frontend_v1.ui.screens.dashboard.AdminDashboardPage
+import com.example.dynalar_frontend_v1.ui.screens.dashboard.AttendanceControlPage
 import com.example.dynalar_frontend_v1.ui.screens.dashboard.DentistAgendaPage
 import com.example.dynalar_frontend_v1.ui.screens.dashboard.HomePage
 import com.example.dynalar_frontend_v1.ui.screens.files.PatientFileUploadPage
@@ -55,7 +56,6 @@ import com.example.dynalar_frontend_v1.viewmodel.*
 import java.util.Locale
 import com.example.dynalar_frontend_v1.utils.SessionManager
 import java.time.LocalDate
-
 class MainActivity : ComponentActivity() {
 
     override fun attachBaseContext(newBase: Context) {
@@ -560,6 +560,12 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
+                        composable(AppRoutes.AttendanceControl.route) {
+                            AttendanceControlPage(
+                                onNavigateBack = { navController.popBackStack() }
+                            )
+                        }
+
 
 
                     }
