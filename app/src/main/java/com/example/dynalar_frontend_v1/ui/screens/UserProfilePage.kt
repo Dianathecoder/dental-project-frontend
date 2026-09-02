@@ -61,8 +61,7 @@ fun UserProfilePage(
 
             BannerGenericProfile(
                 userName = authData?.name ?: "",
-                userRole = if (authData?.role?.toString()?.uppercase() == "ADMIN") {
-                    stringResource(id = R.string.role_admin)
+                userRole = if (authData?.roles?.contains("ROLE_ADMIN") == true || authData?.roles?.contains("ADMIN") == true) {                    stringResource(id = R.string.role_admin)
                 } else {
                     stringResource(id = R.string.role_user)
                 },

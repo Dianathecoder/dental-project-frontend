@@ -70,13 +70,15 @@ import com.example.dynalar_frontend_v1.viewmodel.UserViewModel
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
-
+import com.example.dynalar_frontend_v1.utils.SessionManager
 @Composable
 fun LoginPage(
     modifier: Modifier = Modifier,
     viewModel: UserViewModel = viewModel(),
     authViewModel: AuthViewModel = viewModel(),
     onLoginSuccess: () -> Unit = {},
+    onAuxiliarLoginSuccess: () -> Unit = {},
+    onDentistLoginSuccess: () -> Unit = {},
     onAdminLoginSuccess: () -> Unit = {},
     onPatientLoginSuccess: () -> Unit = {},
     onForgotPasswordClick: () -> Unit = {},
@@ -97,46 +99,58 @@ fun LoginPage(
 
     val loginUiState by viewModel.userUiState.collectAsState()
     val authUiState by authViewModel.authUiState.collectAsState()
+    val sessionManager = remember { SessionManager(context) }
 
     LaunchedEffect(loginUiState) {
         if (loginUiState is InterfaceGlobal.Success) {
             val response = (loginUiState as InterfaceGlobal.Success<AuthResponse>).data
-            val role = response.role.toString()
-            if (role == "ADMIN" || role == "DENTIST") {
-                onAdminLoginSuccess()
-            } else {
-                onPatientLoginSuccess()
+
+            // GUARDAMOS SESIÓN (Token y Roles)
+            sessionManager.saveAuthToken(response.token)
+            sessionManager.saveUserRoles(response.roles) // Asume que response.roles es List<String>
+
+            // REDIRIGIMOS SEGÚN ROL
+            when {
+                sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN") -> onAdminLoginSuccess()
+                sessionManager.hasRole("AUXILIAR") || sessionManager.hasRole("ROLE_AUXILIAR") -> onAuxiliarLoginSuccess()
+                sessionManager.hasRole("DENTIST") || sessionManager.hasRole("ROLE_DENTIST") -> onDentistLoginSuccess()
+                sessionManager.hasRole("PATIENT") || sessionManager.hasRole("ROLE_PATIENT") -> onPatientLoginSuccess()
+                else -> sessionManager.clearSession() // Fallback de seguridad
             }
         }
     }
 
+    // 2. Manejo del Login con Google
     LaunchedEffect(authUiState) {
         if (authUiState is InterfaceGlobal.Success) {
             val response = (authUiState as InterfaceGlobal.Success<AuthResponse>).data
 
-            // Comprobar si es la primera vez
+            // GUARDAMOS SESIÓN INMEDIATAMENTE
+            sessionManager.saveAuthToken(response.token)
+            sessionManager.saveUserRoles(response.roles)
+
+            // Comprobar si es la primera vez para el diálogo
             val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
             val isFirstLogin = prefs.getBoolean("first_google_login_${response.userId}", true)
 
             if (isFirstLogin) {
-                // Guardar que ya no es la primera vez
                 prefs.edit().putBoolean("first_google_login_${response.userId}", false).apply()
                 welcomeUser = response
                 showWelcomeDialog = true
             } else {
-                // Entrar directamente sin diálogo
-                viewModel.setLoggedInUser(response)
+                viewModel.setIdle() // Limpiar el estado
                 authViewModel.resetState()
-                val role = response.role.toString()
-                if (role == "ADMIN" || role == "DENTIST") {
-                    onAdminLoginSuccess()
-                } else {
-                    onPatientLoginSuccess()
+
+                // NAVEGAR SEGÚN ROL
+                when {
+                    sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN") -> onAdminLoginSuccess()
+                    sessionManager.hasRole("AUXILIAR") || sessionManager.hasRole("ROLE_AUXILIAR") -> onAuxiliarLoginSuccess()
+                    sessionManager.hasRole("DENTIST") || sessionManager.hasRole("ROLE_DENTIST") -> onDentistLoginSuccess()
+                    sessionManager.hasRole("PATIENT") || sessionManager.hasRole("ROLE_PATIENT") -> onPatientLoginSuccess()
                 }
             }
         }
     }
-
     // Diálogo de bienvenida Google
     if (showWelcomeDialog && welcomeUser != null) {
         WelcomeGoogleDialog(
@@ -144,12 +158,12 @@ fun LoginPage(
             onConfirm = {
                 showWelcomeDialog = false
                 authViewModel.resetState()
-                viewModel.setLoggedInUser(welcomeUser!!)
-                val role = welcomeUser!!.role.toString()
-                if (role == "ADMIN" || role == "DENTIST") {
-                    onAdminLoginSuccess()
-                } else {
-                    onPatientLoginSuccess()
+
+                when {
+                    sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN") -> onAdminLoginSuccess()
+                    sessionManager.hasRole("AUXILIAR") || sessionManager.hasRole("ROLE_AUXILIAR") -> onAuxiliarLoginSuccess()
+                    sessionManager.hasRole("DENTIST") || sessionManager.hasRole("ROLE_DENTIST") -> onDentistLoginSuccess()
+                    sessionManager.hasRole("PATIENT") || sessionManager.hasRole("ROLE_PATIENT") -> onPatientLoginSuccess()
                 }
             }
         )

@@ -4,7 +4,7 @@ data class AuthResponse(
     val token: String,
     val userId: Long,
     val name: String,
-    val surname: String?,
-    val email: String?,
-    val role: String
+    val surname: String,
+    val email: String,
+    val roles: List<String>
 )

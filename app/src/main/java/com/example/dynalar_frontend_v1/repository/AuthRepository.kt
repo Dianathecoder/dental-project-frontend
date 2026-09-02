@@ -11,9 +11,10 @@ class AuthRepository {
 
     private val api = RetrofitClient.authApiService
 
+
     suspend fun register(name: String, surname: String, email: String, password: String): Result<AuthResponse> {
         return try {
-            val response = api.register(RegisterRequest(name, surname, email, password))
+            val response = api.registerClinic(RegisterRequest(name, surname, email, password))
             if (response.isSuccessful) Result.success(response.body()!!)
             else Result.failure(Exception("Error: ${response.code()}"))
         } catch (e: Exception) {
@@ -40,6 +41,7 @@ class AuthRepository {
             Result.failure(e)
         }
     }
+
 
     suspend fun forgotPassword(email: String): Result<Unit> {
         return try {
