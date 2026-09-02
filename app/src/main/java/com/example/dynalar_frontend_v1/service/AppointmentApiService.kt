@@ -3,11 +3,11 @@ package com.example.dynalar_frontend_v1.service
 
 
 
-import com.example.dynalar_frontend_v1.model.Appointment
-import com.example.dynalar_frontend_v1.model.AutoAssignRequest
-import com.example.dynalar_frontend_v1.model.DaySummary
-import com.example.dynalar_frontend_v1.model.PageResponse
-import com.example.dynalar_frontend_v1.model.SlotRequest
+import com.example.dynalar_frontend_v1.model.appointment.Appointment
+import com.example.dynalar_frontend_v1.model.appointment.AutoAssignRequest
+import com.example.dynalar_frontend_v1.model.appointment.DaySummary
+import com.example.dynalar_frontend_v1.model.common.PageResponse
+import com.example.dynalar_frontend_v1.model.appointment.SlotRequest
 import retrofit2.Response
 import retrofit2.http.*
 

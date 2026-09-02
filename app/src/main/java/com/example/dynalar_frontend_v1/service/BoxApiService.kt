@@ -1,6 +1,6 @@
 package com.example.dynalar_frontend_v1.service
 
-import com.example.dynalar_frontend_v1.model.Box
+import com.example.dynalar_frontend_v1.model.management.Box
 import retrofit2.Response
 import retrofit2.http.*
 

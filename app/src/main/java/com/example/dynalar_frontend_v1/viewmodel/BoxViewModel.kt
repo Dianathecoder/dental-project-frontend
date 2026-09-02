@@ -6,7 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
-import com.example.dynalar_frontend_v1.model.Box
+import com.example.dynalar_frontend_v1.model.management.Box
 import com.example.dynalar_frontend_v1.repository.BoxRepository
 import kotlinx.coroutines.launch
 

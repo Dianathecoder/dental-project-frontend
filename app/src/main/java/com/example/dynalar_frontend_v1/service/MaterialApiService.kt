@@ -1,6 +1,6 @@
 package com.example.dynalar_frontend_v1.service
 
-import com.example.dynalar_frontend_v1.model.Material
+import com.example.dynalar_frontend_v1.model.management.Material
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE

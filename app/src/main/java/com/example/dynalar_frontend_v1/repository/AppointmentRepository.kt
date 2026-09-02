@@ -2,12 +2,12 @@ package com.example.dynalar_frontend_v1.repository
 
 
 
-import com.example.dynalar_frontend_v1.model.Appointment
+import com.example.dynalar_frontend_v1.model.appointment.Appointment
 
 
-import com.example.dynalar_frontend_v1.model.AutoAssignRequest
-import com.example.dynalar_frontend_v1.model.PageResponse
-import com.example.dynalar_frontend_v1.model.SlotRequest
+import com.example.dynalar_frontend_v1.model.appointment.AutoAssignRequest
+import com.example.dynalar_frontend_v1.model.common.PageResponse
+import com.example.dynalar_frontend_v1.model.appointment.SlotRequest
 import com.example.dynalar_frontend_v1.network.RetrofitClient
 import retrofit2.Response
 

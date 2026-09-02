@@ -6,7 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dynalar_frontend_v1.model.odontogram.Odontogram
-import com.example.dynalar_frontend_v1.model.odontogram.OdontogramUiState
+import com.example.dynalar_frontend_v1.interfaces.OdontogramUiState
 import com.example.dynalar_frontend_v1.model.odontogram.DentalProcess
 import com.example.dynalar_frontend_v1.repository.OdontogramRepository
 import com.example.dynalar_frontend_v1.repository.DentalProcessRepository

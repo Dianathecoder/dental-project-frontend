@@ -7,7 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
-import com.example.dynalar_frontend_v1.model.Material
+import com.example.dynalar_frontend_v1.model.management.Material
 import com.example.dynalar_frontend_v1.repository.MaterialRepository
 import kotlinx.coroutines.launch
 

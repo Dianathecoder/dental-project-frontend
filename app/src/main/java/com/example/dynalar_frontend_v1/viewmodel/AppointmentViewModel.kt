@@ -6,11 +6,11 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
-import com.example.dynalar_frontend_v1.model.Appointment
-import com.example.dynalar_frontend_v1.model.AutoAssignRequest
-import com.example.dynalar_frontend_v1.model.SlotRequest
+import com.example.dynalar_frontend_v1.model.appointment.Appointment
+import com.example.dynalar_frontend_v1.model.appointment.AutoAssignRequest
+import com.example.dynalar_frontend_v1.model.appointment.SlotRequest
 import com.example.dynalar_frontend_v1.network.RetrofitClient
-import com.example.dynalar_frontend_v1.model.DaySummary
+import com.example.dynalar_frontend_v1.model.appointment.DaySummary
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime

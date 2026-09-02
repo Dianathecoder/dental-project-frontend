@@ -2,9 +2,8 @@ package com.example.dynalar_frontend_v1.service
 
 
 
-import com.example.dynalar_frontend_v1.model.Material
-import com.example.dynalar_frontend_v1.model.Treatment
-import com.example.dynalar_frontend_v1.model.user.TreatmentMaterialRequest
+import com.example.dynalar_frontend_v1.model.management.Treatment
+import com.example.dynalar_frontend_v1.model.management.TreatmentMaterialRequest
 import retrofit2.http.*
 
 interface TreatmentApiService {

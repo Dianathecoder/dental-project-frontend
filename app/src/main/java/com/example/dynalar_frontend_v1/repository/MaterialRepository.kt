@@ -1,6 +1,6 @@
 package com.example.dynalar_frontend_v1.repository
 
-import com.example.dynalar_frontend_v1.model.Material
+import com.example.dynalar_frontend_v1.model.management.Material
 import com.example.dynalar_frontend_v1.network.RetrofitClient
 
 class MaterialRepository {
