@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.auth.AuthResponse
+import com.example.dynalar_frontend_v1.model.user.User
 import com.example.dynalar_frontend_v1.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,8 +17,13 @@ import java.net.UnknownHostException
 
 class UserViewModel : ViewModel() {
 
+    // Estado para el Login (Guarda AuthResponse)
     private val _userUiState = MutableStateFlow<InterfaceGlobal<AuthResponse>>(InterfaceGlobal.Idle)
     val userUiState: StateFlow<InterfaceGlobal<AuthResponse>> = _userUiState.asStateFlow()
+
+    // NUEVO: Estado separado para el Perfil del Usuario (Guarda User)
+    private val _profileUiState = MutableStateFlow<InterfaceGlobal<User>>(InterfaceGlobal.Idle)
+    val profileUiState: StateFlow<InterfaceGlobal<User>> = _profileUiState.asStateFlow()
 
     private val userRepository = UserRepository()
 
@@ -28,7 +34,6 @@ class UserViewModel : ViewModel() {
                 val authResponse = userRepository.login(mail, pass)
 
                 if (authResponse != null && authResponse.token.isNotEmpty()) {
-                    // Solo emitimos el éxito. La Vista se encarga de guardar la sesión.
                     _userUiState.value = InterfaceGlobal.Success(authResponse)
                 } else {
                     _userUiState.value = InterfaceGlobal.Error(stringResId = R.string.error_invalid_credentials)
@@ -64,11 +69,37 @@ class UserViewModel : ViewModel() {
         }
     }
 
+    fun getProfile() {
+        viewModelScope.launch {
+            _profileUiState.value = InterfaceGlobal.Loading // Usamos el nuevo estado
+            try {
+                val userProfile = userRepository.getProfile()
+
+                if (userProfile != null) {
+                    _profileUiState.value = InterfaceGlobal.Success(userProfile) // Guardamos el User
+                } else {
+                    _profileUiState.value = InterfaceGlobal.Error(stringResId = R.string.error_user_not_found)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                when (e) {
+                    is ConnectException, is UnknownHostException -> {
+                        _profileUiState.value = InterfaceGlobal.Error(stringResId = R.string.error_server_connection)
+                    }
+                    else -> {
+                        _profileUiState.value = InterfaceGlobal.Error(message = e.message ?: "Error al carregar el perfil")
+                    }
+                }
+            }
+        }
+    }
+
     fun setLocalError(@StringRes stringResId: Int) {
         _userUiState.value = InterfaceGlobal.Error(stringResId = stringResId)
     }
 
     fun setIdle() {
         _userUiState.value = InterfaceGlobal.Idle
+        _profileUiState.value = InterfaceGlobal.Idle
     }
 }

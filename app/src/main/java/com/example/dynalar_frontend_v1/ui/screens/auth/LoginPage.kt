@@ -6,17 +6,7 @@ import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -24,29 +14,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -66,12 +35,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.auth.AuthResponse
+import com.example.dynalar_frontend_v1.utils.SessionManager
 import com.example.dynalar_frontend_v1.viewmodel.AuthViewModel
 import com.example.dynalar_frontend_v1.viewmodel.UserViewModel
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
-import com.example.dynalar_frontend_v1.utils.SessionManager
+
 @Composable
 fun LoginPage(
     modifier: Modifier = Modifier,
@@ -94,7 +64,6 @@ fun LoginPage(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
-    // Diálogo de bienvenida para Google
     var showWelcomeDialog by remember { mutableStateOf(false) }
     var welcomeUser by remember { mutableStateOf<AuthResponse?>(null) }
 
@@ -102,35 +71,33 @@ fun LoginPage(
     val authUiState by authViewModel.authUiState.collectAsState()
     val sessionManager = remember { SessionManager(context) }
 
-    LaunchedEffect(loginUiState) {
-        if (loginUiState is InterfaceGlobal.Success) {
-            val response = (loginUiState as InterfaceGlobal.Success<AuthResponse>).data
-
-            // GUARDAMOS SESIÓN (Token y Roles)
-            sessionManager.saveAuthToken(response.token)
-            sessionManager.saveUserRoles(response.roles) // Asume que response.roles es List<String>
-
-            // REDIRIGIMOS SEGÚN ROL
-            when {
-                sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN") -> onAdminLoginSuccess()
-                sessionManager.hasRole("AUXILIAR") || sessionManager.hasRole("ROLE_AUXILIAR") -> onAuxiliarLoginSuccess()
-                sessionManager.hasRole("DENTIST") || sessionManager.hasRole("ROLE_DENTIST") -> onDentistLoginSuccess()
-                sessionManager.hasRole("PATIENT") || sessionManager.hasRole("ROLE_PATIENT") -> onPatientLoginSuccess()
-                else -> sessionManager.clearSession() // Fallback de seguridad
-            }
+    fun navigateByRoles(roles: Any?) {
+        val rolesList = when (roles) {
+            is Collection<*> -> roles.map { it.toString().uppercase() }
+            else -> emptyList()
+        }
+        when {
+            rolesList.any { it.contains("ADMIN") } -> onAdminLoginSuccess()
+            rolesList.any { it.contains("AUXILIAR") } -> onAuxiliarLoginSuccess()
+            rolesList.any { it.contains("DOCTOR") || it.contains("DENTIST") } -> onDentistLoginSuccess()
+            else -> onPatientLoginSuccess()
         }
     }
 
-    // 2. Manejo del Login con Google
+    LaunchedEffect(loginUiState) {
+        if (loginUiState is InterfaceGlobal.Success) {
+            val response = (loginUiState as InterfaceGlobal.Success<AuthResponse>).data
+            sessionManager.saveAuthToken(response.token)
+            navigateByRoles(response.roles)
+        }
+    }
+
     LaunchedEffect(authUiState) {
         if (authUiState is InterfaceGlobal.Success) {
             val response = (authUiState as InterfaceGlobal.Success<AuthResponse>).data
 
-            // GUARDAMOS SESIÓN INMEDIATAMENTE
             sessionManager.saveAuthToken(response.token)
-            sessionManager.saveUserRoles(response.roles)
 
-            // Comprobar si es la primera vez para el diálogo
             val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
             val isFirstLogin = prefs.getBoolean("first_google_login_${response.userId}", true)
 
@@ -139,33 +106,20 @@ fun LoginPage(
                 welcomeUser = response
                 showWelcomeDialog = true
             } else {
-                viewModel.setIdle() // Limpiar el estado
                 authViewModel.resetState()
-
-                // NAVEGAR SEGÚN ROL
-                when {
-                    sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN") -> onAdminLoginSuccess()
-                    sessionManager.hasRole("AUXILIAR") || sessionManager.hasRole("ROLE_AUXILIAR") -> onAuxiliarLoginSuccess()
-                    sessionManager.hasRole("DENTIST") || sessionManager.hasRole("ROLE_DENTIST") -> onDentistLoginSuccess()
-                    sessionManager.hasRole("PATIENT") || sessionManager.hasRole("ROLE_PATIENT") -> onPatientLoginSuccess()
-                }
+                navigateByRoles(response.roles)
             }
         }
     }
-    // Diálogo de bienvenida Google
+
     if (showWelcomeDialog && welcomeUser != null) {
         WelcomeGoogleDialog(
             name = welcomeUser!!.name,
             onConfirm = {
+                val roles = welcomeUser?.roles
                 showWelcomeDialog = false
                 authViewModel.resetState()
-
-                when {
-                    sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN") -> onAdminLoginSuccess()
-                    sessionManager.hasRole("AUXILIAR") || sessionManager.hasRole("ROLE_AUXILIAR") -> onAuxiliarLoginSuccess()
-                    sessionManager.hasRole("DENTIST") || sessionManager.hasRole("ROLE_DENTIST") -> onDentistLoginSuccess()
-                    sessionManager.hasRole("PATIENT") || sessionManager.hasRole("ROLE_PATIENT") -> onPatientLoginSuccess()
-                }
+                navigateByRoles(roles)
             }
         )
     }
@@ -175,24 +129,13 @@ fun LoginPage(
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // Selector de idioma en la esquina superior derecha
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 32.dp, end = 16.dp),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.Top
-        ) {
-            LoginLanguageSelector(onLanguageChange = onLanguageChange)
-        }
-
+        // 1. Formulario y contenido principal (se renderiza primero)
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 48.dp),
             horizontalAlignment = Alignment.CenterHorizontally
-
         ) {
             Spacer(modifier = Modifier.height(100.dp))
 
@@ -262,7 +205,6 @@ fun LoginPage(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-
             if (loginUiState is InterfaceGlobal.Error) {
                 val errorState = loginUiState as InterfaceGlobal.Error
                 val errorText = when {
@@ -276,7 +218,6 @@ fun LoginPage(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-
 
             if (authUiState is InterfaceGlobal.Error) {
                 val authErrorState = authUiState as InterfaceGlobal.Error
@@ -300,7 +241,6 @@ fun LoginPage(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Botón Login con validaciones locales
             Button(
                 onClick = {
                     val trimmedEmail = email.trim()
@@ -341,7 +281,6 @@ fun LoginPage(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Separador
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 HorizontalDivider(modifier = Modifier.weight(1f), color = Color.LightGray)
                 Text(stringResource(id = R.string.login_or_continue), fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(horizontal = 8.dp))
@@ -350,7 +289,6 @@ fun LoginPage(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Botón Google
             OutlinedButton(
                 onClick = {
                     scope.launch {
@@ -358,7 +296,7 @@ fun LoginPage(
                             context = context,
                             webClientId = webClientId,
                             onSuccess = { idToken ->
-                                viewModel.googleLogin(idToken)
+                                authViewModel.googleLogin(idToken)
                             },
                             onError = { error -> Toast.makeText(context, error, Toast.LENGTH_SHORT).show() }
                         )
@@ -376,7 +314,6 @@ fun LoginPage(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
-
                     Text("G", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF4285F4))
                     Text("o", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFFEA4335))
                     Text("o", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFFFBBC05))
@@ -391,7 +328,6 @@ fun LoginPage(
                         color = Color(0xFF3C4043)
                     )
 
-
                     if (authUiState is InterfaceGlobal.Loading) {
                         Spacer(modifier = Modifier.width(8.dp))
                         CircularProgressIndicator(
@@ -402,11 +338,23 @@ fun LoginPage(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+
+        // 2. Selector de idioma (se coloca al final dentro del Box para renderizarse arriba del todo)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 32.dp, end = 16.dp),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.Top
+        ) {
+            LoginLanguageSelector(onLanguageChange = onLanguageChange)
         }
     }
 }
 
-// Selector de Idioma Minimalista para el Login
 @Composable
 fun LoginLanguageSelector(onLanguageChange: (String) -> Unit = {}) {
     val context = LocalContext.current
@@ -454,7 +402,6 @@ fun LoginLanguageSelector(onLanguageChange: (String) -> Unit = {}) {
     }
 }
 
-// Diálogo de bienvenida Google
 @Composable
 private fun WelcomeGoogleDialog(name: String, onConfirm: () -> Unit) {
     AlertDialog(
@@ -508,7 +455,6 @@ private fun WelcomeGoogleDialog(name: String, onConfirm: () -> Unit) {
     )
 }
 
-// Google Sign-In con CredentialManager
 private suspend fun googleSignIn(
     context: Context,
     webClientId: String,

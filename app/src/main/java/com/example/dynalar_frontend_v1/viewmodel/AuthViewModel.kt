@@ -20,6 +20,9 @@ class AuthViewModel : ViewModel() {
     private val _forgotPasswordState = MutableStateFlow<InterfaceGlobal<Unit>>(InterfaceGlobal.Idle)
     val forgotPasswordState: StateFlow<InterfaceGlobal<Unit>> = _forgotPasswordState.asStateFlow()
 
+    private val _changePasswordState = MutableStateFlow<InterfaceGlobal<String>>(InterfaceGlobal.Idle)
+    val changePasswordState: StateFlow<InterfaceGlobal<String>> = _changePasswordState.asStateFlow()
+
     fun login(email: String, password: String) {
         viewModelScope.launch {
             _authUiState.value = InterfaceGlobal.Loading
@@ -65,13 +68,28 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    // Vuelve a Idle: LoginPage lo llama tras cerrar el diálogo de bienvenida de Google
-    // para que el estado no quede "atascado" en Success al volver a la pantalla.
+    fun changePassword(currentPassword: String, newPassword: String) {
+        viewModelScope.launch {
+            _changePasswordState.value = InterfaceGlobal.Loading
+            repository.changePassword(currentPassword, newPassword)
+                .onSuccess {
+                    _changePasswordState.value = InterfaceGlobal.Success("Contrasenya canviada correctament")
+                }
+                .onFailure { e ->
+                    _changePasswordState.value = InterfaceGlobal.Error(e.message ?: "Error en canviar la contrasenya")
+                }
+        }
+    }
+
     fun resetState() {
         _authUiState.value = InterfaceGlobal.Idle
     }
 
     fun resetForgotPasswordState() {
         _forgotPasswordState.value = InterfaceGlobal.Idle
+    }
+
+    fun resetChangePasswordState() {
+        _changePasswordState.value = InterfaceGlobal.Idle
     }
 }

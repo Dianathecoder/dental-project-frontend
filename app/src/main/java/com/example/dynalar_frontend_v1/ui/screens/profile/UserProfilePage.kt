@@ -25,13 +25,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
-import com.example.dynalar_frontend_v1.model.auth.AuthResponse
+import com.example.dynalar_frontend_v1.model.user.User
 import com.example.dynalar_frontend_v1.ui.components.BannerGenericProfile
 import com.example.dynalar_frontend_v1.ui.components.ErrorScreenWithImage
 import com.example.dynalar_frontend_v1.ui.components.InputField
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.ui.theme.Dynalar_frontend_v1Theme
 import com.example.dynalar_frontend_v1.ui.theme.FondoPagina
+import com.example.dynalar_frontend_v1.utils.SessionManager
 import com.example.dynalar_frontend_v1.viewmodel.UserViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,12 +42,16 @@ fun UserProfilePage(
     onNavigateBack: () -> Unit = {},
     onNavigateToChangeAvatar: () -> Unit = {}
 ) {
-    val uiState by viewModel.userUiState.collectAsState()
-
+    val profileState by viewModel.profileUiState.collectAsState()
 
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
     val currentAvatarResId = prefs.getInt("user_avatar", R.drawable.avatar_color)
+    val sessionManager = remember { SessionManager(context) }
+
+    LaunchedEffect(Unit) {
+        viewModel.getProfile()
+    }
 
     Scaffold(
         containerColor = FondoPagina
@@ -56,15 +61,20 @@ fun UserProfilePage(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            val userData = (profileState as? InterfaceGlobal.Success)?.data
 
-            val authData = (uiState as? InterfaceGlobal.Success)?.data
+            // CORREGIDO: Usamos SessionManager para determinar el rol sin depender del campo interno de User
+            val userRoleText = when {
+                sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN") -> stringResource(id = R.string.role_admin)
+                sessionManager.hasRole("DENTIST") || sessionManager.hasRole("DOCTOR") || sessionManager.hasRole("ROLE_DOCTOR") -> "Doctor/a"
+                sessionManager.hasRole("AUXILIAR") || sessionManager.hasRole("ROLE_AUXILIAR") -> "Auxiliar"
+                sessionManager.hasRole("PATIENT") || sessionManager.hasRole("ROLE_PATIENT") -> "Paciente"
+                else -> stringResource(id = R.string.role_admin)
+            }
 
             BannerGenericProfile(
-                userName = authData?.name ?: "",
-                userRole = if (authData?.roles?.contains("ROLE_ADMIN") == true || authData?.roles?.contains("ADMIN") == true) {                    stringResource(id = R.string.role_admin)
-                } else {
-                    stringResource(id = R.string.role_user)
-                },
+                userName = userData?.name ?: "",
+                userRole = userRoleText,
                 profileImage = {
                     Box(
                         modifier = Modifier
@@ -72,7 +82,6 @@ fun UserProfilePage(
                             .clip(CircleShape)
                             .clickable { onNavigateToChangeAvatar() }
                     ) {
-
                         Image(
                             painter = painterResource(id = currentAvatarResId),
                             contentDescription = stringResource(id = R.string.profile_picture_desc),
@@ -80,7 +89,6 @@ fun UserProfilePage(
                             contentScale = ContentScale.Crop
                         )
 
-                        // Lápiz semitransparente
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -102,7 +110,7 @@ fun UserProfilePage(
                 content = {}
             )
 
-            when (uiState) {
+            when (profileState) {
                 is InterfaceGlobal.Loading, InterfaceGlobal.Idle -> {
                     Box(
                         modifier = Modifier
@@ -116,12 +124,12 @@ fun UserProfilePage(
 
                 is InterfaceGlobal.Success -> {
                     Box(modifier = Modifier.weight(1f)) {
-                        UserInfoContent(authData = authData!!)
+                        UserInfoContent(userData = userData!!)
                     }
                 }
 
                 is InterfaceGlobal.Error -> {
-                    val errorState = uiState as InterfaceGlobal.Error
+                    val errorState = profileState as InterfaceGlobal.Error
                     val message = if (errorState.stringResId != null) {
                         stringResource(id = errorState.stringResId)
                     } else {
@@ -141,7 +149,7 @@ fun UserProfilePage(
 }
 
 @Composable
-fun UserInfoContent(authData: AuthResponse) {
+fun UserInfoContent(userData: User) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
@@ -149,9 +157,9 @@ fun UserInfoContent(authData: AuthResponse) {
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 24.dp)
     ) {
-        InputField(label = stringResource(id = R.string.user_name_label), value = authData.name ?: "")
-        InputField(label = stringResource(id = R.string.user_surname_label), value = authData.surname ?: "")
-        InputField(label = stringResource(id = R.string.user_email_label), value = authData.email ?: "")
+        InputField(label = stringResource(id = R.string.user_name_label), value = userData.name ?: "")
+        InputField(label = stringResource(id = R.string.user_surname_label), value = userData.surname ?: "")
+        InputField(label = stringResource(id = R.string.user_email_label), value = userData.email ?: "")
 
         Spacer(modifier = Modifier.height(8.dp))
     }

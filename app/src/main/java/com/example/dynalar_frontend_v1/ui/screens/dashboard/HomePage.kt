@@ -17,11 +17,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +30,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -44,20 +48,17 @@ import com.example.dynalar_frontend_v1.ui.components.CardMenuButton
 import com.example.dynalar_frontend_v1.ui.components.DayAppointmentsDialog
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.ui.theme.FondoPagina
+import com.example.dynalar_frontend_v1.utils.SessionManager
 import com.example.dynalar_frontend_v1.viewmodel.AppointmentViewModel
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.YearMonth
-import java.time.format.TextStyle
-import java.util.Locale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.ui.layout.ContentScale
-import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.util.Locale
 
 @Composable
 fun HomePage(
@@ -68,8 +69,7 @@ fun HomePage(
     onNavigateToAppointmentDetail: (Appointment) -> Unit,
     onNavigateBoxMaterials: () -> Unit,
     onNavigateToPatientProfile: (Long) -> Unit,
-    onLanguageChange: (String) -> Unit = {} // ← NUEVO
-
+    onLanguageChange: (String) -> Unit = {}
 ) {
     LaunchedEffect(Unit) {
         viewModel.fetchToday()
@@ -102,7 +102,6 @@ fun HomePage(
             Spacer(modifier = Modifier.height(40.dp))
 
             val uiState = viewModel.uiStateToday
-            val today = LocalDate.now()
             val nowTime = LocalTime.now()
 
             var citasHoyCount = 0
@@ -113,11 +112,9 @@ fun HomePage(
                 citasHoyCount = todayAppointments.size
 
                 if (todayAppointments.isNotEmpty()) {
-
                     val groupedByTime = todayAppointments.groupBy { appt ->
                         appt.startTime?.replace("T", " ")?.split(" ")?.lastOrNull()?.take(5) ?: "23:59"
                     }
-
 
                     val bestGroup = groupedByTime.minByOrNull { (timeStr, _) ->
                         try {
@@ -152,6 +149,7 @@ fun HomePage(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // El Admin tiene acceso completo a todas las secciones de la app
             Buttons_HomePage(
                 onNavigateListPacient = onNavigateListPacient,
                 onNavigateBoxCalendar = onNavigateBoxCalendar,
@@ -185,6 +183,72 @@ fun HomePage(
                 onNavigateToAppointmentDetail(appointment)
             }
         )
+    }
+}
+
+@Composable
+fun Header_HomePage(
+    onNavigateProfileUserProfile: () -> Unit,
+    onLanguageChange: (String) -> Unit
+) {
+    val context = LocalContext.current
+    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+    val currentAvatarResId = prefs.getInt("user_avatar", R.drawable.avatar_color)
+    val sessionManager = remember { SessionManager(context) }
+
+    // Determinar el nombre del rol según la sesión guardada
+    val roleLabel = when {
+        sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN") -> "Admin"
+        sessionManager.hasRole("DENTIST") || sessionManager.hasRole("ROLE_DENTIST") || sessionManager.hasRole("DOCTOR") || sessionManager.hasRole("ROLE_DOCTOR") -> "Dentist"
+        sessionManager.hasRole("AUXILIAR") || sessionManager.hasRole("ROLE_AUXILIAR") -> "Auxiliar"
+        sessionManager.hasRole("PATIENT") || sessionManager.hasRole("ROLE_PATIENT") -> "Patient"
+        else -> "Admin"
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .clickable { onNavigateProfileUserProfile() }
+                .padding(end = 8.dp, top = 4.dp, bottom = 4.dp)
+        ) {
+            Image(
+                painter = painterResource(id = currentAvatarResId),
+                contentDescription = stringResource(id = R.string.home_my_profile),
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = stringResource(id = R.string.home_my_profile),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.Gray
+                )
+                Text(
+                    text = roleLabel,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2C3E50)
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = stringResource(id = R.string.home_view_profile),
+                tint = Color.Gray
+            )
+        }
+
+        HomeLanguageSelector(onLanguageChange = onLanguageChange)
     }
 }
 
@@ -231,7 +295,6 @@ fun NextAppointmentSection(
         Spacer(modifier = Modifier.height(8.dp))
 
         if (isLoading) {
-
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -240,17 +303,13 @@ fun NextAppointmentSection(
             ) {
                 CircularProgressIndicator(color = ButtonPrimary)
             }
-
         } else if (nextAppointments.isNotEmpty()) {
-
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(horizontal = 24.dp)
             ) {
-
                 items(nextAppointments) { appointment ->
-
                     NextAppointmentCardItem(
                         appointment = appointment,
                         modifier = Modifier.fillParentMaxWidth(
@@ -260,9 +319,7 @@ fun NextAppointmentSection(
                     )
                 }
             }
-
         } else {
-
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -271,29 +328,23 @@ fun NextAppointmentSection(
                 color = Color.Transparent,
                 border = BorderStroke(1.dp, Color(0xFFE0E0E0))
             ) {
-
                 Row(
                     modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = null,
                         tint = Color(0xFF4CAF50),
                         modifier = Modifier.size(30.dp)
                     )
-
                     Spacer(modifier = Modifier.width(16.dp))
-
                     Column {
-
                         Text(
                             text = stringResource(id = R.string.home_no_more_appointments),
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF2C3E50)
                         )
-
                         Text(
                             text = stringResource(id = R.string.home_completed_workday),
                             color = Color.Gray,
@@ -305,33 +356,24 @@ fun NextAppointmentSection(
         }
     }
 }
+
 @Composable
 fun NextAppointmentCardItem(
     appointment: Appointment,
     modifier: Modifier = Modifier,
     onAppointmentClick: (Appointment) -> Unit
 ) {
-
     val timeStr = appointment.startTime
         ?.split("T", " ")
         ?.lastOrNull()
         ?.substring(0, 5) ?: "--:--"
 
     val defaultPatientName = stringResource(id = R.string.home_unknown_patient)
-
-    val patientName =
-        "${appointment.patient?.name ?: defaultPatientName} ${appointment.patient?.lastName ?: ""}".trim()
-
-    val treatmentName =
-        appointment.treatment?.name ?: stringResource(id = R.string.home_unspecified)
-
-    val boxInfo =
-        appointment.box?.number?.let { "Box $it" } ?: ""
-    val allergies =
-        appointment.patient?.medicalRecord?.allergies
-
-    val infectiousDeceases =
-        appointment.patient?.medicalRecord?.infectiousDeceases
+    val patientName = "${appointment.patient?.name ?: defaultPatientName} ${appointment.patient?.lastName ?: ""}".trim()
+    val treatmentName = appointment.treatment?.name ?: stringResource(id = R.string.home_unspecified)
+    val boxInfo = appointment.box?.number?.let { "Box $it" } ?: ""
+    val allergies = appointment.patient?.medicalRecord?.allergies
+    val infectiousDeceases = appointment.patient?.medicalRecord?.infectiousDeceases
 
     Surface(
         modifier = modifier,
@@ -339,27 +381,20 @@ fun NextAppointmentCardItem(
         color = Color.White,
         shadowElevation = 2.dp
     ) {
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable {
-                    onAppointmentClick(appointment)
-                }
+                .clickable { onAppointmentClick(appointment) }
                 .padding(12.dp),
-
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             Box(
                 modifier = Modifier
                     .size(45.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(Color(0xFFE3F2FD)),
-
                 contentAlignment = Alignment.Center
             ) {
-
                 Text(
                     text = timeStr,
                     fontWeight = FontWeight.Bold,
@@ -371,7 +406,6 @@ fun NextAppointmentCardItem(
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-
                 Text(
                     text = patientName.ifEmpty { stringResource(id = R.string.home_unknown_patient) },
                     style = MaterialTheme.typography.bodyMedium,
@@ -382,11 +416,7 @@ fun NextAppointmentCardItem(
                 )
 
                 Text(
-                    text = if (boxInfo.isNotEmpty())
-                        "$boxInfo | $treatmentName"
-                    else
-                        treatmentName,
-
+                    text = if (boxInfo.isNotEmpty()) "$boxInfo | $treatmentName" else treatmentName,
                     fontSize = 11.sp,
                     color = Color.Gray,
                     maxLines = 1,
@@ -425,70 +455,10 @@ fun NextAppointmentCardItem(
         }
     }
 }
-@Composable
-fun Header_HomePage(
-    onNavigateProfileUserProfile: () -> Unit,
-    onLanguageChange: (String) -> Unit
-) {
 
-    val context = LocalContext.current
-    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-
-    val currentAvatarResId = prefs.getInt("user_avatar", R.drawable.avatar_color)
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Avatar + nombre
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .clip(RoundedCornerShape(50))
-                .clickable { onNavigateProfileUserProfile() }
-                .padding(end = 8.dp, top = 4.dp, bottom = 4.dp)
-        ) {
-            Image(
-                painter = painterResource(id = currentAvatarResId),
-                contentDescription = stringResource(id = R.string.home_my_profile),
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = stringResource(id = R.string.home_my_profile),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.Gray
-                )
-                Text(
-                    text = stringResource(id = R.string.home_user),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2C3E50)
-                )
-            }
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = stringResource(id = R.string.home_view_profile),
-                tint = Color.Gray
-            )
-        }
-
-        // Selector de idioma
-        HomeLanguageSelector(onLanguageChange = onLanguageChange)
-    }
-}
 @Composable
 fun HomeLanguageSelector(onLanguageChange: (String) -> Unit) {
     val context = LocalContext.current
-
-
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
     var currentLangCode by remember {
         mutableStateOf(prefs.getString("language", "ca") ?: "ca")
@@ -527,16 +497,13 @@ fun HomeLanguageSelector(onLanguageChange: (String) -> Unit) {
         }
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarHomepage(viewModel: AppointmentViewModel, onDayClick: (LocalDate) -> Unit) {
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
     val today = LocalDate.now()
     var showDatePicker by remember { mutableStateOf(false) }
-
-    // 1. Obtener el Locale actual del sistema dinámicamente
-    val configuration = LocalConfiguration.current
-    val currentLocale = configuration.locales[0]
 
     LaunchedEffect(currentMonth) {
         val startOfMonth = currentMonth.atDay(1).atStartOfDay()
@@ -570,7 +537,6 @@ fun CalendarHomepage(viewModel: AppointmentViewModel, onDayClick: (LocalDate) ->
     val firstDay = currentMonth.atDay(1)
     val offset = firstDay.dayOfWeek.value - 1
     val daysInMonth = currentMonth.lengthOfMonth()
-
 
     val formatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)
     val headerText = currentMonth.format(formatter).replaceFirstChar { it.uppercase() }
@@ -628,7 +594,6 @@ fun CalendarHomepage(viewModel: AppointmentViewModel, onDayClick: (LocalDate) ->
             Row(modifier = Modifier.fillMaxWidth()) {
                 weekDays.forEach { day ->
                     Text(
-
                         text = day.getDisplayName(TextStyle.NARROW, Locale.ENGLISH),
                         modifier = Modifier.weight(1f).height(38.dp),
                         textAlign = TextAlign.Center,
@@ -698,8 +663,14 @@ fun CalendarHomepage(viewModel: AppointmentViewModel, onDayClick: (LocalDate) ->
         ) { DatePicker(state = datePickerState) }
     }
 }
+
 @Composable
-fun Buttons_HomePage(modifier: Modifier = Modifier, onNavigateListPacient: () -> Unit, onNavigateBoxCalendar: () -> Unit, onNavigateBoxMaterials: () -> Unit) {
+fun Buttons_HomePage(
+    modifier: Modifier = Modifier,
+    onNavigateListPacient: () -> Unit,
+    onNavigateBoxCalendar: () -> Unit,
+    onNavigateBoxMaterials: () -> Unit
+) {
     Column(
         modifier = modifier.fillMaxWidth().padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
