@@ -15,7 +15,6 @@ interface UserApiService {
     @POST("/api/auth/login")
     suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
 
-
     @POST("/api/auth/google")
     suspend fun googleLogin(@Body request: GoogleAuthRequest): Response<AuthResponse>
 
@@ -29,5 +28,9 @@ interface UserApiService {
     suspend fun changePassword(@Body request: ChangePasswordRequest): Response<MessageResponse>
     @POST("api/admin/invite-user")
     suspend fun inviteUser(@Body request: InviteUserRequest): Response<MessageResponse>
+
+    @GET("user/me")
+    suspend fun getProfile(): Response<User>
+
 
 }

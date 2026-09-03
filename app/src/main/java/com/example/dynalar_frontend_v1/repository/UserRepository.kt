@@ -7,18 +7,21 @@ import com.example.dynalar_frontend_v1.model.user.User
 import com.example.dynalar_frontend_v1.network.RetrofitClient
 
 class UserRepository {
-    // Si pasaste el login a AuthApiService, cambia esto a RetrofitClient.authApiService
-    // Si lo dejaste en userApiService, esto está perfecto:
+
     private val userApiService = RetrofitClient.userApiService
 
     suspend fun getAllUsers(): List<User> {
         val response = userApiService.getAllUsers()
         if (response.isSuccessful) {
-            // Extraemos el cuerpo de la respuesta (la lista). Si es nulo, devolvemos lista vacía
             return response.body() ?: emptyList()
         } else {
             throw Exception("Error del servidor al obtener usuarios: ${response.code()}")
         }
+    }
+
+    suspend fun getProfile(): User? {
+        val response = userApiService.getProfile()
+        return if (response.isSuccessful) response.body() else null
     }
     suspend fun googleLogin(idToken: String): AuthResponse? {
         val request = GoogleAuthRequest(idToken)
@@ -44,10 +47,8 @@ class UserRepository {
             val response = userApiService.login(request)
 
             if (response.isSuccessful) {
-                // El guardado del token (RetrofitClient.saveAuthToken) ya lo hace el UserViewModel
                 return response.body()
             } else {
-                // Evaluamos el código que devuelve el backend
                 if (response.code() == 401 || response.code() == 403) {
                     throw Exception("La contraseña o el email son incorrectos")
                 } else {

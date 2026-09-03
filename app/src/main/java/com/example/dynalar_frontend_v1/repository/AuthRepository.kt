@@ -1,6 +1,7 @@
 package com.example.dynalar_frontend_v1.repository
 
 import com.example.dynalar_frontend_v1.model.auth.AuthResponse
+import com.example.dynalar_frontend_v1.model.auth.ChangePasswordRequest
 import com.example.dynalar_frontend_v1.model.auth.ForgotPasswordRequest
 import com.example.dynalar_frontend_v1.model.auth.GoogleAuthRequest
 import com.example.dynalar_frontend_v1.model.auth.LoginRequest
@@ -10,7 +11,6 @@ import com.example.dynalar_frontend_v1.network.RetrofitClient
 class AuthRepository {
 
     private val api = RetrofitClient.authApiService
-
 
     suspend fun register(name: String, surname: String, email: String, password: String): Result<AuthResponse> {
         return try {
@@ -42,12 +42,25 @@ class AuthRepository {
         }
     }
 
-
     suspend fun forgotPassword(email: String): Result<Unit> {
         return try {
             val response = api.forgotPassword(ForgotPasswordRequest(email))
             if (response.isSuccessful) Result.success(Unit)
             else Result.failure(Exception("Error: ${response.code()}"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> {
+        return try {
+            val request = ChangePasswordRequest(currentPassword, newPassword)
+            val response = api.changePassword(request)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("La contraseña actual no es correcta"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

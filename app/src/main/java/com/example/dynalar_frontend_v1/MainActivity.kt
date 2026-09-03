@@ -74,7 +74,6 @@ class MainActivity : ComponentActivity() {
         RetrofitClient.init(applicationContext)
 
         setContent {
-            // ViewModels AQUÍ — fuera del key para que no se pierdan
             val userViewModel: UserViewModel = viewModel()
             val authViewModel: AuthViewModel = viewModel()
             val patientViewModel: PatientViewModel = viewModel()
