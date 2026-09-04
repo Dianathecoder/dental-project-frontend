@@ -40,7 +40,7 @@ He implementado una separación estricta de permisos e interfaces dependiendo de
     *   Autogestión de citas: solicitud de nuevas visitas.
     *   Visualización de los detalles de su cita programada (box asignado y doctor responsable).
 
-###  Chat Interno Segmentado (🚧 En desarrollo)
+###  Chat Interno Segmentado (En desarrollo)
 Estoy implementando un sistema de mensajería en tiempo real con reglas de comunicación estrictas para mantener el flujo de trabajo organizado:
 *   **Administrador:** Se comunica con todo el personal (Doctores y Auxiliares).
 *   **Auxiliar:** Funciona como centralita; se comunica con todos los roles (Admin, Doctores y Pacientes).
