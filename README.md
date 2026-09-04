@@ -1,4 +1,4 @@
-# Dental Project - Android Frontend
+#  Dental Project - Android Frontend
 
 ![Kotlin](https://img.shields.io/badge/Kotlin-B125EA?style=for-the-badge&logo=kotlin&logoColor=white)
 ![Android Studio](https://img.shields.io/badge/Android_Studio-3DDC84?style=for-the-badge&logo=android-studio&logoColor=white)
@@ -21,7 +21,7 @@ En esta versión individual, he rediseñado la arquitectura lógica de la aplica
 *   **Inicio de sesión híbrido:** Implementación de acceso mediante Google Login y un flujo de registro controlado.
 *   **Gestión de contraseñas seguras:** El Administrador genera contraseñas temporales de primer acceso para el personal médico, mientras que los pacientes tienen un flujo de acceso directo y permanente.
 
-###  Funcionalidades específicas por Rol (En desarrollo)
+###  Funcionalidades específicas por Rol (🚧 En desarrollo)
 He implementado una separación estricta de permisos e interfaces dependiendo del tipo de usuario:
 
 *   ** Administrador (Control Total):**
@@ -40,17 +40,18 @@ He implementado una separación estricta de permisos e interfaces dependiendo de
     *   Autogestión de citas: solicitud de nuevas visitas.
     *   Visualización de los detalles de su cita programada (box asignado y doctor responsable).
 
-###  Chat Interno Segmentado (En desarrollo)
+###  Chat Interno Segmentado (🚧 En desarrollo)
 Estoy implementando un sistema de mensajería en tiempo real con reglas de comunicación estrictas para mantener el flujo de trabajo organizado:
 *   **Administrador:** Se comunica con todo el personal (Doctores y Auxiliares).
 *   **Auxiliar:** Funciona como centralita; se comunica con todos los roles (Admin, Doctores y Pacientes).
 *   **Doctor:** Se comunica exclusivamente con el staff interno (Admin y Auxiliares).
 *   **Paciente:** Canal directo de atención exclusivo con los Auxiliares.
 
-### Diseño y UX
-*   Renovación completa de la interfaz de usuario para hacerla más accesible, intuitiva y adaptada a las necesidades reales del día a día en una clínica.
+###  Diseño, UX e Internacionalización
+*   **Soporte Multilenguaje:** Interfaz completamente internacionalizada (i18n) con soporte dinámico para **Español, Catalán e Inglés**, permitiendo a los usuarios utilizar la app en su idioma de preferencia.
+*   **Refactorización de Interfaz:** Renovación completa de la UI para hacerla más accesible, intuitiva y adaptada a las necesidades reales del día a día en una clínica, utilizando componentes modernos.
 
-## Tecnologías y Arquitectura
+##  Tecnologías y Arquitectura
 
 El ecosistema de esta aplicación está dividido en dos partes: este cliente móvil nativo y una API REST dedicada.
 
@@ -61,17 +62,16 @@ El ecosistema de esta aplicación está dividido en dos partes: este cliente mó
 *   **Librerías principales:**
     *   **Retrofit:** Para el consumo de la API y las peticiones HTTP.
     *   **Corrutinas (Coroutines) y Flow:** Para la gestión de tareas asíncronas y flujos de datos reactivos.
-    *   **Coil:** Para la carga eficiente de imágenes asíncronas en Compose. *(Nota para Diana: Si no cargas imágenes desde internet o usaste otra librería, puedes borrar esta línea).*
+    *   **Coil:** Para la carga eficiente de imágenes asíncronas en Compose.
 
 ### Backend
 *   **Tecnología Base:** Java con el framework Spring Boot.
 *   **Repositorio:** Puedes consultar el código fuente del servidor aquí: [dental-project-backend](https://github.com/Dianathecoder/dental-project-backend)
-
 
 ##  Cómo ejecutar el proyecto
 
 1. Clona este repositorio: `git clone https://github.com/Dianathecoder/dental-project-frontend.git`
 2. Abre el proyecto en **Android Studio**.
 3. Sincroniza el proyecto con los archivos de Gradle.
-4. Ejecuta la app en un emulador o dispositivo físico (Android API XX+).
+4. Ejecuta la app en un emulador o dispositivo físico (Android API 24 o superior).
 5. *Opcional:* Este frontend se conecta a su propia API. Asegúrate de tener corriendo el [dental-project-backend](https://github.com/Dianathecoder/dental-project-backend) localmente para probar todas las funciones.
