@@ -21,7 +21,7 @@ En esta versión individual, he rediseñado la arquitectura lógica de la aplica
 *   **Inicio de sesión híbrido:** Implementación de acceso mediante Google Login y un flujo de registro controlado.
 *   **Gestión de contraseñas seguras:** El Administrador genera contraseñas temporales de primer acceso para el personal médico, mientras que los pacientes tienen un flujo de acceso directo y permanente.
 
-###  Funcionalidades específicas por Rol
+###  Funcionalidades específicas por Rol (En desarrollo)
 He implementado una separación estricta de permisos e interfaces dependiendo del tipo de usuario:
 
 *   ** Administrador (Control Total):**
@@ -40,7 +40,7 @@ He implementado una separación estricta de permisos e interfaces dependiendo de
     *   Autogestión de citas: solicitud de nuevas visitas.
     *   Visualización de los detalles de su cita programada (box asignado y doctor responsable).
 
-###  Chat Interno Segmentado (En desarrollo )
+###  Chat Interno Segmentado (En desarrollo)
 Estoy implementando un sistema de mensajería en tiempo real con reglas de comunicación estrictas para mantener el flujo de trabajo organizado:
 *   **Administrador:** Se comunica con todo el personal (Doctores y Auxiliares).
 *   **Auxiliar:** Funciona como centralita; se comunica con todos los roles (Admin, Doctores y Pacientes).
