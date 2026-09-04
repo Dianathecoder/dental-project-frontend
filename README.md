@@ -20,7 +20,7 @@ En esta versión individual, me he centrado en mejorar tanto la experiencia de u
 *   **Gestión de Roles y Seguridad:** Corrección de vulnerabilidades y mejora en el sistema de autenticación y permisos según el rol del usuario (Ej: Administrador vs Paciente).
 *   **Filtros de Búsqueda Avanzados:** Implementación de un sistema de menú desplegable (dropdown) para optimizar la búsqueda y filtrado de pacientes en tiempo real.
 *   **Refactorización de UI:** Mejoras generales en la interfaz para hacerla más limpia, responsiva y adaptada a los estándares de Material Design.
-*   *([Nota para Diana: Añade aquí 1 o 2 cosas más que hayas hecho, como "Consumo de API REST", "Uso de RecyclerViews", etc.])*
+  
 
 ##  Tecnologías y Arquitectura
 
