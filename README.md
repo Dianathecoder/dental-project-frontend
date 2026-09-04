@@ -21,7 +21,7 @@ En esta versión individual, he rediseñado la arquitectura lógica de la aplica
 *   **Inicio de sesión híbrido:** Implementación de acceso mediante Google Login y un flujo de registro controlado.
 *   **Gestión de contraseñas seguras:** El Administrador genera contraseñas temporales de primer acceso para el personal médico, mientras que los pacientes tienen un flujo de acceso directo y permanente.
 
-###  Funcionalidades específicas por Rol (🚧 En desarrollo)
+###  Funcionalidades específicas por Rol (En desarrollo)
 He implementado una separación estricta de permisos e interfaces dependiendo del tipo de usuario:
 
 *   ** Administrador (Control Total):**
