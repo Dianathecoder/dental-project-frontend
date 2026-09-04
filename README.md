@@ -50,15 +50,22 @@ Estoy implementando un sistema de mensajería en tiempo real con reglas de comun
 ### Diseño y UX
 *   Renovación completa de la interfaz de usuario para hacerla más accesible, intuitiva y adaptada a las necesidades reales del día a día en una clínica.
 
-##  Tecnologías y Arquitectura
+## Tecnologías y Arquitectura
 
+El ecosistema de esta aplicación está dividido en dos partes: este cliente móvil nativo y una API REST dedicada.
+
+### Frontend (Este repositorio)
 *   **Lenguaje:** Kotlin
-*   **Arquitectura:** *(Ej: MVVM / MVC - ¡Añade el que hayas usado!)*
-*   **UI:** *(Ej: XML Layouts o Jetpack Compose)*
+*   **UI Toolkit:** Jetpack Compose (Desarrollo de UI declarativa y moderna)
+*   **Arquitectura:** MVVM (Model-View-ViewModel) para separar la lógica de negocio de la interfaz visual.
 *   **Librerías principales:**
-    *   *(Ej: Retrofit para peticiones HTTP al backend)*
-    *   *(Ej: Glide/Picasso para carga de imágenes)*
-    *   *(Ej: Corrutinas para asincronía)*
+    *   **Retrofit:** Para el consumo de la API y las peticiones HTTP.
+    *   **Corrutinas (Coroutines) y Flow:** Para la gestión de tareas asíncronas y flujos de datos reactivos.
+    *   **Coil:** Para la carga eficiente de imágenes asíncronas en Compose. *(Nota para Diana: Si no cargas imágenes desde internet o usaste otra librería, puedes borrar esta línea).*
+
+### Backend
+*   **Tecnología Base:** Java con el framework Spring Boot.
+*   **Repositorio:** Puedes consultar el código fuente del servidor aquí: [dental-project-backend](https://github.com/Dianathecoder/dental-project-backend)
 
 
 ##  Cómo ejecutar el proyecto
