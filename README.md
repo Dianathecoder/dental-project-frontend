@@ -13,15 +13,15 @@ Puedes consultar la versión base original del trabajo en equipo aquí: [Dynalar
 
 Decidí clonar el proyecto para refactorizar el código, aplicar mejores prácticas de desarrollo móvil y añadir nuevas funcionalidades por mi cuenta.
 
-## ✨ Mis aportes y funcionalidades destacadas
+##  Mis aportes y funcionalidades destacadas
 
 En esta versión individual, he rediseñado la arquitectura lógica de la aplicación para convertirla en un sistema integral de gestión de clínicas con control de acceso basado en roles (RBAC). 
 
-### 👥 Sistema de Autenticación y Seguridad
+###  Sistema de Autenticación y Seguridad
 *   **Inicio de sesión híbrido:** Implementación de acceso mediante Google Login y un flujo de registro controlado.
 *   **Gestión de contraseñas seguras:** El Administrador genera contraseñas temporales de primer acceso para el personal médico, mientras que los pacientes tienen un flujo de acceso directo y permanente.
 
-### ⚙️ Funcionalidades específicas por Rol
+###  Funcionalidades específicas por Rol
 He implementado una separación estricta de permisos e interfaces dependiendo del tipo de usuario:
 
 *   ** Administrador (Control Total):**
