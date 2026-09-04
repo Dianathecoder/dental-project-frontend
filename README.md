@@ -13,14 +13,42 @@ Puedes consultar la versión base original del trabajo en equipo aquí: [Dynalar
 
 Decidí clonar el proyecto para refactorizar el código, aplicar mejores prácticas de desarrollo móvil y añadir nuevas funcionalidades por mi cuenta.
 
-## Mis aportes y mejoras destacadas
+## ✨ Mis aportes y funcionalidades destacadas
 
-En esta versión individual, me he centrado en mejorar tanto la experiencia de usuario (UX) como la seguridad y lógica interna de la app:
+En esta versión individual, he rediseñado la arquitectura lógica de la aplicación para convertirla en un sistema integral de gestión de clínicas con control de acceso basado en roles (RBAC). 
 
-*   **Gestión de Roles y Seguridad:** Corrección de vulnerabilidades y mejora en el sistema de autenticación y permisos según el rol del usuario (Ej: Administrador vs Paciente).
-*   **Filtros de Búsqueda Avanzados:** Implementación de un sistema de menú desplegable (dropdown) para optimizar la búsqueda y filtrado de pacientes en tiempo real.
-*   **Refactorización de UI:** Mejoras generales en la interfaz para hacerla más limpia, responsiva y adaptada a los estándares de Material Design.
-  
+### 👥 Sistema de Autenticación y Seguridad
+*   **Inicio de sesión híbrido:** Implementación de acceso mediante Google Login y un flujo de registro controlado.
+*   **Gestión de contraseñas seguras:** El Administrador genera contraseñas temporales de primer acceso para el personal médico, mientras que los pacientes tienen un flujo de acceso directo y permanente.
+
+### ⚙️ Funcionalidades específicas por Rol
+He implementado una separación estricta de permisos e interfaces dependiendo del tipo de usuario:
+
+*   ** Administrador (Control Total):**
+    *   Creación y gestión de todos los usuarios (Doctores, Auxiliares, Pacientes).
+    *   Configuración de horarios de trabajo y sistema de fichaje para empleados.
+    *   Gestión clínica integral: Odontogramas, inventario y logística (boxes, protocolos, materiales).
+    *   Administración completa de pacientes (creación, borrado, perfiles y gestión documental) y calendario.
+*   ** Auxiliar (Gestión Operativa):**
+    *   Acceso a todas las herramientas clínicas, calendario y gestión de pacientes del Administrador.
+    *   Capacidad de registrar su entrada/salida (fichaje) en el horario establecido.
+    *   *Restricción:* Sin permisos de creación de usuarios o configuración global.
+*   ** Doctor (Enfoque Clínico):**
+    *   Interfaz enfocada en su jornada: visualización de citas propias, box (sala) asignado y acceso directo a las fichas de los pacientes que le tocan.
+    *   Visualización del calendario general (modo lectura, sin permisos de modificación).
+*   ** Paciente (Portal de Usuario):**
+    *   Autogestión de citas: solicitud de nuevas visitas.
+    *   Visualización de los detalles de su cita programada (box asignado y doctor responsable).
+
+###  Chat Interno Segmentado (En desarrollo 🚧)
+Estoy implementando un sistema de mensajería en tiempo real con reglas de comunicación estrictas para mantener el flujo de trabajo organizado:
+*   **Administrador:** Se comunica con todo el personal (Doctores y Auxiliares).
+*   **Auxiliar:** Funciona como centralita; se comunica con todos los roles (Admin, Doctores y Pacientes).
+*   **Doctor:** Se comunica exclusivamente con el staff interno (Admin y Auxiliares).
+*   **Paciente:** Canal directo de atención exclusivo con los Auxiliares.
+
+### Diseño y UX
+*   Renovación completa de la interfaz de usuario para hacerla más accesible, intuitiva y adaptada a las necesidades reales del día a día en una clínica.
 
 ##  Tecnologías y Arquitectura
 
