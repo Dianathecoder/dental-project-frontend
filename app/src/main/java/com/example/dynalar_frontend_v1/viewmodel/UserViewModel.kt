@@ -53,10 +53,17 @@ class UserViewModel : ViewModel() {
     }
 
     fun googleLogin(idToken: String) {
+        // 1. Ver si la interfaz realmente llega a llamar a la función
+        android.util.Log.d("VIEWMODEL_GOOGLE", "1. Entrando a googleLogin en el ViewModel")
+
         viewModelScope.launch {
             _userUiState.value = InterfaceGlobal.Loading
             try {
+                android.util.Log.d("VIEWMODEL_GOOGLE", "2. Llamando a Retrofit (userRepository)...")
+
                 val authResponse = userRepository.googleLogin(idToken)
+
+                android.util.Log.d("VIEWMODEL_GOOGLE", "3. Respuesta de Retrofit recibida: $authResponse")
 
                 if (authResponse != null && authResponse.token.isNotEmpty()) {
                     _userUiState.value = InterfaceGlobal.Success(authResponse)
@@ -64,6 +71,8 @@ class UserViewModel : ViewModel() {
                     _userUiState.value = InterfaceGlobal.Error(stringResId = R.string.error_invalid_credentials)
                 }
             } catch (e: Exception) {
+                // 4. Si Retrofit falla (por permisos HTTP o red), caerá aquí
+                android.util.Log.e("VIEWMODEL_GOOGLE", "4. ERROR en Retrofit: ${e.message}", e)
                 _userUiState.value = InterfaceGlobal.Error(message = e.message)
             }
         }

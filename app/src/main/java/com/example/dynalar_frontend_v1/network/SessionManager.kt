@@ -3,9 +3,7 @@ package com.example.dynalar_frontend_v1.utils
 import android.content.Context
 import android.content.SharedPreferences
 
-
-
-//Sirve para guardar datos de forma persistente en la memoria del teléfono usando una herramienta nativa de Android llamada SharedPreferences
+// Sirve para guardar datos de forma persistente en la memoria del teléfono usando una herramienta nativa de Android llamada SharedPreferences
 class SessionManager(context: Context) {
 
     // Archivo de preferencias privado para la app
@@ -21,15 +19,16 @@ class SessionManager(context: Context) {
         return prefs.getString("jwt_token", null)
     }
 
-    // Guardar los roles (Spring Boot envía un array de roles)
-    fun saveUserRoles(roles: List<String>) {
-        prefs.edit().putStringSet("user_roles", roles.toSet()).apply()
+    // Guardar los roles de forma segura convirtiendo cualquier objeto/lista a texto en mayúsculas
+    fun saveUserRoles(roles: Collection<*>?) {
+        val rolesSet = roles?.map { it.toString().uppercase() }?.toSet() ?: emptySet()
+        prefs.edit().putStringSet("user_roles", rolesSet).apply()
     }
 
-    // Comprobar un rol específico
+    // Comprobar un rol específico (busca la palabra clave, así si es "ROLE_ADMIN", detecta "ADMIN")
     fun hasRole(role: String): Boolean {
-        val userRoles = prefs.getStringSet("user_roles", setOf()) ?: setOf()
-        return userRoles.contains(role)
+        val userRoles = prefs.getStringSet("user_roles", emptySet()) ?: emptySet()
+        return userRoles.any { it.contains(role.uppercase()) }
     }
 
     // Borrar la sesión (Logout o Token expirado)
@@ -37,12 +36,12 @@ class SessionManager(context: Context) {
         prefs.edit().clear().apply()
     }
 
-
-    //comprobación real en la memoria física del teléfono
+    // Comprobación real en la memoria física del teléfono
     fun hasToken(): Boolean {
         return fetchAuthToken() != null
     }
-//Recuperar la ID del usuario
+
+    // Recuperar la ID del usuario
     fun saveUserId(id: Long) {
         prefs.edit().putLong("USER_ID", id).apply()
     }

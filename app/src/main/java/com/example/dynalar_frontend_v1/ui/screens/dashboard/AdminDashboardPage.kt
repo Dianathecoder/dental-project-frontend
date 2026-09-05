@@ -105,7 +105,9 @@ fun AdminDashboardPage(
             isLoading = inviteState is InterfaceGlobal.Loading,
             onDismiss = { showInviteDialog = false },
             onConfirm = { name, surname, email, role ->
-                adminViewModel.inviteUser(name, surname, email, role)
+                adminViewModel.inviteUser(name, surname, email, role,dni = "",
+                    phone = "",
+                    sex = "OTHER")
             }
         )
     }
