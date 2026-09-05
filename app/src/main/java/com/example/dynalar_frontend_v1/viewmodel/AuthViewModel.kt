@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.auth.AuthResponse
 import com.example.dynalar_frontend_v1.repository.AuthRepository
+import com.example.dynalar_frontend_v1.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +17,7 @@ class AuthViewModel : ViewModel() {
 
     private val _authUiState = MutableStateFlow<InterfaceGlobal<AuthResponse>>(InterfaceGlobal.Idle)
     val authUiState: StateFlow<InterfaceGlobal<AuthResponse>> = _authUiState.asStateFlow()
-
+    private val userRepository = UserRepository()
     private val _forgotPasswordState = MutableStateFlow<InterfaceGlobal<Unit>>(InterfaceGlobal.Idle)
     val forgotPasswordState: StateFlow<InterfaceGlobal<Unit>> = _forgotPasswordState.asStateFlow()
 
@@ -46,16 +47,28 @@ class AuthViewModel : ViewModel() {
     }
 
     fun googleLogin(idToken: String) {
+        android.util.Log.d("AUTH_VIEWMODEL", "1. Entrando a googleLogin en AuthViewModel")
+
         viewModelScope.launch {
             _authUiState.value = InterfaceGlobal.Loading
-            repository.googleLogin(idToken)
-                .onSuccess { _authUiState.value = InterfaceGlobal.Success(it) }
-                .onFailure { e ->
-                    _authUiState.value = InterfaceGlobal.Error(e.message ?: "Error amb Google")
+            try {
+                android.util.Log.d("AUTH_VIEWMODEL", "2. Llamando a Retrofit...")
+
+                val authResponse = userRepository.googleLogin(idToken)
+
+                android.util.Log.d("AUTH_VIEWMODEL", "3. Respuesta recibida: $authResponse")
+
+                if (authResponse != null && authResponse.token.isNotEmpty()) {
+                    _authUiState.value = InterfaceGlobal.Success(authResponse)
+                } else {
+                    _authUiState.value = InterfaceGlobal.Error(message = "Token vacío o credenciales inválidas")
                 }
+            } catch (e: Exception) {
+                android.util.Log.e("AUTH_VIEWMODEL", "4. ERROR en Retrofit (Red/Conexión): ${e.message}", e)
+                _authUiState.value = InterfaceGlobal.Error(message = e.message ?: "Error de connexió")
+            }
         }
     }
-
     fun forgotPassword(email: String) {
         viewModelScope.launch {
             _forgotPasswordState.value = InterfaceGlobal.Loading

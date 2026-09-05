@@ -87,7 +87,11 @@ fun LoginPage(
     LaunchedEffect(loginUiState) {
         if (loginUiState is InterfaceGlobal.Success) {
             val response = (loginUiState as InterfaceGlobal.Success<AuthResponse>).data
+
+            // GUARDAR TOKEN Y ROLES EN LA SESIÓN
             sessionManager.saveAuthToken(response.token)
+            sessionManager.saveUserRoles(response.roles) // AÑADIR ESTA LÍNEA
+
             navigateByRoles(response.roles)
         }
     }
@@ -96,7 +100,9 @@ fun LoginPage(
         if (authUiState is InterfaceGlobal.Success) {
             val response = (authUiState as InterfaceGlobal.Success<AuthResponse>).data
 
+            // GUARDAR TOKEN Y ROLES EN LA SESIÓN
             sessionManager.saveAuthToken(response.token)
+            sessionManager.saveUserRoles(response.roles) // AÑADIR ESTA LÍNEA
 
             val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
             val isFirstLogin = prefs.getBoolean("first_google_login_${response.userId}", true)
@@ -296,9 +302,13 @@ fun LoginPage(
                             context = context,
                             webClientId = webClientId,
                             onSuccess = { idToken ->
+                                Log.d("GOOGLE_LOGIN", "¡Token de Google recibido! Longitud: ${idToken.length}")
+
                                 authViewModel.googleLogin(idToken)
                             },
-                            onError = { error -> Toast.makeText(context, error, Toast.LENGTH_SHORT).show() }
+                            onError = { error ->
+                                Log.e("GOOGLE_LOGIN", "Error en Google SignIn: $error")
+                                Toast.makeText(context, error, Toast.LENGTH_SHORT).show() }
                         )
                     }
                 },

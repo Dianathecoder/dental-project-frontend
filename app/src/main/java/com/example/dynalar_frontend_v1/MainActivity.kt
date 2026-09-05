@@ -56,6 +56,7 @@ import com.example.dynalar_frontend_v1.viewmodel.*
 import java.util.Locale
 import com.example.dynalar_frontend_v1.utils.SessionManager
 import java.time.LocalDate
+
 class MainActivity : ComponentActivity() {
 
     override fun attachBaseContext(newBase: Context) {
@@ -81,6 +82,7 @@ class MainActivity : ComponentActivity() {
             val treatmentViewModel: TreatmentViewModel = viewModel()
             val appointmentViewModel: AppointmentViewModel = viewModel()
             val odontogramViewModel: OdontogramViewModel = viewModel()
+            val adminViewModel: AdminViewModel = viewModel()
             val boxViewModel: BoxViewModel = viewModel()
             val context = LocalContext.current
             val sessionManager = remember { SessionManager(context) }
@@ -390,7 +392,8 @@ class MainActivity : ComponentActivity() {
                         composable(AppRoutes.CreateProfile.route) {
                             CreateProfilePage(
                                 onNavigateBack = { navController.popBackStack() },
-                                patientViewModel = patientViewModel
+                                patientViewModel = patientViewModel,
+                                adminViewModel = adminViewModel
                             )
                         }
 

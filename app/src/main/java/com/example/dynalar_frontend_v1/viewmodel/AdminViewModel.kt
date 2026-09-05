@@ -16,22 +16,21 @@ class AdminViewModel : ViewModel() {
     private val _inviteState = MutableStateFlow<InterfaceGlobal<String>>(InterfaceGlobal.Idle)
     val inviteState: StateFlow<InterfaceGlobal<String>> = _inviteState.asStateFlow()
 
-    fun inviteUser(name: String, surname: String, email: String, role: String) {
+    fun inviteUser(name: String, surname: String, email: String, role: String, dni: String, phone: String, sex: String) {
         viewModelScope.launch {
             _inviteState.value = InterfaceGlobal.Loading
             try {
-                val response = api.inviteUser(InviteUserRequest(name, surname, email, role))
+                val response = api.inviteUser(InviteUserRequest(name, surname, email, role, dni, phone, sex))
                 if (response.isSuccessful) {
-                    _inviteState.value = InterfaceGlobal.Success("Invitació enviada correctament")
+                    _inviteState.value = InterfaceGlobal.Success("Usuari creat correctament")
                 } else {
-                    _inviteState.value = InterfaceGlobal.Error(message = "Error al convidar usuari")
+                    _inviteState.value = InterfaceGlobal.Error(message = "Error al crear usuari")
                 }
             } catch (e: Exception) {
                 _inviteState.value = InterfaceGlobal.Error(message = e.message)
             }
         }
     }
-
     fun resetInviteState() {
         _inviteState.value = InterfaceGlobal.Idle
     }
