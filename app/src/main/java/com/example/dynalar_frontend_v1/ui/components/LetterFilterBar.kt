@@ -1,59 +1,46 @@
+package com.example.dynalar_frontend_v1.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dynalar_frontend_v1.model.filter.ClinicalFilter
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PatientFilterDropdown(
-    selectedLetter: Char?,
+    selectedClinicalFilter: ClinicalFilter,
     sortAscending: Boolean,
-    onLetterSelected: (Char?) -> Unit,
+    onClinicalFilterChanged: (ClinicalFilter) -> Unit,
     onSortChanged: (Boolean) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val hasFilter = selectedLetter != null
-    val label = if (hasFilter) selectedLetter.toString() else "Filtrar"
+    val hasFilter = selectedClinicalFilter != ClinicalFilter.ALL
 
-    // Colores basados en tu diseño gris
-    val activeColor = ButtonPrimary // Mantenemos tu azul principal para cuando ESTÁ activo
+    val label = when (selectedClinicalFilter) {
+        ClinicalFilter.ALL -> "Filtrar"
+        ClinicalFilter.ALLERGIES -> "Alergias"
+        ClinicalFilter.INFECTIONS -> "Infecciosas"
+        ClinicalFilter.HEALTHY -> "Sin alertas"
+    }
+
+    val activeColor = ButtonPrimary
     val inactiveIconTextColor = Color.Gray
     val inactiveBorderColor = Color(0xFFA0B2C0)
-    val inactiveBgColor = Color.Transparent // F
+    val inactiveBgColor = Color.Transparent
 
     Box {
         Surface(
@@ -93,11 +80,10 @@ fun PatientFilterDropdown(
             onDismissRequest = { expanded = false },
             modifier = Modifier
                 .width(220.dp)
-                .heightIn(max = 400.dp)
                 .background(Color.White)
         ) {
             Text(
-                text = "Ordenar",
+                text = "Ordenación",
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.Gray,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
@@ -128,21 +114,37 @@ fun PatientFilterDropdown(
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
             Text(
-                text = "Letra",
+                text = "Estado médico",
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.Gray,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
             )
-            DropdownMenuItem(
-                text = { Text("Todas", fontSize = 14.sp, color = if (selectedLetter == null) ButtonPrimary else Color.Black, fontWeight = if (selectedLetter == null) FontWeight.Bold else FontWeight.Normal) },
-                onClick = { onLetterSelected(null); expanded = false },
-                trailingIcon = { if (selectedLetter == null) Icon(Icons.Default.Check, null, tint = ButtonPrimary, modifier = Modifier.size(14.dp)) }
+
+            val filterOptions = listOf(
+                ClinicalFilter.ALL to "Todos",
+                ClinicalFilter.ALLERGIES to "Alergias",
+                ClinicalFilter.INFECTIONS to "Infecciosas",
+                ClinicalFilter.HEALTHY to "Sin alertas"
             )
-            ('A'..'Z').forEach { letter ->
+
+            filterOptions.forEach { (filterOption, optionLabel) ->
+                val isSelected = selectedClinicalFilter == filterOption
                 DropdownMenuItem(
-                    text = { Text(letter.toString(), fontSize = 14.sp, color = if (selectedLetter == letter) ButtonPrimary else Color.Black, fontWeight = if (selectedLetter == letter) FontWeight.Bold else FontWeight.Normal) },
-                    onClick = { onLetterSelected(letter); expanded = false },
-                    trailingIcon = { if (selectedLetter == letter) Icon(Icons.Default.Check, null, tint = ButtonPrimary, modifier = Modifier.size(14.dp)) }
+                    text = {
+                        Text(
+                            optionLabel,
+                            fontSize = 14.sp,
+                            color = if (isSelected) ButtonPrimary else Color.Black,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
+                    onClick = {
+                        onClinicalFilterChanged(filterOption)
+                        expanded = false
+                    },
+                    trailingIcon = {
+                        if (isSelected) Icon(Icons.Default.Check, null, tint = ButtonPrimary, modifier = Modifier.size(14.dp))
+                    }
                 )
             }
         }

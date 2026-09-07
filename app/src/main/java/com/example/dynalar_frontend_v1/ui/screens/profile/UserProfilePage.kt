@@ -7,8 +7,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,8 +22,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
@@ -40,7 +44,8 @@ import com.example.dynalar_frontend_v1.viewmodel.UserViewModel
 fun UserProfilePage(
     viewModel: UserViewModel = viewModel(),
     onNavigateBack: () -> Unit = {},
-    onNavigateToChangeAvatar: () -> Unit = {}
+    onNavigateToChangeAvatar: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
     val profileState by viewModel.profileUiState.collectAsState()
 
@@ -63,15 +68,15 @@ fun UserProfilePage(
         ) {
             val userData = (profileState as? InterfaceGlobal.Success)?.data
 
-            // CORREGIDO: Usamos SessionManager para determinar el rol sin depender del campo interno de User
             val userRoleText = when {
+                sessionManager.hasRole("SUPERADMIN") || sessionManager.hasRole("ROLE_SUPERADMIN") -> stringResource(id = R.string.role_superadmin)
+                sessionManager.hasRole("OWNER") || sessionManager.hasRole("ROLE_OWNER") -> stringResource(id = R.string.role_owner)
                 sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN") -> stringResource(id = R.string.role_admin)
-                sessionManager.hasRole("DENTIST") || sessionManager.hasRole("DOCTOR") || sessionManager.hasRole("ROLE_DOCTOR") -> "Doctor/a"
-                sessionManager.hasRole("AUXILIAR") || sessionManager.hasRole("ROLE_AUXILIAR") -> "Auxiliar"
-                sessionManager.hasRole("PATIENT") || sessionManager.hasRole("ROLE_PATIENT") -> "Paciente"
+                sessionManager.hasRole("DENTIST") || sessionManager.hasRole("DOCTOR") || sessionManager.hasRole("ROLE_DOCTOR") -> stringResource(id = R.string.role_doctor)
+                sessionManager.hasRole("AUXILIAR") || sessionManager.hasRole("ROLE_AUXILIAR") -> stringResource(id = R.string.role_auxiliar)
+                sessionManager.hasRole("PATIENT") || sessionManager.hasRole("ROLE_PATIENT") -> stringResource(id = R.string.role_patient)
                 else -> stringResource(id = R.string.role_admin)
             }
-
             BannerGenericProfile(
                 userName = userData?.name ?: "",
                 userRole = userRoleText,
@@ -124,7 +129,14 @@ fun UserProfilePage(
 
                 is InterfaceGlobal.Success -> {
                     Box(modifier = Modifier.weight(1f)) {
-                        UserInfoContent(userData = userData!!)
+                        UserInfoContent(
+                            userData = userData!!,
+                            onLogout = {
+                                sessionManager.clearSession()
+                                context.getSharedPreferences("dynalar_prefs", Context.MODE_PRIVATE).edit().clear().apply()
+                                onLogout()
+                            }
+                        )
                     }
                 }
 
@@ -149,7 +161,10 @@ fun UserProfilePage(
 }
 
 @Composable
-fun UserInfoContent(userData: User) {
+fun UserInfoContent(
+    userData: User,
+    onLogout: () -> Unit = {}
+) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
@@ -161,7 +176,30 @@ fun UserInfoContent(userData: User) {
         InputField(label = stringResource(id = R.string.user_surname_label), value = userData.surname ?: "")
         InputField(label = stringResource(id = R.string.user_email_label), value = userData.email ?: "")
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // BOTÓN CERRAR SESIÓN
+        Button(
+            onClick = onLogout,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                contentDescription = null,
+                tint = Color.White
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Tancar Sessió",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+        }
     }
 }
 

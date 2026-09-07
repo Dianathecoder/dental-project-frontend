@@ -28,11 +28,6 @@ import com.example.dynalar_frontend_v1.ui.AppRoutes
 import com.example.dynalar_frontend_v1.ui.screens.ScheduleAppointmentPage
 import com.example.dynalar_frontend_v1.ui.screens.appointment.CalendarPage
 import com.example.dynalar_frontend_v1.ui.screens.appointment.ResumeDateScreen
-import com.example.dynalar_frontend_v1.ui.screens.patient.CreateProfilePage
-import com.example.dynalar_frontend_v1.ui.screens.patient.DateInformationPage
-import com.example.dynalar_frontend_v1.ui.screens.patient.EditPatientPage
-import com.example.dynalar_frontend_v1.ui.screens.patient.ListPatientsScreen
-import com.example.dynalar_frontend_v1.ui.screens.patient.PatientProfilePage
 import com.example.dynalar_frontend_v1.ui.screens.auth.LoginPage
 import com.example.dynalar_frontend_v1.ui.screens.auth.RegisterPage
 import com.example.dynalar_frontend_v1.ui.screens.dashboard.AdminDashboardPage
@@ -49,13 +44,21 @@ import com.example.dynalar_frontend_v1.ui.screens.management.ProtocolPage
 import com.example.dynalar_frontend_v1.ui.screens.management.StockPage
 import com.example.dynalar_frontend_v1.ui.screens.odontogram.OdontogramPage
 import com.example.dynalar_frontend_v1.ui.screens.odontogram.ToothPage
+import com.example.dynalar_frontend_v1.ui.screens.patient.CreatePatientPage
+import com.example.dynalar_frontend_v1.ui.screens.patient.DateInformationPage
+import com.example.dynalar_frontend_v1.ui.screens.patient.EditPatientPage
+import com.example.dynalar_frontend_v1.ui.screens.patient.ListPatientsScreen
+import com.example.dynalar_frontend_v1.ui.screens.patient.PatientProfilePage
 import com.example.dynalar_frontend_v1.ui.screens.profile.ChangeAvatarPage
 import com.example.dynalar_frontend_v1.ui.screens.profile.UserProfilePage
+import com.example.dynalar_frontend_v1.ui.screens.staff.CreateUserPage
+import com.example.dynalar_frontend_v1.ui.screens.staff.StaffListScreen
+import com.example.dynalar_frontend_v1.ui.screens.staff.StaffProfilePage
 import com.example.dynalar_frontend_v1.ui.theme.Dynalar_frontend_v1Theme
-import com.example.dynalar_frontend_v1.viewmodel.*
-import java.util.Locale
 import com.example.dynalar_frontend_v1.utils.SessionManager
+import com.example.dynalar_frontend_v1.viewmodel.*
 import java.time.LocalDate
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
 
@@ -111,7 +114,21 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
 
                     val startDestination = if (sessionManager.hasToken()) {
-                        AppRoutes.Home.route
+                        when {
+                            sessionManager.hasRole("SUPERADMIN") || sessionManager.hasRole("ROLE_SUPERADMIN") ||
+                                    sessionManager.hasRole("OWNER") || sessionManager.hasRole("ROLE_OWNER") ||
+                                    sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN") ||
+                                    sessionManager.hasRole("AUXILIAR") || sessionManager.hasRole("ROLE_AUXILIAR") -> {
+                                AppRoutes.AdminDashboard.route
+                            }
+                            sessionManager.hasRole("DOCTOR") || sessionManager.hasRole("ROLE_DOCTOR") ||
+                                    sessionManager.hasRole("DENTIST") || sessionManager.hasRole("ROLE_DENTIST") -> {
+                                AppRoutes.DentistAgenda.route
+                            }
+                            else -> {
+                                AppRoutes.Home.route
+                            }
+                        }
                     } else {
                         AppRoutes.Login.route
                     }
@@ -125,7 +142,17 @@ class MainActivity : ComponentActivity() {
                                 viewModel = userViewModel,
                                 authViewModel = authViewModel,
                                 onAdminLoginSuccess = {
-                                    navController.navigate(AppRoutes.Home.route) {
+                                    navController.navigate(AppRoutes.AdminDashboard.route) {
+                                        popUpTo(AppRoutes.Login.route) { inclusive = true }
+                                    }
+                                },
+                                onAuxiliarLoginSuccess = {
+                                    navController.navigate(AppRoutes.AdminDashboard.route) {
+                                        popUpTo(AppRoutes.Login.route) { inclusive = true }
+                                    }
+                                },
+                                onDentistLoginSuccess = {
+                                    navController.navigate(AppRoutes.DentistAgenda.route) {
                                         popUpTo(AppRoutes.Login.route) { inclusive = true }
                                     }
                                 },
@@ -153,11 +180,7 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onNavigateBoxMaterials = { navController.navigate(AppRoutes.MaterialsHome.route) },
                                 onNavigateToPatientProfile = { patientId ->
-                                    navController.navigate(
-                                        AppRoutes.PatientProfile.createRoute(
-                                            patientId
-                                        )
-                                    )
+                                    navController.navigate(AppRoutes.PatientProfile.createRoute(patientId))
                                 },
                                 onLanguageChange = onLanguageChange
                             )
@@ -175,15 +198,25 @@ class MainActivity : ComponentActivity() {
                         composable(AppRoutes.ListPatients.route) {
                             ListPatientsScreen(
                                 viewModel = patientViewModel,
-                                onNavigateAddPatient = { navController.navigate(AppRoutes.CreateProfile.route) },
+                                onNavigateAddPatient = { navController.navigate(AppRoutes.CreatePatient.route) },
                                 onNavigateBack = { navController.popBackStack() },
                                 onNavigateToPatientProfile = { patientId ->
-                                    navController.navigate(
-                                        AppRoutes.PatientProfile.createRoute(
-                                            patientId
-                                        )
-                                    )
+                                    navController.navigate(AppRoutes.PatientProfile.createRoute(patientId))
                                 }
+                            )
+                        }
+
+                        composable(AppRoutes.CreatePatient.route) {
+                            CreatePatientPage(
+                                onNavigateBack = { navController.popBackStack() },
+                                patientViewModel = patientViewModel
+                            )
+                        }
+
+                        composable(AppRoutes.CreateUser.route) {
+                            CreateUserPage(
+                                onNavigateBack = { navController.popBackStack() },
+                                adminViewModel = adminViewModel
                             )
                         }
 
@@ -214,9 +247,7 @@ class MainActivity : ComponentActivity() {
                                     onOdontogramClick = {
                                         patient.odontogram?.id?.let { odontogramId ->
                                             navController.navigate(
-                                                AppRoutes.OdontogramPage.createRoute(
-                                                    odontogramId
-                                                )
+                                                AppRoutes.OdontogramPage.createRoute(odontogramId)
                                             )
                                         }
                                     },
@@ -229,21 +260,13 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onFilesClick = {
                                         patient.id?.let { id ->
-                                            navController.navigate(
-                                                AppRoutes.PatientFiles.createRoute(
-                                                    id
-                                                )
-                                            )
+                                            navController.navigate(AppRoutes.PatientFiles.createRoute(id))
                                         }
                                     },
                                     onCalendarClick = { navController.navigate(AppRoutes.CalendarPage.route) },
                                     onDateInformationClick = {
                                         patient.id?.let { id ->
-                                            navController.navigate(
-                                                AppRoutes.DateInformationPage.createRoute(
-                                                    id
-                                                )
-                                            )
+                                            navController.navigate(AppRoutes.DateInformationPage.createRoute(id))
                                         }
                                     }
                                 )
@@ -338,10 +361,7 @@ class MainActivity : ComponentActivity() {
                                 onBack = { navController.popBackStack() },
                                 onToothSelected = { toothNumber ->
                                     navController.navigate(
-                                        AppRoutes.ToothPage.createRoute(
-                                            odontogramId,
-                                            toothNumber
-                                        )
+                                        AppRoutes.ToothPage.createRoute(odontogramId, toothNumber)
                                     )
                                 }
                             )
@@ -370,6 +390,11 @@ class MainActivity : ComponentActivity() {
                                 onNavigateBack = { navController.popBackStack() },
                                 onNavigateToChangeAvatar = {
                                     navController.navigate(AppRoutes.ChangeAvatar.route)
+                                },
+                                onLogout = {
+                                    navController.navigate(AppRoutes.Login.route) {
+                                        popUpTo(0) { inclusive = true }
+                                    }
                                 }
                             )
                         }
@@ -389,14 +414,6 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        composable(AppRoutes.CreateProfile.route) {
-                            CreateProfilePage(
-                                onNavigateBack = { navController.popBackStack() },
-                                patientViewModel = patientViewModel,
-                                adminViewModel = adminViewModel
-                            )
-                        }
-
                         composable(
                             route = AppRoutes.PatientFiles.route,
                             arguments = listOf(navArgument("patientId") { type = NavType.LongType })
@@ -407,11 +424,7 @@ class MainActivity : ComponentActivity() {
                                 patientViewModel = patientViewModel,
                                 onBackClick = { navController.popBackStack() },
                                 onNavigateUpload = {
-                                    navController.navigate(
-                                        AppRoutes.PatientFileUpload.createRoute(
-                                            patientId
-                                        )
-                                    )
+                                    navController.navigate(AppRoutes.PatientFileUpload.createRoute(patientId))
                                 }
                             )
                         }
@@ -442,11 +455,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateBack = { navController.popBackStack() },
                                 onAddAppointmentClick = { date, hour, minute ->
                                     navController.navigate(
-                                        AppRoutes.ScheduleAppointment.createRoute(
-                                            date.toString(),
-                                            hour,
-                                            minute
-                                        )
+                                        AppRoutes.ScheduleAppointment.createRoute(date.toString(), hour, minute)
                                     )
                                 },
                                 onAppointmentClick = { appointment ->
@@ -463,11 +472,7 @@ class MainActivity : ComponentActivity() {
                                     appointment = appointment,
                                     onBackClick = { navController.popBackStack() },
                                     onPatientClick = { patientId ->
-                                        navController.navigate(
-                                            AppRoutes.PatientProfile.createRoute(
-                                                patientId
-                                            )
-                                        )
+                                        navController.navigate(AppRoutes.PatientProfile.createRoute(patientId))
                                     }
                                 )
                             } else {
@@ -531,44 +536,104 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-
                         composable(AppRoutes.DentistAgenda.route) {
                             DentistAgendaPage(
                                 appointmentViewModel = appointmentViewModel,
                                 onNavigateToPatientProfile = { patientId ->
-                                    navController.navigate(
-                                        AppRoutes.PatientProfile.createRoute(
-                                            patientId
-                                        )
-                                    )
+                                    navController.navigate(AppRoutes.PatientProfile.createRoute(patientId))
                                 },
                                 onLogout = {
-                                    getSharedPreferences("dynalar_prefs", MODE_PRIVATE).edit()
-                                        .clear().apply()
+                                    getSharedPreferences("dynalar_prefs", MODE_PRIVATE).edit().clear().apply()
                                     navController.navigate(AppRoutes.Login.route) {
                                         popUpTo(0) { inclusive = true }
                                     }
                                 }
                             )
                         }
+
                         composable(AppRoutes.AdminDashboard.route) {
                             AdminDashboardPage(
+                                viewModel = appointmentViewModel,
+                                onNavigateProfileUserProfile = { navController.navigate(AppRoutes.UserProfile.route) },
                                 onNavigatePatients = { navController.navigate(AppRoutes.ListPatients.route) },
+                                onNavigateBoxCalendar = { navController.navigate(AppRoutes.CalendarPage.route) },
                                 onNavigateManagement = { navController.navigate(AppRoutes.MaterialsHome.route) },
-                                onNavigateAttendance = { /* Navegar a la futura pantalla de fichajes */ },
-                                onLogout = {
-                                    getSharedPreferences("dynalar_prefs", Context.MODE_PRIVATE).edit().clear().apply()
-                                    navController.navigate(AppRoutes.Login.route) { popUpTo(0) { inclusive = true } }
-                                }
+                                onNavigateStaff = { navController.navigate(AppRoutes.StaffList.route) },
+                                onNavigateAttendance = { navController.navigate(AppRoutes.AttendanceControl.route) },
+                                onNavigateToAppointmentDetail = { appointment ->
+                                    appointmentViewModel.selectedAppointment = appointment
+                                    navController.navigate(AppRoutes.ResumeDate.route)
+                                },
+                                onLanguageChange = onLanguageChange
                             )
                         }
+
                         composable(AppRoutes.AttendanceControl.route) {
                             AttendanceControlPage(
                                 onNavigateBack = { navController.popBackStack() }
                             )
                         }
 
+                        composable(AppRoutes.StaffList.route) {
+                            LaunchedEffect(Unit) {
+                                userViewModel.getAllStaff()
+                            }
 
+                            val staffList = userViewModel.staffList
+
+                            StaffListScreen(
+                                staffList = staffList,
+                                onNavigateBack = { navController.popBackStack() },
+                                onNavigateToAddUser = { navController.navigate(AppRoutes.CreateUser.route) },
+                                onNavigateToStaffProfile = { staffId ->
+                                    navController.navigate(AppRoutes.StaffProfile.createRoute(staffId))
+                                },
+                                onDeleteStaff = { staffId ->
+                                    userViewModel.deleteUser(staffId)
+                                }
+                            )
+                        }
+
+                        composable(
+                            route = AppRoutes.StaffProfile.route,
+                            arguments = listOf(navArgument("staffId") { type = NavType.LongType })
+                        ) { backStackEntry ->
+                            val staffId = backStackEntry.arguments?.getLong("staffId") ?: -1L
+
+                            LaunchedEffect(staffId) {
+                                if (staffId != -1L) {
+                                    userViewModel.getUserById(staffId)
+                                }
+                            }
+
+                            val staffUser = userViewModel.selectedUser
+
+                            if (staffUser != null) {
+                                StaffProfilePage(
+                                    staff = staffUser,
+                                    onNavigateBack = { navController.popBackStack() },
+                                    onEditClick = { id ->
+                                        // Redirigir a edición de personal
+                                    },
+                                    onDeleteClick = { id ->
+                                        userViewModel.deleteUser(id) {
+                                            navController.navigate(AppRoutes.StaffList.route) {
+                                                popUpTo(AppRoutes.StaffProfile.route) { inclusive = true }
+                                            }
+                                        }
+                                    },
+                                    onAttendanceHistoryClick = {
+                                        navController.navigate(AppRoutes.AttendanceControl.route)
+                                    },
+                                    onDoctorAgendaClick = { navController.navigate(AppRoutes.CalendarPage.route) },
+                                    onDoctorPatientsClick = { navController.navigate(AppRoutes.ListPatients.route) }
+                                )
+                            } else {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator()
+                                }
+                            }
+                        }
 
                     }
                 }

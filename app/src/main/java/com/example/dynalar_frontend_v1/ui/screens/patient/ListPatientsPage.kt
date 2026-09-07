@@ -1,7 +1,5 @@
 package com.example.dynalar_frontend_v1.ui.screens.patient
 
-
-import PatientFilterDropdown
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -18,12 +16,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Coronavirus
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
@@ -31,17 +32,14 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -60,13 +59,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
+import com.example.dynalar_frontend_v1.model.filter.ClinicalFilter
 import com.example.dynalar_frontend_v1.model.patient.Patient
 import com.example.dynalar_frontend_v1.ui.components.AddButton
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.components.DeleteConfirmationDialog
+import com.example.dynalar_frontend_v1.ui.components.PatientFilterDropdown
 import com.example.dynalar_frontend_v1.ui.components.SwipeToDeleteContainer
 import com.example.dynalar_frontend_v1.ui.components.getPatientImage
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
+import com.example.dynalar_frontend_v1.utils.SessionManager
 import com.example.dynalar_frontend_v1.viewmodel.PatientViewModel
 import kotlinx.coroutines.delay
 
@@ -81,17 +83,22 @@ fun ListPatientsScreen(
     val uiState = viewModel.uiStatePatient
     val textFieldState = rememberTextFieldState()
     val listState = rememberLazyListState()
-    var selectedLetter by remember { mutableStateOf<Char?>(null) }
-    var sortAscending by remember { mutableStateOf(true) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var patientToDelete by remember { mutableStateOf<Long?>(null) }
+    var selectedClinicalFilter by remember { mutableStateOf(ClinicalFilter.ALL) }
+    var sortAscending by remember { mutableStateOf(true) }
+
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+    val isDoctor = sessionManager.hasRole("DOCTOR") || sessionManager.hasRole("ROLE_DOCTOR")
 
     Scaffold { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
 
             PatientsTopBar(
                 onNavigateAddPatient = onNavigateAddPatient,
-                onNavigateBack = onNavigateBack
+                onNavigateBack = onNavigateBack,
+                showAddButton = !isDoctor
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -108,9 +115,9 @@ fun ListPatientsScreen(
                 horizontalArrangement = Arrangement.End
             ) {
                 PatientFilterDropdown(
-                    selectedLetter = selectedLetter,
+                    selectedClinicalFilter = selectedClinicalFilter,
                     sortAscending = sortAscending,
-                    onLetterSelected = { selectedLetter = it },
+                    onClinicalFilterChanged = { selectedClinicalFilter = it },
                     onSortChanged = { sortAscending = it }
                 )
             }
@@ -127,22 +134,26 @@ fun ListPatientsScreen(
                 }
 
                 is InterfaceGlobal.Success -> {
-                    val filteredPatients = remember(uiState.data, selectedLetter, sortAscending) {
+                    val filteredPatients = remember(uiState.data, selectedClinicalFilter, sortAscending) {
                         uiState.data
-                            .filter { patient -> !patient.name.isNullOrBlank() || !patient.lastName.isNullOrBlank() }
+                            .filter { patient -> !patient.name.isNullOrBlank() }
                             .filter { patient ->
-                                selectedLetter == null ||
-                                        (patient.name ?: patient.lastName ?: "").firstOrNull()?.uppercaseChar() == selectedLetter
-                            }
-                            .let { list ->
-                                if (sortAscending) {
-                                    list.sortedBy { (it.name ?: it.lastName ?: "").uppercase() }
-                                } else {
-                                    list.sortedByDescending { (it.name ?: it.lastName ?: "").uppercase() }
+                                val hasInfections = !patient.medicalRecord?.infectiousDeceases.isNullOrBlank()
+                                val hasAllergies = !patient.medicalRecord?.allergies.isNullOrBlank()
+
+                                when (selectedClinicalFilter) {
+                                    ClinicalFilter.ALL -> true
+                                    ClinicalFilter.ALLERGIES -> hasAllergies
+                                    ClinicalFilter.INFECTIONS -> hasInfections
+                                    ClinicalFilter.HEALTHY -> !hasAllergies && !hasInfections
                                 }
                             }
+                            .let { list ->
+                                if (sortAscending) list.sortedBy { (it.name ?: "").uppercase() }
+                                else list.sortedByDescending { (it.name ?: "").uppercase() }
+                            }
                     }
-                    // Si la lista está vacía, mostramos el nuevo Empty State
+
                     if (filteredPatients.isEmpty()) {
                         EmptyPatientsState(modifier = Modifier.weight(1f).fillMaxWidth())
                     } else {
@@ -168,7 +179,6 @@ fun ListPatientsScreen(
                             patients.forEach { (initial, patientList) ->
                                 item { CharacterHeader(initial) }
 
-
                                 items(patientList, key = { it.id ?: 0L }) { patient ->
 
                                     if (patient.id == lastPatientId) {
@@ -182,25 +192,35 @@ fun ListPatientsScreen(
                                     }
 
                                     val isFirstElement = (patient.id == firstPatientId)
-                                    SwipeToDeleteContainer(
-                                        enableHintAnimation = isFirstElement,
-                                        hintAlreadyShown = viewModel.isDeleteHintShown,
-                                        onHintShown = { viewModel.isDeleteHintShown = true },
-                                        onDelete = {
-                                            patientToDelete = patient.id
-                                            showDeleteDialog = true
-                                        }
-                                    ) {
+
+                                    if (isDoctor) {
                                         PatientItem(
                                             patient = patient,
                                             onClick = { selectedPatient ->
                                                 selectedPatient.id?.let {
-                                                    onNavigateToPatientProfile(
-                                                        it
-                                                    )
+                                                    onNavigateToPatientProfile(it)
                                                 }
                                             }
                                         )
+                                    } else {
+                                        SwipeToDeleteContainer(
+                                            enableHintAnimation = isFirstElement,
+                                            hintAlreadyShown = viewModel.isDeleteHintShown,
+                                            onHintShown = { viewModel.isDeleteHintShown = true },
+                                            onDelete = {
+                                                patientToDelete = patient.id
+                                                showDeleteDialog = true
+                                            }
+                                        ) {
+                                            PatientItem(
+                                                patient = patient,
+                                                onClick = { selectedPatient ->
+                                                    selectedPatient.id?.let {
+                                                        onNavigateToPatientProfile(it)
+                                                    }
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -243,6 +263,7 @@ fun ListPatientsScreen(
             }
         }
     }
+
     if (showDeleteDialog && patientToDelete != null) {
         DeleteConfirmationDialog(
             onConfirm = {
@@ -259,8 +280,6 @@ fun ListPatientsScreen(
         )
     }
 }
-
-
 
 @Composable
 fun SearchPatientBar(
@@ -287,7 +306,6 @@ fun SearchPatientBar(
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         leadingIcon = {
-
             Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray)
         },
         placeholder = {
@@ -307,6 +325,7 @@ fun SearchPatientBar(
         singleLine = true
     )
 }
+
 @Composable
 fun AddPatientButton(
     onClick: () -> Unit,
@@ -322,7 +341,8 @@ fun AddPatientButton(
 @Composable
 fun PatientsTopBar(
     onNavigateBack: () -> Unit,
-    onNavigateAddPatient: () -> Unit
+    onNavigateAddPatient: () -> Unit,
+    showAddButton: Boolean = true
 ) {
     Box(
         modifier = Modifier.fillMaxWidth()
@@ -333,12 +353,14 @@ fun PatientsTopBar(
             modifier = Modifier.align(Alignment.CenterStart)
         )
 
-        AddPatientButton(
-            onClick = onNavigateAddPatient,
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 50.dp, top = 25.dp)
-        )
+        if (showAddButton) {
+            AddPatientButton(
+                onClick = onNavigateAddPatient,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 50.dp, top = 25.dp)
+            )
+        }
     }
 }
 
@@ -358,6 +380,7 @@ fun CharacterHeader(initial: Char) {
         )
     }
 }
+
 @Composable
 private fun EmptyPatientsState(modifier: Modifier = Modifier) {
     Column(
@@ -366,14 +389,14 @@ private fun EmptyPatientsState(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = Icons.Default.Group, // Icono de múltiples personas
+            imageVector = Icons.Default.Group,
             contentDescription = null,
             modifier = Modifier.size(72.dp),
-            tint = Color(0xFFA0B2C0) // Color gris azulado para seguir el estilo
+            tint = Color(0xFFA0B2C0)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "No registered patients.", // Puedes cambiarlo a stringResource(R.string...)
+            text = "No registered patients.",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Normal,
             color = Color.Gray
@@ -386,10 +409,8 @@ fun PatientItem(
     patient: Patient,
     onClick: (Patient) -> Unit
 ) {
-
     val allergies = patient.medicalRecord?.allergies
     val infectiousDeceases = patient.medicalRecord?.infectiousDeceases
-
 
     val hasInfections = !infectiousDeceases.isNullOrBlank()
     val hasAllergies = !allergies.isNullOrBlank()
@@ -431,7 +452,6 @@ fun PatientItem(
                     fontWeight = FontWeight.Medium
                 )
 
-
                 if (hasInfections) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -450,7 +470,6 @@ fun PatientItem(
                     }
                 }
 
-                // --- 2. Alerta de Alergias ---
                 if (hasAllergies) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -468,7 +487,6 @@ fun PatientItem(
                         )
                     }
                 }
-
 
                 if (!hasInfections && !hasAllergies) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -488,7 +506,5 @@ fun PatientItem(
                 }
             }
         }
-
     }
-
 }

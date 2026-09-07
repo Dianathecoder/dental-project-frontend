@@ -317,4 +317,44 @@
     <string name="change_avatar_description">Tria la imatge que millor et representi al teu perfil.</string>
     <string name="btn_save_changes">Desar canvis</string>
     <string name="error_connection_desc">Comprova la teva connexió a internet i torna-ho a provar.</string>
+
+    <string name="role_superadmin">Superadministrador</string>
+    <string name="role_owner">Propietari</string>
+    <string name="role_doctor">Doctor</string>
+    <string name="role_auxiliar">Auxiliar</string>
+    <string name="role_patient">Pacient</string>
+
+    <!-- Filtros Pacientes -->
+    <string name="filter_all_patients">Tots els pacients</string>
+    <string name="filter_allergies">Amb Al·lèrgies</string>
+    <string name="filter_infections">Amb Infeccions</string>
+    <string name="filter_healthy">Sense alertes mèdiques</string>
+
+
+    <!-- Pantalla Staff List -->
+    <string name="staff_list_title">Equip de la Clínica</string>
+    <string name="role_worker">Treballador/a</string>
+
+    <!-- Opciones de Filtro del Staff -->
+    <string name="filter_all_staff">Tots els treballadors</string>
+    <string name="filter_owners">Propietaris</string>
+    <string name="filter_admins">Administratius</string>
+    <string name="filter_doctors">Doctors</string>
+    <string name="filter_auxiliars">Auxiliars</string>
+    <string name="filter_label">Filtrar per rol</string>
+
+    <string name="user_created_successfully">Usuari creat correctament</string>
+    <string name="error_unknown_server">Error desconegut al servidor</string>
+    <string name="error_connection">Error de connexió, revisa el teu internet</string>
+
+    <string name="dashboard_title">Panell de Direcció</string>
+    <string name="dashboard_welcome_superadmin">Benvinguda, SuperAdministradora</string>
+    <string name="dashboard_welcome_owner">Benvingut/da, Propietari/a</string>
+    <string name="dashboard_welcome_admin">Benvingut/da, Administrador/a</string>
+    <string name="dashboard_btn_new_user">Nou Usuari</string>
+    <string name="dashboard_btn_patients">Gestió Pacients</string>
+    <string name="dashboard_btn_management">Gestió Clínica</string>
+    <string name="dashboard_btn_attendance">Control Fitxatges</string>
+    <string name="dashboard_btn_staff">Equip de la Clínica</string>
+    <string name="upload_accept_save">Acceptar i desar</string>
 </resources>

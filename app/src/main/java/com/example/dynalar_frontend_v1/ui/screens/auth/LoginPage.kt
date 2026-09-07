@@ -76,14 +76,21 @@ fun LoginPage(
             is Collection<*> -> roles.map { it.toString().uppercase() }
             else -> emptyList()
         }
+
         when {
-            rolesList.any { it.contains("ADMIN") } -> onAdminLoginSuccess()
+            // SuperAdmin, Propietario (Owner) y Administrador van al Panel de Dirección / Home
+            rolesList.any { it.contains("SUPERADMIN") || it.contains("OWNER") || it.contains("ADMIN") } -> onAdminLoginSuccess()
+
+            // Auxiliar
             rolesList.any { it.contains("AUXILIAR") } -> onAuxiliarLoginSuccess()
+
+            // Doctor / Dentista va a su Agenda
             rolesList.any { it.contains("DOCTOR") || it.contains("DENTIST") } -> onDentistLoginSuccess()
+
+            // Paciente va a su vista principal
             else -> onPatientLoginSuccess()
         }
     }
-
     LaunchedEffect(loginUiState) {
         if (loginUiState is InterfaceGlobal.Success) {
             val response = (loginUiState as InterfaceGlobal.Success<AuthResponse>).data

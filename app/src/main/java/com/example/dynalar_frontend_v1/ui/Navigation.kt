@@ -5,7 +5,10 @@ sealed class AppRoutes(val route: String) {
     object Home : AppRoutes("homePage")
 
     object ListPatients : AppRoutes("patientsScreen")
-    object CreateProfile : AppRoutes("createProfile")
+    object CreatePatient : AppRoutes("createPatient")
+    object CreateUser : AppRoutes("createUser")
+    object CreateProfile : AppRoutes("createProfile") // Mantenido por compatibilidad si se requiere
+
     object OdontogramPage : AppRoutes("odontogramPage/{odontogramId}") {
         fun createRoute(odontogramId: Long) = "odontogramPage/$odontogramId"
     }
@@ -23,7 +26,7 @@ sealed class AppRoutes(val route: String) {
 
     object ProtocolPage: AppRoutes("protocolPage/{treatmentId}"){
         fun createRoute(treatmentId: Long) = "protocolPage/$treatmentId"
-        }
+    }
 
     object UserProfile : AppRoutes("userProfile")
     object CalendarPage : AppRoutes("calendarPage")
@@ -53,7 +56,6 @@ sealed class AppRoutes(val route: String) {
 
     object BoxPage : AppRoutes("boxPage")
     object ScheduleAppointment : AppRoutes("scheduleAppointment/{date}/{hour}/{minute}") {
-
         fun createRoute(date: String, hour: Int, minute: Int): String {
             return "scheduleAppointment/$date/$hour/$minute"
         }
@@ -66,4 +68,9 @@ sealed class AppRoutes(val route: String) {
     object DentistAgenda : AppRoutes("dentist_agenda")
     object PatientHome : AppRoutes("patient_home")
     object AttendanceControl : AppRoutes("attendance_control")
+    object StaffList : AppRoutes("staffList")
+
+    object StaffProfile : AppRoutes("staffProfile/{staffId}") {
+        fun createRoute(staffId: Long) = "staffProfile/$staffId"
+    }
 }
