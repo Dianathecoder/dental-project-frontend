@@ -31,7 +31,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -68,7 +67,7 @@ fun HomePage(
     onNavigateBoxCalendar: () -> Unit,
     onNavigateToAppointmentDetail: (Appointment) -> Unit,
     onNavigateBoxMaterials: () -> Unit,
-    onNavigateToPatientProfile: (Long) -> Unit,
+    onNavigateToPatientProfile: (Long) -> Unit = {},
     onLanguageChange: (String) -> Unit = {}
 ) {
     LaunchedEffect(Unit) {
@@ -149,7 +148,6 @@ fun HomePage(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // El Admin tiene acceso completo a todas las secciones de la app
             Buttons_HomePage(
                 onNavigateListPacient = onNavigateListPacient,
                 onNavigateBoxCalendar = onNavigateBoxCalendar,
@@ -192,16 +190,33 @@ fun Header_HomePage(
     onLanguageChange: (String) -> Unit
 ) {
     val context = LocalContext.current
-    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-    val currentAvatarResId = prefs.getInt("user_avatar", R.drawable.avatar_color)
+    val prefs = remember { context.getSharedPreferences("settings", Context.MODE_PRIVATE) }
     val sessionManager = remember { SessionManager(context) }
 
-    // Determinar el nombre del rol según la sesión guardada
+    // Validación de seguridad para asegurar que el ID es un Drawable válido
+    val savedAvatarResId = prefs.getInt("user_avatar", R.drawable.avatar_color)
+    val safeAvatarResId = remember(savedAvatarResId) {
+        try {
+            val typeName = context.resources.getResourceTypeName(savedAvatarResId)
+            if (typeName == "drawable") {
+                savedAvatarResId
+            } else {
+                prefs.edit().putInt("user_avatar", R.drawable.avatar_color).apply()
+                R.drawable.avatar_color
+            }
+        } catch (e: Exception) {
+            prefs.edit().putInt("user_avatar", R.drawable.avatar_color).apply()
+            R.drawable.avatar_color
+        }
+    }
+
     val roleLabel = when {
-        sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN") -> "Admin"
-        sessionManager.hasRole("DENTIST") || sessionManager.hasRole("ROLE_DENTIST") || sessionManager.hasRole("DOCTOR") || sessionManager.hasRole("ROLE_DOCTOR") -> "Dentist"
-        sessionManager.hasRole("AUXILIAR") || sessionManager.hasRole("ROLE_AUXILIAR") -> "Auxiliar"
-        sessionManager.hasRole("PATIENT") || sessionManager.hasRole("ROLE_PATIENT") -> "Patient"
+        sessionManager.hasRole("SUPERADMIN") || sessionManager.hasRole("ROLE_SUPERADMIN") -> stringResource(id = R.string.role_superadmin)
+        sessionManager.hasRole("OWNER") || sessionManager.hasRole("ROLE_OWNER") -> stringResource(id = R.string.role_owner)
+        sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN") -> stringResource(id = R.string.role_admin)
+        sessionManager.hasRole("DENTIST") || sessionManager.hasRole("DOCTOR") || sessionManager.hasRole("ROLE_DOCTOR") -> stringResource(id = R.string.role_doctor)
+        sessionManager.hasRole("AUXILIAR") || sessionManager.hasRole("ROLE_AUXILIAR") -> stringResource(id = R.string.role_auxiliar)
+        sessionManager.hasRole("PATIENT") || sessionManager.hasRole("ROLE_PATIENT") -> stringResource(id = R.string.role_patient)
         else -> "Admin"
     }
 
@@ -220,7 +235,7 @@ fun Header_HomePage(
                 .padding(end = 8.dp, top = 4.dp, bottom = 4.dp)
         ) {
             Image(
-                painter = painterResource(id = currentAvatarResId),
+                painter = painterResource(id = safeAvatarResId),
                 contentDescription = stringResource(id = R.string.home_my_profile),
                 modifier = Modifier
                     .size(56.dp)

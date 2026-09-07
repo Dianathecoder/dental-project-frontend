@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private const val BASE_URL = "http://192.168.1.54:8080/"
+    private const val BASE_URL = "http://192.168.1.55:8080/"
     private var sessionManager: SessionManager? = null
 
     fun init(context: Context) {
@@ -71,4 +71,6 @@ object RetrofitClient {
     val dentalProcessApiService: DentalProcessApiService by lazy { retrofit.create(DentalProcessApiService::class.java) }
     val boxApiService: BoxApiService by lazy { retrofit.create(BoxApiService::class.java) }
     val attendanceApiService: AttendanceApiService by lazy { retrofit.create(AttendanceApiService::class.java) }
+
+
 }

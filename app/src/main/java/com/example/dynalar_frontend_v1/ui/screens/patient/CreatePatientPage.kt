@@ -1,6 +1,5 @@
 package com.example.dynalar_frontend_v1.ui.screens.patient
 
-import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dynalar_frontend_v1.R
-import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.patient.MedicalRecord
 import com.example.dynalar_frontend_v1.model.patient.Patient
 import com.example.dynalar_frontend_v1.model.patient.Sex
@@ -35,53 +33,15 @@ import com.example.dynalar_frontend_v1.ui.components.InputFieldEditable
 import com.example.dynalar_frontend_v1.ui.components.Navegate_Button
 import com.example.dynalar_frontend_v1.ui.components.PhoneInputField
 import com.example.dynalar_frontend_v1.ui.components.ValidationAndSignatureDialog
-import com.example.dynalar_frontend_v1.viewmodel.AdminViewModel
 import com.example.dynalar_frontend_v1.viewmodel.PatientViewModel
-
-@Composable
-fun CreateProfilePage(
-    onNavigateBack: () -> Unit,
-    patientViewModel: PatientViewModel = viewModel(),
-    adminViewModel: AdminViewModel = viewModel()
-) {
-    CreateProfileForm(
-        onNavigateBack = onNavigateBack,
-        patientViewModel = patientViewModel,
-        adminViewModel = adminViewModel
-    )
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateProfileForm(
+fun CreatePatientPage(
     onNavigateBack: () -> Unit,
-    patientViewModel: PatientViewModel,
-    adminViewModel: AdminViewModel
+    patientViewModel: PatientViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val prefs = context.getSharedPreferences("dynalar_prefs", Context.MODE_PRIVATE)
-    val savedRolesString = prefs.getStringSet("user_roles", emptySet())?.joinToString(",") ?: ""
-
-    val isAdmin = savedRolesString.contains("ADMIN", ignoreCase = true)
-    val availableRoles = remember(isAdmin) {
-        if (isAdmin) {
-            listOf(
-                "PATIENT" to "Paciente",
-                "AUXILIAR" to "Auxiliar",
-                "DENTIST" to "Doctor/a",
-                "ADMIN" to "Administrador"
-            )
-        } else {
-            listOf(
-                "PATIENT" to "Paciente"
-            )
-        }
-    }
-
-    var selectedRole by remember { mutableStateOf(availableRoles.first().first) }
-    var expanded by remember { mutableStateOf(false) }
-
-    val isPatient = selectedRole == "PATIENT"
     var selectedTab by remember { mutableStateOf(0) }
 
     // Información Personal
@@ -100,38 +60,19 @@ fun CreateProfileForm(
     var dentalConditions by remember { mutableStateOf("") }
     var medicalNotes by remember { mutableStateOf("") }
 
-    // Alergias
+    // Alergias e Infecciosas
     var hasAllergies by remember { mutableStateOf(false) }
     var allergiesText by remember { mutableStateOf("") }
-
-    // Enfermedades Infecciosas
     var hasInfectious by remember { mutableStateOf(false) }
     var infectiousText by remember { mutableStateOf("") }
 
     var signatureStep by remember { mutableStateOf(0) }
     var tempAnesthesiaSignature by remember { mutableStateOf<String?>(null) }
 
-
-    // Observar estados de respuesta
-    val adminInviteState by adminViewModel.inviteState.collectAsState()
-
-
     val fillAllFieldsMsg = stringResource(R.string.validation_fill_all_fields)
     val invalidEmailMsg = stringResource(R.string.validation_invalid_email)
     val invalidPhoneMsg = stringResource(R.string.validation_invalid_phone)
     val invalidDniMsg = stringResource(R.string.validation_invalid_dni)
-
-    LaunchedEffect(adminInviteState) {
-        if (adminInviteState is InterfaceGlobal.Success) {
-            Toast.makeText(context, "Usuari creat correctament", Toast.LENGTH_SHORT).show()
-            adminViewModel.resetInviteState()
-            onNavigateBack()
-        } else if (adminInviteState is InterfaceGlobal.Error) {
-            val error = (adminInviteState as InterfaceGlobal.Error).message
-            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
-            adminViewModel.resetInviteState()
-        }
-    }
 
     val performSave = { anesthesiaSig: String?, historySig: String? ->
         val finalAllergies = if (hasAllergies) allergiesText.trim() else ""
@@ -186,20 +127,11 @@ fun CreateProfileForm(
             allergies = currentAllergies,
             isOptional = false,
             onConfirm = { signature ->
-                val historySignature = signature
+                performSave(tempAnesthesiaSignature, signature)
                 signatureStep = 0
-                performSave(tempAnesthesiaSignature, historySignature)
             },
             onDismiss = { signatureStep = 0 }
         )
-    }
-
-    val pageTitle = when (selectedRole) {
-        "PATIENT" -> stringResource(R.string.patient_new_title)
-        "DENTIST" -> "Nou Doctor/a"
-        "AUXILIAR" -> "Nou Auxiliar"
-        "ADMIN" -> "Nou Administrador"
-        else -> "Nou Usuari"
     }
 
     Scaffold(
@@ -210,63 +142,34 @@ fun CreateProfileForm(
                 shadowElevation = 8.dp
             ) {
                 Box(
-                    modifier = Modifier
-                        .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 50.dp),
+                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 40.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    val isLoading = adminInviteState is InterfaceGlobal.Loading
                     Navegate_Button(
-                        text = if (isPatient) stringResource(R.string.patient_save_continue) else stringResource(R.string.btn_create),
+                        text = stringResource(R.string.patient_save_continue),
                         onClick = {
-                            if (isPatient) {
-                                // Validaciones de PACIENTE
-                                if (name.isBlank() || lastName.isBlank() || email.isBlank() || dni.isBlank() || phone.isBlank()) {
-                                    Toast.makeText(context, fillAllFieldsMsg, Toast.LENGTH_SHORT).show()
-                                    return@Navegate_Button
-                                }
-                                val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[a-zA-Z]{2,}$".toRegex()
-                                if (!email.matches(emailRegex)) {
-                                    Toast.makeText(context, invalidEmailMsg, Toast.LENGTH_SHORT).show()
-                                    return@Navegate_Button
-                                }
-                                val phoneRegex = "^[0-9]{9}$".toRegex()
-                                if (!phone.trim().matches(phoneRegex)) {
-                                    Toast.makeText(context, invalidPhoneMsg, Toast.LENGTH_SHORT).show()
-                                    return@Navegate_Button
-                                }
-                                val dniRegex = "^[XYZxyz]?\\d{7,8}[A-Za-z]$".toRegex()
-                                if (!dni.trim().matches(dniRegex)) {
-                                    Toast.makeText(context, invalidDniMsg, Toast.LENGTH_SHORT).show()
-                                    return@Navegate_Button
-                                }
-                                signatureStep = 1
-                            } else {
-                                // Validaciones de EMPLEADO (Doctor, Auxiliar, Admin) AHORA PIDE DNI Y TELÉFONO
-                                if (name.isBlank() || lastName.isBlank() || email.isBlank() || dni.isBlank() || phone.isBlank()) {
-                                    Toast.makeText(context, fillAllFieldsMsg, Toast.LENGTH_SHORT).show()
-                                    return@Navegate_Button
-                                }
-                                val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[a-zA-Z]{2,}$".toRegex()
-                                if (!email.matches(emailRegex)) {
-                                    Toast.makeText(context, invalidEmailMsg, Toast.LENGTH_SHORT).show()
-                                    return@Navegate_Button
-                                }
-                                val phoneRegex = "^[0-9]{9}$".toRegex()
-                                if (!phone.trim().matches(phoneRegex)) {
-                                    Toast.makeText(context, invalidPhoneMsg, Toast.LENGTH_SHORT).show()
-                                    return@Navegate_Button
-                                }
-                                val dniRegex = "^[XYZxyz]?\\d{7,8}[A-Za-z]$".toRegex()
-                                if (!dni.trim().matches(dniRegex)) {
-                                    Toast.makeText(context, invalidDniMsg, Toast.LENGTH_SHORT).show()
-                                    return@Navegate_Button
-                                }
-
-                                // Llama a la creación de personal pasando los nuevos datos
-                                adminViewModel.inviteUser(name, lastName, email, selectedRole, dni, "$countryCode $phone", sex.name)
+                            if (name.isBlank() || lastName.isBlank() || email.isBlank() || dni.isBlank() || phone.isBlank()) {
+                                Toast.makeText(context, fillAllFieldsMsg, Toast.LENGTH_SHORT).show()
+                                return@Navegate_Button
                             }
+                            val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[a-zA-Z]{2,}$".toRegex()
+                            if (!email.matches(emailRegex)) {
+                                Toast.makeText(context, invalidEmailMsg, Toast.LENGTH_SHORT).show()
+                                return@Navegate_Button
+                            }
+                            val phoneRegex = "^[0-9]{9}$".toRegex()
+                            if (!phone.trim().matches(phoneRegex)) {
+                                Toast.makeText(context, invalidPhoneMsg, Toast.LENGTH_SHORT).show()
+                                return@Navegate_Button
+                            }
+                            val dniRegex = "^[XYZxyz]?\\d{7,8}[A-Za-z]$".toRegex()
+                            if (!dni.trim().matches(dniRegex)) {
+                                Toast.makeText(context, invalidDniMsg, Toast.LENGTH_SHORT).show()
+                                return@Navegate_Button
+                            }
+                            signatureStep = 1
                         },
-                        enabled = (!isPatient || selectedTab == 1) && !isLoading
+                        enabled = selectedTab == 1
                     )
                 }
             }
@@ -278,60 +181,38 @@ fun CreateProfileForm(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
         ) {
-
-            // 1. TU COMPONENTE ORIGINAL PARA LA CABECERA Y PESTAÑAS
-            Header_ButtonNavigator(
-                pageTitle = pageTitle,
-                selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it },
-                onNavigateBack = onNavigateBack,
-                isPatient = isPatient
+            CustomTopBar(
+                title = stringResource(R.string.patient_new_title),
+                titleFontSize = 20.sp,
+                onNavigateBack = onNavigateBack
             )
 
-            Spacer(modifier = Modifier.height(15.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // 2. DESPLEGABLE DE ROLES
-            if (availableRoles.size > 1) {
-                Box(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 16.dp)) {
-                    ExposedDropdownMenuBox(
-                        expanded = expanded,
-                        onExpandedChange = { expanded = !expanded }
-                    ) {
-                        OutlinedTextField(
-                            value = availableRoles.find { it.first == selectedRole }?.second ?: "",
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Tipus d'usuari a crear") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                            modifier = Modifier.menuAnchor().fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFF537895),
-                                focusedLabelColor = Color(0xFF537895)
-                            )
-                        )
-                        ExposedDropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false }
-                        ) {
-                            availableRoles.forEach { (roleKey, roleName) ->
-                                DropdownMenuItem(
-                                    text = { Text(roleName) },
-                                    onClick = {
-                                        selectedRole = roleKey
-                                        expanded = false
-                                        if (roleKey != "PATIENT") {
-                                            selectedTab = 0
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TabButton(
+                    text = stringResource(R.string.patient_tab_info),
+                    isSelected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    modifier = Modifier.weight(1f)
+                )
+                TabButton(
+                    text = stringResource(R.string.patient_tab_history),
+                    isSelected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    modifier = Modifier.weight(1f)
+                )
             }
 
-            Box(modifier = Modifier.padding(horizontal = 30.dp)) {
-                if (!isPatient || selectedTab == 0) {
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Box(modifier = Modifier.padding(horizontal = 24.dp)) {
+                if (selectedTab == 0) {
                     InformationPersonal(
                         name = name, onNameChange = { name = it },
                         lastName = lastName, onLastNameChange = { lastName = it },
@@ -339,7 +220,7 @@ fun CreateProfileForm(
                         dni = dni, onDniChange = { dni = it },
                         countryCode = countryCode, onCountryCodeChange = { countryCode = it },
                         phone = phone, onPhoneChange = { phone = it },
-                        sex = sex, onSexChange = { sex = it },
+                        sex = sex, onSexChange = { sex = it }
                     )
                 } else {
                     InformationMedical(
@@ -355,49 +236,6 @@ fun CreateProfileForm(
             }
 
             Spacer(modifier = Modifier.height(32.dp))
-        }
-    }
-}
-
-@Composable
-fun Header_ButtonNavigator(
-    pageTitle: String,
-    selectedTab: Int,
-    onTabSelected: (Int) -> Unit,
-    onNavigateBack: () -> Unit,
-    isPatient: Boolean
-) {
-    Column {
-        CustomTopBar(
-            title = pageTitle,
-            titleFontSize = 20.sp,
-            onNavigateBack = onNavigateBack
-        )
-
-        if (isPatient) {
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TabButton(
-                    text = stringResource(R.string.patient_tab_info),
-                    isSelected = selectedTab == 0,
-                    onClick = { onTabSelected(0) },
-                    modifier = Modifier.weight(1f)
-                )
-                TabButton(
-                    text = stringResource(R.string.patient_tab_history),
-                    isSelected = selectedTab == 1,
-                    onClick = { onTabSelected(1) },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        } else {
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -435,7 +273,6 @@ fun InformationPersonal(
         InputFieldEditable(label = stringResource(R.string.register_name), value = name, onValueChange = onNameChange, placeholder = stringResource(R.string.register_name))
         InputFieldEditable(label = stringResource(R.string.register_surname), value = lastName, onValueChange = onLastNameChange, placeholder = stringResource(R.string.register_surname))
 
-        // El sexo AHORA APARECE SIEMPRE
         Column {
             Text(
                 text = stringResource(R.string.patient_sex),
@@ -465,7 +302,6 @@ fun InformationPersonal(
 
         InputFieldEditable(label = stringResource(R.string.login_email_label), value = email, onValueChange = onEmailChange, placeholder = stringResource(R.string.login_email_placeholder))
 
-        // DNI AHORA APARECE SIEMPRE
         InputFieldEditable(
             label = "DNI",
             value = dni,
@@ -479,7 +315,6 @@ fun InformationPersonal(
             placeholder = "12345678X"
         )
 
-        // Teléfono AHORA APARECE SIEMPRE
         PhoneInputField(
             label = stringResource(R.string.patient_phone),
             countryCode = countryCode,
@@ -526,7 +361,6 @@ fun InformationMedical(
             placeholder = stringResource(R.string.placeholder_medication)
         )
 
-        // --- Campo Alergias ---
         Column {
             Text(
                 text = stringResource(R.string.patient_allergies),
@@ -563,7 +397,6 @@ fun InformationMedical(
             }
         }
 
-        // --- Campo Enfermedades Infecciosas ---
         Column {
             Text(
                 text = stringResource(R.string.patient_infectious_diseases),

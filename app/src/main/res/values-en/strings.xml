@@ -319,5 +319,40 @@
     <!-- Patient Alerts -->
     <string name="patient_allergy_prefix">Allergy: %1$s</string>
 
+    <string name="role_superadmin">Super Administrator</string>
+    <string name="role_owner">Owner</string>
+    <string name="role_doctor">Doctor</string>
+    <string name="role_auxiliar">Assistant</string>
+    <string name="role_patient">Patient</string>
+
+    <string name="filter_all_staff">All staff</string>
+    <string name="filter_owners">Owners</string>
+    <string name="filter_admins">Administrative </string>
+    <string name="filter_doctors">Doctors</string>
+    <string name="filter_auxiliars">Assistants</string>
+    <!-- Filtros Pacientes -->
+    <string name="filter_all_patients">All patients</string>
+    <string name="filter_allergies">With allergies</string>
+    <string name="filter_infections">With infections</string>
+    <string name="filter_healthy">Without medical alerts</string>
+    <string name="staff_list_title">Clinic Team</string>
+    <string name="role_worker">Staff member</string>
+    <string name="filter_label">Filter by role</string>
+
+
+    <string name="user_created_successfully">User created successfully</string>
+    <string name="error_unknown_server">Unknown server error</string>
+    <string name="error_connection">Connection error – please check your internet connection</string>
+    <string name="dashboard_title">Dashboard</string>
+    <string name="dashboard_welcome_superadmin">Welcome, super-administrator</string>
+    <string name="dashboard_welcome_owner">Welcome, owner</string>
+    <string name="dashboard_welcome_admin">Welcome, administrator</string>
+    <string name="dashboard_btn_new_user">New user</string>
+    <string name="dashboard_btn_patients">Patient management</string>
+    <string name="dashboard_btn_management">Clinic management</string>
+    <string name="dashboard_btn_attendance">Attendance tracking</string>
+    <string name="dashboard_btn_staff">Clinic team</string>
+
+    <string name="upload_accept_save">Accept and save</string>
     <string name="web_client_id">237928135138-2u59spbose7pkmnb8cm7oeqhci23akpk.apps.googleusercontent.com</string>
 </resources>

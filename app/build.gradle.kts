@@ -81,6 +81,7 @@ dependencies {
     implementation(libs.runtime)
     implementation(libs.foundation.layout)
     implementation(libs.foundation)
+    implementation(libs.places)
 
     //implementation(libs.runtime)
 

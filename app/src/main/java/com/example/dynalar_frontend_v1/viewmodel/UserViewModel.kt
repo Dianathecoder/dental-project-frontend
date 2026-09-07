@@ -1,5 +1,6 @@
 package com.example.dynalar_frontend_v1.viewmodel
 
+import android.util.Log
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,6 +15,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.net.ConnectException
 import java.net.UnknownHostException
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.example.dynalar_frontend_v1.network.RetrofitClient
 
 class UserViewModel : ViewModel() {
 
@@ -26,6 +31,13 @@ class UserViewModel : ViewModel() {
     val profileUiState: StateFlow<InterfaceGlobal<User>> = _profileUiState.asStateFlow()
 
     private val userRepository = UserRepository()
+
+    var staffList by mutableStateOf<List<User>>(emptyList())
+        private set
+
+    // 2. Variable para guardar el trabajador seleccionado
+    var selectedUser by mutableStateOf<User?>(null)
+        private set
 
     fun login(mail: String, pass: String) {
         viewModelScope.launch {
@@ -48,32 +60,6 @@ class UserViewModel : ViewModel() {
                         _userUiState.value = InterfaceGlobal.Error(stringResId = R.string.error_invalid_credentials)
                     }
                 }
-            }
-        }
-    }
-
-    fun googleLogin(idToken: String) {
-        // 1. Ver si la interfaz realmente llega a llamar a la función
-        android.util.Log.d("VIEWMODEL_GOOGLE", "1. Entrando a googleLogin en el ViewModel")
-
-        viewModelScope.launch {
-            _userUiState.value = InterfaceGlobal.Loading
-            try {
-                android.util.Log.d("VIEWMODEL_GOOGLE", "2. Llamando a Retrofit (userRepository)...")
-
-                val authResponse = userRepository.googleLogin(idToken)
-
-                android.util.Log.d("VIEWMODEL_GOOGLE", "3. Respuesta de Retrofit recibida: $authResponse")
-
-                if (authResponse != null && authResponse.token.isNotEmpty()) {
-                    _userUiState.value = InterfaceGlobal.Success(authResponse)
-                } else {
-                    _userUiState.value = InterfaceGlobal.Error(stringResId = R.string.error_invalid_credentials)
-                }
-            } catch (e: Exception) {
-                // 4. Si Retrofit falla (por permisos HTTP o red), caerá aquí
-                android.util.Log.e("VIEWMODEL_GOOGLE", "4. ERROR en Retrofit: ${e.message}", e)
-                _userUiState.value = InterfaceGlobal.Error(message = e.message)
             }
         }
     }
@@ -102,7 +88,52 @@ class UserViewModel : ViewModel() {
             }
         }
     }
+    fun deleteUser(userId: Long, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.userApiService.deleteUser(userId)
+                if (response.isSuccessful) {
+                    getAllStaff() // Recarga la lista de empleados
+                    onSuccess()
+                } else {
+                    Log.e("UserViewModel", "Error al eliminar usuario: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("UserViewModel", "Excepción al eliminar usuario: ${e.message}")
+            }
+        }
+    }
+    fun getAllStaff() {
+        viewModelScope.launch {
+            try {
+                // userRepository debe llamar a tu UserApiService.getAllUsers()
+                // Si aún no lo tienes en UserRepository, puedes llamar a la API directamente
+                val response = RetrofitClient.userApiService.getAllUsers()
+                if (response.isSuccessful) {
+                    staffList = response.body() ?: emptyList()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 
+    fun getUserById(id: Long) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.userApiService.getUserById(id)
+                if (response.isSuccessful) {
+                    selectedUser = response.body()
+                } else {
+                    // Fallback de seguridad: buscarlo en la lista si falla la petición
+                    selectedUser = staffList.find { it.id == id }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                selectedUser = staffList.find { it.id == id }
+            }
+        }
+    }
     fun setLocalError(@StringRes stringResId: Int) {
         _userUiState.value = InterfaceGlobal.Error(stringResId = stringResId)
     }

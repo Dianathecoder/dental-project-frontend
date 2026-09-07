@@ -1,195 +1,197 @@
 package com.example.dynalar_frontend_v1.ui.screens.dashboard
 
-
-
-import android.widget.Toast
+import android.content.Context
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
+import com.example.dynalar_frontend_v1.model.appointment.Appointment
 import com.example.dynalar_frontend_v1.ui.components.CardMenuButton
-import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
-import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
-import com.example.dynalar_frontend_v1.viewmodel.AdminViewModel
+import com.example.dynalar_frontend_v1.ui.components.DayAppointmentsDialog
+import com.example.dynalar_frontend_v1.ui.theme.FondoPagina
+import com.example.dynalar_frontend_v1.utils.SessionManager
+import com.example.dynalar_frontend_v1.viewmodel.AppointmentViewModel
+import java.time.LocalDate
 
 @Composable
 fun AdminDashboardPage(
-    adminViewModel: AdminViewModel = viewModel(),
+    viewModel: AppointmentViewModel = viewModel(),
+    onNavigateProfileUserProfile: () -> Unit,
     onNavigatePatients: () -> Unit,
+    onNavigateBoxCalendar: () -> Unit,
     onNavigateManagement: () -> Unit,
-    onNavigateAttendance: () -> Unit, // Para ver los fichajes
-    onLogout: () -> Unit
+    onNavigateStaff: () -> Unit,
+    onNavigateAttendance: () -> Unit,
+    onNavigateToAppointmentDetail: (Appointment) -> Unit,
+    onLanguageChange: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
-    var showInviteDialog by remember { mutableStateOf(false) }
+    val sessionManager = remember { SessionManager(context) }
 
-    val inviteState by adminViewModel.inviteState.collectAsState()
+    val isSuperAdmin = sessionManager.hasRole("SUPERADMIN") || sessionManager.hasRole("ROLE_SUPERADMIN")
+    val isOwner = sessionManager.hasRole("OWNER") || sessionManager.hasRole("ROLE_OWNER")
 
-    LaunchedEffect(inviteState) {
-        if (inviteState is InterfaceGlobal.Success) {
-            Toast.makeText(context, (inviteState as InterfaceGlobal.Success<String>).data, Toast.LENGTH_SHORT).show()
-            showInviteDialog = false
-            adminViewModel.resetInviteState()
-        } else if (inviteState is InterfaceGlobal.Error) {
-            Toast.makeText(context, (inviteState as InterfaceGlobal.Error).message, Toast.LENGTH_LONG).show()
-            adminViewModel.resetInviteState()
-        }
+    LaunchedEffect(Unit) {
+        viewModel.fetchToday()
     }
 
-    Scaffold(
-        topBar = {
-            CustomTopBar(title = "Panell de Direcció", onNavigateBack = onLogout)
-        },
-        containerColor = Color(0xFFF5F7FA)
-    ) { padding ->
+    var selectedDateForDialog by remember { mutableStateOf<LocalDate?>(null) }
+
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(FondoPagina)
+    ) {
+        val screenHeight = maxHeight
+        val scrollState = rememberScrollState()
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                .verticalScroll(scrollState)
+                .heightIn(min = screenHeight)
+                .padding(bottom = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Benvingut/da, Administrador", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2C3E50))
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
-            // MENÚ PRINCIPAL DEL ADMIN
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                CardMenuButton(
-                    icon = Icons.Default.GroupAdd,
-                    title = "Convidar Personal",
-                    onClick = { showInviteDialog = true },
-                    modifier = Modifier.weight(1f)
-                )
-                CardMenuButton(
-                    icon = Icons.Default.People,
-                    title = "Gestió Pacients",
-                    onClick = onNavigatePatients,
-                    modifier = Modifier.weight(1f)
-                )
+            // 1. Cabecera (Avatar, Rol, Selector de Idioma)
+            Header_HomePage(
+                onNavigateProfileUserProfile = onNavigateProfileUserProfile,
+                onLanguageChange = onLanguageChange
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            val uiState = viewModel.uiStateToday
+            var citasHoyCount = 0
+            if (uiState is InterfaceGlobal.Success) {
+                citasHoyCount = uiState.data.size
             }
+
+            // 2. Saludo con resumen de citas de hoy
+            GreetingSection(citasHoy = citasHoyCount)
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                CardMenuButton(
-                    icon = Icons.Default.Inventory,
-                    title = "Gestió Clínica",
-                    onClick = onNavigateManagement,
-                    modifier = Modifier.weight(1f)
-                )
-                CardMenuButton(
-                    icon = Icons.Default.AccessTime,
-                    title = "Control Fitxatges",
-                    onClick = onNavigateAttendance,
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            // 3. Calendario
+            CalendarHomepage(
+                viewModel = viewModel,
+                onDayClick = { date ->
+                    viewModel.fetchDayDetails(date)
+                    selectedDateForDialog = date
+                }
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // 4. Parrilla de botones adaptada
+            Buttons_AdminDashboard(
+                isSuperAdminOrOwner = isSuperAdmin || isOwner,
+                onNavigatePatients = onNavigatePatients,
+                onNavigateBoxCalendar = onNavigateBoxCalendar,
+                onNavigateManagement = onNavigateManagement,
+                onNavigateStaff = onNavigateStaff,
+                onNavigateAttendance = onNavigateAttendance
+            )
         }
     }
 
-    if (showInviteDialog) {
-        InviteWorkerDialog(
-            isLoading = inviteState is InterfaceGlobal.Loading,
-            onDismiss = { showInviteDialog = false },
-            onConfirm = { name, surname, email, role ->
-                adminViewModel.inviteUser(name, surname, email, role,dni = "",
-                    phone = "",
-                    sex = "OTHER")
-            }
+    if (selectedDateForDialog != null) {
+        val detailUiState = viewModel.uiStateCalendar
+        val appointments = if (detailUiState is InterfaceGlobal.Success) detailUiState.data else emptyList()
+
+        DayAppointmentsDialog(
+            date = selectedDateForDialog!!,
+            appointments = appointments,
+            isLoading = detailUiState is InterfaceGlobal.Loading,
+            onDismiss = { selectedDateForDialog = null },
+            onAppointmentClick = { appointment -> onNavigateToAppointmentDetail(appointment) }
         )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InviteWorkerDialog(
-    isLoading: Boolean,
-    onDismiss: () -> Unit,
-    onConfirm: (String, String, String, String) -> Unit
+fun Buttons_AdminDashboard(
+    modifier: Modifier = Modifier,
+    isSuperAdminOrOwner: Boolean,
+    onNavigatePatients: () -> Unit,
+    onNavigateBoxCalendar: () -> Unit,
+    onNavigateManagement: () -> Unit,
+    onNavigateStaff: () -> Unit,
+    onNavigateAttendance: () -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
-    var surname by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-
-    // Lista de roles que el Admin puede crear
-    val roles = listOf("AUXILIAR" to "Auxiliar", "DENTIST" to "Doctor/a")
-    var selectedRole by remember { mutableStateOf(roles[0].first) }
-    var expanded by remember { mutableStateOf(false) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = Color.White,
-        title = { Text("Donar d'alta personal", fontWeight = FontWeight.Bold) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = name, onValueChange = { name = it },
-                    label = { Text("Nom") }, singleLine = true, modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = surname, onValueChange = { surname = it },
-                    label = { Text("Cognoms") }, singleLine = true, modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = email, onValueChange = { email = it },
-                    label = { Text("Email (Rebrà l'accés)") }, singleLine = true, modifier = Modifier.fillMaxWidth()
-                )
-
-                // Dropdown para elegir el rol
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = !expanded }
-                ) {
-                    OutlinedTextField(
-                        value = roles.find { it.first == selectedRole }?.second ?: "",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Rol") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
-                    )
-                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                        roles.forEach { (roleKey, roleName) ->
-                            DropdownMenuItem(
-                                text = { Text(roleName) },
-                                onClick = {
-                                    selectedRole = roleKey
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onConfirm(name, surname, email, selectedRole) },
-                enabled = name.isNotBlank() && email.isNotBlank() && !isLoading,
-                colors = ButtonDefaults.buttonColors(containerColor = ButtonPrimary)
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                } else {
-                    Text("Enviar Invitació")
-                }
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel·lar", color = Color.Gray) }
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // FILA 1: Pacientes y Agenda
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            CardMenuButton(
+                icon = Icons.Default.Person,
+                title = stringResource(id = R.string.home_btn_patients),
+                onClick = onNavigatePatients,
+                modifier = Modifier.weight(1f)
+            )
+            CardMenuButton(
+                icon = Icons.Default.CalendarMonth,
+                title = stringResource(id = R.string.home_btn_agenda),
+                onClick = onNavigateBoxCalendar,
+                modifier = Modifier.weight(1f)
+            )
         }
-    )
+
+        // FILA 2: Gestión Clínica y Equip de la Clínica
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            CardMenuButton(
+                icon = Icons.Default.Inventory,
+                title = stringResource(id = R.string.home_btn_management),
+                onClick = onNavigateManagement,
+                modifier = Modifier.weight(1f)
+            )
+            CardMenuButton(
+                icon = Icons.Default.Badge,
+                title = stringResource(id = R.string.dashboard_btn_staff),
+                onClick = onNavigateStaff,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // FILA 3: Control de Fichajes (SOLO VISIBLE PARA SUPERADMIN Y OWNER)
+        if (isSuperAdminOrOwner) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                CardMenuButton(
+                    icon = Icons.Default.AccessTime,
+                    title = stringResource(id = R.string.dashboard_btn_attendance),
+                    onClick = onNavigateAttendance,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
 }
