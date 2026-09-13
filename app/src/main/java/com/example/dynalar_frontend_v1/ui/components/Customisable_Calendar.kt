@@ -1,6 +1,7 @@
 package com.example.dynalar_frontend_v1.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,6 +39,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.collections.emptyList
 import com.example.dynalar_frontend_v1.R
+import com.example.dynalar_frontend_v1.model.chat.Day
 import java.util.Locale
 
 
@@ -499,3 +502,4 @@ fun AppointmentFormContent(
         ) { DatePicker(state = datePickerState) }
     }
 }
+

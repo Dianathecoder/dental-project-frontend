@@ -38,7 +38,8 @@ fun AdminDashboardPage(
     onNavigateBoxCalendar: () -> Unit,
     onNavigateManagement: () -> Unit,
     onNavigateStaff: () -> Unit,
-    onNavigateAttendance: () -> Unit,
+    onNavigateAttendance: () -> Unit, // Ruta al menú de StaffControl (Admin/Owner)
+    onNavigateToClockInDirect: () -> Unit, // Ruta directa a fichar (Doctor/Auxiliar)
     onNavigateToAppointmentDetail: (Appointment) -> Unit,
     onLanguageChange: (String) -> Unit = {}
 ) {
@@ -47,6 +48,8 @@ fun AdminDashboardPage(
 
     val isSuperAdmin = sessionManager.hasRole("SUPERADMIN") || sessionManager.hasRole("ROLE_SUPERADMIN")
     val isOwner = sessionManager.hasRole("OWNER") || sessionManager.hasRole("ROLE_OWNER")
+    val isAdmin = sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN")
+    val isManagementRole = isSuperAdmin || isOwner || isAdmin
 
     LaunchedEffect(Unit) {
         viewModel.fetchToday()
@@ -72,7 +75,6 @@ fun AdminDashboardPage(
         ) {
             Spacer(modifier = Modifier.height(48.dp))
 
-            // 1. Cabecera (Avatar, Rol, Selector de Idioma)
             Header_HomePage(
                 onNavigateProfileUserProfile = onNavigateProfileUserProfile,
                 onLanguageChange = onLanguageChange
@@ -86,12 +88,10 @@ fun AdminDashboardPage(
                 citasHoyCount = uiState.data.size
             }
 
-            // 2. Saludo con resumen de citas de hoy
             GreetingSection(citasHoy = citasHoyCount)
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 3. Calendario
             CalendarHomepage(
                 viewModel = viewModel,
                 onDayClick = { date ->
@@ -102,14 +102,14 @@ fun AdminDashboardPage(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 4. Parrilla de botones adaptada
             Buttons_AdminDashboard(
-                isSuperAdminOrOwner = isSuperAdmin || isOwner,
+                isManagementRole = isManagementRole,
                 onNavigatePatients = onNavigatePatients,
                 onNavigateBoxCalendar = onNavigateBoxCalendar,
                 onNavigateManagement = onNavigateManagement,
                 onNavigateStaff = onNavigateStaff,
-                onNavigateAttendance = onNavigateAttendance
+                onNavigateAttendance = onNavigateAttendance,
+                onNavigateToClockInDirect = onNavigateToClockInDirect
             )
         }
     }
@@ -131,12 +131,13 @@ fun AdminDashboardPage(
 @Composable
 fun Buttons_AdminDashboard(
     modifier: Modifier = Modifier,
-    isSuperAdminOrOwner: Boolean,
+    isManagementRole: Boolean,
     onNavigatePatients: () -> Unit,
     onNavigateBoxCalendar: () -> Unit,
     onNavigateManagement: () -> Unit,
     onNavigateStaff: () -> Unit,
-    onNavigateAttendance: () -> Unit
+    onNavigateAttendance: () -> Unit,
+    onNavigateToClockInDirect: () -> Unit
 ) {
     Column(
         modifier = modifier
@@ -144,7 +145,6 @@ fun Buttons_AdminDashboard(
             .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // FILA 1: Pacientes y Agenda
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -163,7 +163,6 @@ fun Buttons_AdminDashboard(
             )
         }
 
-        // FILA 2: Gestión Clínica y Equip de la Clínica
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -182,16 +181,20 @@ fun Buttons_AdminDashboard(
             )
         }
 
-        // FILA 3: Control de Fichajes (SOLO VISIBLE PARA SUPERADMIN Y OWNER)
-        if (isSuperAdminOrOwner) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                CardMenuButton(
-                    icon = Icons.Default.AccessTime,
-                    title = stringResource(id = R.string.dashboard_btn_attendance),
-                    onClick = onNavigateAttendance,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+        // Control de Fichajes: Dirige al Menú (Admin) o Directo a Fichar (Aux/Doc)
+        Row(modifier = Modifier.fillMaxWidth()) {
+            CardMenuButton(
+                icon = Icons.Default.AccessTime,
+                title = stringResource(id = R.string.dashboard_btn_attendance),
+                onClick = {
+                    if (isManagementRole) {
+                        onNavigateAttendance()
+                    } else {
+                        onNavigateToClockInDirect()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

@@ -76,6 +76,7 @@
     <string name="patient_phone">Telèfon</string>
     <string name="patient_family_history">Historial Familiar</string>
     <string name="patient_dental_conditions">Condicions Dentals</string>
+    <string name="patient_material_history">Historial Mèdic</string>
     <string name="patient_medication">Medicació</string>
     <string name="patient_allergies">Al·lèrgies</string>
     <string name="patient_infectious_diseases">Malalties Infeccioses</string>
@@ -273,7 +274,7 @@
     <string name="tooth_save_process">Desar Procés</string>
     <string name="tooth_see_records">Veure Registres</string>
     <string name="tooth_replace_title">Confirmació de reemplaçament</string>
-    <string name="tooth_replace_desc">Ja existeix un registre per a la superfície %1$s d\'aquesta dent. N\'estàs segur que vols reemplaçar-lo?</string>
+    <string name="tooth_replace_desc">Ja existeix un registro per a la superfície %1$s d\'aquesta dent. N\'estàs segur que vols reemplaçar-lo?</string>
     <string name="btn_replace">Reemplaçar</string>
     <string name="tooth_dropdown_placeholder">Tria una opció</string>
     <!-- Perfil d'Usuari (UserProfilePage) -->
@@ -357,4 +358,110 @@
     <string name="dashboard_btn_attendance">Control Fitxatges</string>
     <string name="dashboard_btn_staff">Equip de la Clínica</string>
     <string name="upload_accept_save">Acceptar i desar</string>
+
+    <string name="tab_clock_ins">Fitxatges</string>
+    <string name="tab_holidays">Vacances i Festius</string>
+
+    <!-- Control de Personal -->
+    <string name="staff_control_title">Control de Personal</string>
+    <string name="filter_status_all">Tots els estats</string>
+    <string name="filter_status_clocked_in">Fitxats</string>
+    <string name="filter_status_not_clocked">No Fitxats / Pendent</string>
+    <string name="filter_role_all">Tots els rols</string>
+    <string name="vacation_summary_title">Resum de Vacances</string>
+    <string name="days_left">dies restants</string>
+
+
+        <string name="menu_daily_attendance_title">Registre diari</string>
+        <string name="menu_daily_attendance_subtitle">Control d\'entrades i sortides</string>
+        <string name="menu_absence_calendar_title">Calendari d\'absències</string>
+        <string name="menu_absence_calendar_subtitle">Vacances, festivos i baixes</string>
+
+        <string name="search_employee">Cercar treballador...</string>
+        <string name="no_records_found">No s\'han trobat registres per a aquesta cerca.</string>
+        <string name="upcoming_events">Propers esdeveniments</string>
+
+        <string name="schedule_of_title">Horari de %s</string>
+        <string name="schedule_expected">Torn previst: %s</string>
+        <string name="close">Tancar</string>
+
+        <string name="legend_vacation">Vacances</string>
+        <string name="legend_holiday">Festiu</string>
+        <string name="legend_sick_leave">Baixa Mèdica</string>
+
+
+        <!-- Botones Accesibilidad -->
+        <string name="btn_previous">Anterior</string>
+        <string name="btn_next">Següent</string>
+        <string name="open_calendar">Obrir calendari</string>
+
+    <!-- MISSING STRINGS FROM StaffControlComponents.kt -->
+    <string name="filter_active">Filtres actius</string>
+    <string name="filter_title">Filtrar</string>
+    <string name="filter_order_header">Ordenació</string>
+    <string name="filter_order_asc">A → Z</string>
+    <string name="filter_order_desc">Z → A</string>
+    <string name="filter_role_header">Rol de personal</string>
+    <string name="filter_status_header">Estat de fitxatge</string>
+    <string name="status_clocked_on_time">Puntual</string>
+    <string name="status_clocked_late">Amb retard</string>
+    <string name="status_not_clocked">No fitxat</string>
+    <string name="status_pending">Pendent</string>
+    <string name="no_time">--:--</string>
+    <string name="clock_in_label">Entrada: %1$s</string>
+    <string name="clock_out_label">Sortida: %1$s</string>
+    <string name="employees_title">Empleats</string>
+    <string name="clear_selection">Netejar selecció</string>
+    <string name="select_all">Seleccionar tots</string>
+    <string name="menu_clock_in_title">Fitxar</string>
+    <string name="menu_clock_in_subtitle">Registra la teva hora d\'entrada i sortida</string>
+    <string name="clock_in_title">Control horari i presència</string>
+    <string name="clock_register_in">Registrar l\'entrada</string>
+    <string name="clock_register_out">Registrar la sortida</string>
+    <string name="clock_already_in">Entrada registrada a %s</string>
+    <string name="clock_already_out">Sortida registrada a %s</string>
+    <string name="clock_manual_edit">Edita l\'hora (Admin)</string>
+
+        <!-- NOU: CONTROL DE JORNADA -->
+        <string name="day_type_work">Treball</string>
+        <string name="day_type_vacation">Vacances</string>
+        <string name="day_type_sick">Baixa Mèdica</string>
+        <string name="day_type_holiday">Festiu</string>
+        <string name="loading_staff_info">Carregant...</string>
+        <string name="default_clinic_name">Clínica Dynalar</string>
+        <string name="working_day_header">Jornada laboral</string>
+        <string name="check_in_time_label">Hora d\'Entrada</string>
+        <string name="check_out_time_label">Hora de Sortida</string>
+
+        <!-- Botons de registre -->
+        <string name="btn_register_work">Registre Laboral</string>
+        <string name="btn_register_out">Registrar Sortida</string>
+        <string name="status_day_completed">Jornada completada</string>
+        <string name="btn_register_vacation">Registrar Vacances</string>
+        <string name="btn_register_sick">Registrar Baixa</string>
+        <string name="btn_register_holiday">Registrar Festiu</string>
+
+        <!-- Missatges Toast -->
+        <string name="msg_changes_saved">Canvis desats</string>
+        <string name="msg_in_saved">Entrada desada</string>
+        <string name="msg_out_saved">Sortida desada</string>
+        <string name="msg_clock_in_success">Fitxatge registrat</string>
+        <string name="msg_clock_out_success">Sortida registrada</string>
+        <string name="msg_calendar_painted">%1$s pintat al calendari</string>
+
+        <!-- Altres textos UI -->
+        <string name="selected_day_for">Dia seleccionat per a:</string>
+        <string name="day_type_header">Tipus de jornada</string>
+        <string name="dialog_edit_time">Editar hora</string>
+
+        <!-- Descripcions d'accessibilitat -->
+        <string name="content_desc_edit">Editar</string>
+        <string name="content_desc_prev_month">Mes anterior</string>
+        <string name="content_desc_next_month">Mes següent</string>
+        <string name="content_desc_open">Obrir</string>
+        <string name="content_desc_up_hour">Pujar hora</string>
+        <string name="content_desc_down_hour">Baixar hora</string>
+        <string name="content_desc_up_min">Pujar minut</string>
+        <string name="content_desc_down_min">Baixar minut</string>
+
 </resources>

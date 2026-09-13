@@ -31,7 +31,6 @@ import com.example.dynalar_frontend_v1.ui.screens.appointment.ResumeDateScreen
 import com.example.dynalar_frontend_v1.ui.screens.auth.LoginPage
 import com.example.dynalar_frontend_v1.ui.screens.auth.RegisterPage
 import com.example.dynalar_frontend_v1.ui.screens.dashboard.AdminDashboardPage
-import com.example.dynalar_frontend_v1.ui.screens.dashboard.AttendanceControlPage
 import com.example.dynalar_frontend_v1.ui.screens.dashboard.DentistAgendaPage
 import com.example.dynalar_frontend_v1.ui.screens.dashboard.HomePage
 import com.example.dynalar_frontend_v1.ui.screens.files.PatientFileUploadPage
@@ -51,7 +50,11 @@ import com.example.dynalar_frontend_v1.ui.screens.patient.ListPatientsScreen
 import com.example.dynalar_frontend_v1.ui.screens.patient.PatientProfilePage
 import com.example.dynalar_frontend_v1.ui.screens.profile.ChangeAvatarPage
 import com.example.dynalar_frontend_v1.ui.screens.profile.UserProfilePage
+import com.example.dynalar_frontend_v1.ui.screens.staff.AbsenceCalendarScreen
+import com.example.dynalar_frontend_v1.ui.screens.staff.ClockInScreen
 import com.example.dynalar_frontend_v1.ui.screens.staff.CreateUserPage
+import com.example.dynalar_frontend_v1.ui.screens.staff.DailyAttendanceScreen
+import com.example.dynalar_frontend_v1.ui.screens.staff.StaffControlHomeScreen
 import com.example.dynalar_frontend_v1.ui.screens.staff.StaffListScreen
 import com.example.dynalar_frontend_v1.ui.screens.staff.StaffProfilePage
 import com.example.dynalar_frontend_v1.ui.theme.Dynalar_frontend_v1Theme
@@ -87,6 +90,8 @@ class MainActivity : ComponentActivity() {
             val odontogramViewModel: OdontogramViewModel = viewModel()
             val adminViewModel: AdminViewModel = viewModel()
             val boxViewModel: BoxViewModel = viewModel()
+            val staffControlViewModel: StaffControlViewModel = viewModel()
+
             val context = LocalContext.current
             val sessionManager = remember { SessionManager(context) }
 
@@ -400,14 +405,8 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable(AppRoutes.ChangeAvatar.route) {
-                            val context = androidx.compose.ui.platform.LocalContext.current
-                            val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-                            val currentAvatarResId = prefs.getInt("user_avatar", R.drawable.avatar_color)
-
                             ChangeAvatarPage(
-                                currentAvatarResId = currentAvatarResId,
-                                onAvatarSelected = { newAvatarResId ->
-                                    prefs.edit().putInt("user_avatar", newAvatarResId).apply()
+                                onAvatarSelected = {
                                     navController.popBackStack()
                                 },
                                 onBack = { navController.popBackStack() }
@@ -559,18 +558,13 @@ class MainActivity : ComponentActivity() {
                                 onNavigateBoxCalendar = { navController.navigate(AppRoutes.CalendarPage.route) },
                                 onNavigateManagement = { navController.navigate(AppRoutes.MaterialsHome.route) },
                                 onNavigateStaff = { navController.navigate(AppRoutes.StaffList.route) },
-                                onNavigateAttendance = { navController.navigate(AppRoutes.AttendanceControl.route) },
+                                onNavigateAttendance = { navController.navigate(AppRoutes.StaffControlHome.route) },
+                                onNavigateToClockInDirect = { navController.navigate(AppRoutes.ClockInScreen.route) }, // NUEVO: Va directo a fichar
                                 onNavigateToAppointmentDetail = { appointment ->
                                     appointmentViewModel.selectedAppointment = appointment
                                     navController.navigate(AppRoutes.ResumeDate.route)
                                 },
                                 onLanguageChange = onLanguageChange
-                            )
-                        }
-
-                        composable(AppRoutes.AttendanceControl.route) {
-                            AttendanceControlPage(
-                                onNavigateBack = { navController.popBackStack() }
                             )
                         }
 
@@ -613,7 +607,7 @@ class MainActivity : ComponentActivity() {
                                     staff = staffUser,
                                     onNavigateBack = { navController.popBackStack() },
                                     onEditClick = { id ->
-                                        // Redirigir a edición de personal
+                                        // Redirigir a edición de personal (futuro)
                                     },
                                     onDeleteClick = { id ->
                                         userViewModel.deleteUser(id) {
@@ -621,9 +615,6 @@ class MainActivity : ComponentActivity() {
                                                 popUpTo(AppRoutes.StaffProfile.route) { inclusive = true }
                                             }
                                         }
-                                    },
-                                    onAttendanceHistoryClick = {
-                                        navController.navigate(AppRoutes.AttendanceControl.route)
                                     },
                                     onDoctorAgendaClick = { navController.navigate(AppRoutes.CalendarPage.route) },
                                     onDoctorPatientsClick = { navController.navigate(AppRoutes.ListPatients.route) }
@@ -633,6 +624,81 @@ class MainActivity : ComponentActivity() {
                                     CircularProgressIndicator()
                                 }
                             }
+                        }
+
+                        // --- NUEVAS RUTAS DE CONTROL DE PERSONAL ---
+
+                        composable(AppRoutes.StaffControlHome.route) {
+                            StaffControlHomeScreen(
+                                onNavigateBack = { navController.popBackStack() },
+                                onNavigateToDaily = { navController.navigate(AppRoutes.DailyAttendance.route) },
+                                onNavigateToCalendar = { navController.navigate(AppRoutes.AbsenceCalendar.route) },
+                                onNavigateToClockIn = { navController.navigate(AppRoutes.ClockInScreen.route) } // Configurado el botón del menú
+                            )
+                        }
+
+                        composable(AppRoutes.DailyAttendance.route) {
+                            DailyAttendanceScreen(
+                                viewModel = staffControlViewModel,
+                                onNavigateBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(AppRoutes.AbsenceCalendar.route) {
+                            AbsenceCalendarScreen(
+                                viewModel = staffControlViewModel,
+                                onNavigateBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        // NUEVA RUTA PARA LA PANTALLA DE FICHAR
+                        composable(AppRoutes.ClockInScreen.route) {
+                            ClockInScreen(
+                                viewModel = staffControlViewModel,
+                                onNavigateBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        // EL DASHBOARD CON LA MAGIA DE LOS ROLES
+                        composable(AppRoutes.AdminDashboard.route) {
+                            AdminDashboardPage(
+                                viewModel = appointmentViewModel,
+                                onNavigateProfileUserProfile = { navController.navigate(AppRoutes.UserProfile.route) },
+                                onNavigatePatients = { navController.navigate(AppRoutes.ListPatients.route) },
+                                onNavigateBoxCalendar = { navController.navigate(AppRoutes.CalendarPage.route) },
+                                onNavigateManagement = { navController.navigate(AppRoutes.MaterialsHome.route) },
+                                onNavigateStaff = { navController.navigate(AppRoutes.StaffList.route) },
+                                onNavigateAttendance = {
+                                    val isManager = sessionManager.hasRole("SUPERADMIN") ||
+                                            sessionManager.hasRole("ADMIN") ||
+                                            sessionManager.hasRole("OWNER")
+                                    if (isManager) {
+                                        navController.navigate(AppRoutes.StaffControlHome.route)
+                                    } else {
+                                        navController.navigate(AppRoutes.ClockInScreen.route)
+                                    }
+                                },
+                                onNavigateToClockInDirect = { navController.navigate(AppRoutes.ClockInScreen.route) },
+                                onNavigateToAppointmentDetail = { appointment ->
+                                    appointmentViewModel.selectedAppointment = appointment
+                                    navController.navigate(AppRoutes.ResumeDate.route)
+                                },
+                                onLanguageChange = onLanguageChange
+                            )
+                        }
+
+                        // NUEVA RUTA DEL CHAT
+                        composable(
+                            route = AppRoutes.ChatScreen.route,
+                            arguments = listOf(navArgument("receiverId") { type = NavType.LongType })
+                        ) { backStackEntry ->
+                            val receiverId = backStackEntry.arguments?.getLong("receiverId") ?: 0L
+                            // Asegúrate de que esta ruta coincida con donde crees el archivo
+                            com.example.dynalar_frontend_v1.ui.screens.chat.ChatScreen(
+                                navController = navController,
+                                receiverId = receiverId,
+                                sessionManager = sessionManager
+                            )
                         }
 
                     }
