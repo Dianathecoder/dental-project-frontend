@@ -46,6 +46,9 @@ class AppointmentViewModel : ViewModel() {
     private var lastStart: LocalDateTime? = null
     private var lastEnd: LocalDateTime? = null
 
+    var doctorAppointments by mutableStateOf<List<Appointment>>(emptyList())
+        private set
+
     fun fetchCalendar(start: LocalDateTime? = lastStart, end: LocalDateTime? = lastEnd) {
         lastStart = start
         lastEnd = end
@@ -226,4 +229,18 @@ class AppointmentViewModel : ViewModel() {
             }
         }
     }
+
+    fun getDoctorAppointments(doctorId: Long) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.appointmentApiService.getAppointmentsByDoctor(doctorId)
+                if (response.isSuccessful) {
+                    doctorAppointments = response.body() ?: emptyList()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
 }

@@ -71,9 +71,16 @@ sealed class AppRoutes(val route: String) {
     object StaffProfile : AppRoutes("staffProfile/{staffId}") {
         fun createRoute(staffId: Long) = "staffProfile/$staffId"
     }
-
-    // --- NUEVA RUTA PARA EL CHAT ---
     object ChatScreen : AppRoutes("chatScreen/{receiverId}") {
         fun createRoute(receiverId: Long) = "chatScreen/$receiverId"
+    }
+    object DoctorAgenda : AppRoutes("doctor_agenda/{doctorId}") {
+        fun createRoute(doctorId: Long) = "doctor_agenda/$doctorId"
+    }
+    object DoctorPatients : AppRoutes("doctor_patients/{doctorId}") {
+        fun createRoute(doctorId: Long) = "doctor_patients/$doctorId"
+    }
+    object StaffSchedule : AppRoutes("staffSchedule/{staffId}") {
+        fun createRoute(staffId: Long) = "staffSchedule/$staffId"
     }
 }

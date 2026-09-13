@@ -37,4 +37,8 @@ interface AppointmentApiService {
 
     @PUT("appointment/update")
     suspend fun updateAppointment(@Body appointment: Appointment): Response<Appointment>
+
+    @GET("appointment/doctor/{doctorId}")
+    suspend fun getAppointmentsByDoctor(@Path("doctorId") doctorId: Long): Response<List<Appointment>>
+
 }

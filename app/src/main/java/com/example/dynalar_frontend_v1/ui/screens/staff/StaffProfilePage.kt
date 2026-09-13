@@ -1,8 +1,5 @@
 package com.example.dynalar_frontend_v1.ui.screens.staff
 
-import android.app.DatePickerDialog
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,65 +17,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.dynalar_frontend_v1.R
+import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
+import com.example.dynalar_frontend_v1.model.staff.AbsenceEvent
+import com.example.dynalar_frontend_v1.model.staff.AbsenceType
 import com.example.dynalar_frontend_v1.model.user.User
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.components.DeleteConfirmationDialog
-import com.example.dynalar_frontend_v1.ui.components.getStaffImage
+import com.example.dynalar_frontend_v1.ui.components.UserAvatar
 import com.example.dynalar_frontend_v1.utils.SessionManager
-import java.time.DayOfWeek
+import com.example.dynalar_frontend_v1.viewmodel.StaffControlViewModel
 import java.time.LocalDate
-import java.time.LocalTime
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-
-// 1. Nous Estats de Fitxatge
-enum class ClockInStatus {
-    COMPLETED, // Verd: Ha fitxat entrada i sortida
-    WORKING,   // Blau: Ha fitxat entrada però encara no ha sortit
-    MISSED,    // Vermell: No ha fitxat (ni entrada ni sortida)
-    PENDING    // Gris: Dies futurs o no computables
-}
-
-// 2. Model de dades per a cada dia
-data class DailyAttendance(
-    val status: ClockInStatus,
-    val checkInTime: LocalTime? = null,
-    val checkOutTime: LocalTime? = null
-)
-
-// 3. Lògica de simulació
-fun getAttendanceForDate(date: LocalDate, isClockedInToday: Boolean?): DailyAttendance {
-    val today = LocalDate.now()
-    return when {
-        date.isAfter(today) || date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY -> {
-            DailyAttendance(ClockInStatus.PENDING)
-        }
-        date == today -> {
-            if (isClockedInToday == true) {
-                DailyAttendance(ClockInStatus.WORKING, LocalTime.of(8, 5), null)
-            } else {
-                DailyAttendance(ClockInStatus.MISSED, null, null)
-            }
-        }
-        else -> {
-            if (date.dayOfMonth == 15 || date.dayOfMonth == 5) {
-                DailyAttendance(ClockInStatus.MISSED, null, null)
-            } else if (date.dayOfMonth % 2 == 0) {
-                DailyAttendance(ClockInStatus.COMPLETED, LocalTime.of(8, 0), LocalTime.of(17, 0))
-            } else {
-                DailyAttendance(ClockInStatus.COMPLETED, LocalTime.of(7, 55), LocalTime.of(17, 10))
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,9 +47,9 @@ fun StaffProfilePage(
     onEditClick: (Long) -> Unit = {},
     onDeleteClick: (Long) -> Unit = {},
     onNavigateToChat: (Long) -> Unit = {},
-    onDoctorAgendaClick: () -> Unit = {},
-    onDoctorPatientsClick: () -> Unit = {},
-    onNavigateToSchedule: (Long) -> Unit = {},
+    onDoctorAgendaClick: (Long) -> Unit = {},
+    onDoctorPatientsClick: (Long) -> Unit = {},
+    staffControlViewModel: StaffControlViewModel = viewModel(),
     isClockedIn: Boolean? = false
 ) {
     val context = LocalContext.current
@@ -101,17 +60,44 @@ fun StaffProfilePage(
             sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN")
 
     val roles = staff.roles.map { it.uppercase() }
-    val isDoctor = roles.any { it.contains("DOCTOR") || it.contains("DENTIST") }
-
-    val todayAttendance = remember(isClockedIn) { getAttendanceForDate(LocalDate.now(), isClockedIn) }
+    val showAdvancedActions = roles.any { role ->
+        role.contains("DOCTOR") || role.contains("DENTIST") ||
+                role.contains("ADMIN") || role.contains("SUPERADMIN") || role.contains("OWNER")
+    }
 
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
+    var currentMonth by remember { mutableStateOf(YearMonth.now()) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var expandedMenu by remember { mutableStateOf(false) }
 
-    val selectedAttendance = remember(selectedDate, isClockedIn) {
-        getAttendanceForDate(selectedDate, isClockedIn)
+    LaunchedEffect(currentMonth, staff.id) {
+        staffControlViewModel.fetchMonthlyAbsences(currentMonth)
+        staffControlViewModel.fetchDailyAttendance(selectedDate)
     }
+
+    val absences = remember(staffControlViewModel.uiStateAbsences, staff) {
+        val state = staffControlViewModel.uiStateAbsences
+        if (state is InterfaceGlobal.Success) {
+            val fullName = "${staff.name ?: ""} ${staff.surname ?: ""}".trim()
+            state.data.map { dto ->
+                AbsenceEvent(
+                    id = dto.id,
+                    title = dto.title,
+                    staffName = dto.staffName,
+                    type = try { AbsenceType.valueOf(dto.type.uppercase()) } catch (e: Exception) { AbsenceType.HOLIDAY },
+                    startDate = LocalDate.parse(dto.startDate),
+                    endDate = LocalDate.parse(dto.endDate)
+                )
+            }.filter { event ->
+                val evtName = event.staffName?.trim() ?: ""
+                evtName.contains(staff.name ?: "", ignoreCase = true) ||
+                        (staff.surname != null && evtName.contains(staff.surname!!, ignoreCase = true)) ||
+                        evtName.equals(fullName, ignoreCase = true)
+            }
+        } else emptyList()
+    }
+
+    val selectedAbsence = absences.find { !selectedDate.isBefore(it.startDate) && !selectedDate.isAfter(it.endDate) }
 
     Scaffold(
         containerColor = Color(0xFFF5F7FA),
@@ -131,7 +117,6 @@ fun StaffProfilePage(
                                 .padding(end = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // NOMÉS QUEDA EL MENÚ DE 3 PUNTS, L'EDITAR ESTÀ A LA TARGETA
                             Box {
                                 IconButton(onClick = { expandedMenu = true }) {
                                     Icon(Icons.Default.MoreVert, contentDescription = "Opcions", tint = Color(0xFF0D47A1))
@@ -173,29 +158,26 @@ fun StaffProfilePage(
                     .padding(horizontal = 24.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-
-                // BLOQUE 1: CABECERA Y BOTONES
                 Column(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     StaffHeaderCard(
                         staff = staff,
-                        attendance = todayAttendance,
+                        selectedAbsence = selectedAbsence,
                         canManageStaff = canManageStaff,
                         onEditClick = { staff.id?.let { onEditClick(it) } }
                     )
 
+                    // NO CONTIENE EL BOTÓN DE CALENDARIO Y VACACIONES (SE MUESTRA ABAJO)
                     StaffActionGridSection(
-                        isDoctor = isDoctor,
-                        onDoctorAgendaClick = onDoctorAgendaClick,
-                        onDoctorPatientsClick = onDoctorPatientsClick,
-                        onNavigateToChat = { staff.id?.let { onNavigateToChat(it) } },
-                        onNavigateToSchedule = { staff.id?.let { onNavigateToSchedule(it) } }
+                        showAdvancedActions = showAdvancedActions,
+                        onDoctorAgendaClick = { staff.id?.let { onDoctorAgendaClick(it) } },
+                        onDoctorPatientsClick = { staff.id?.let { onDoctorPatientsClick(it) } },
+                        onNavigateToChat = { staff.id?.let { onNavigateToChat(it) } }
                     )
                 }
 
-                // BLOQUE 2: CALENDARIO (MÁS COMPACTO) Y ESTADO DETALLADO
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier
@@ -203,7 +185,7 @@ fun StaffProfilePage(
                         .padding(top = 16.dp, bottom = 16.dp)
                 ) {
                     Text(
-                        text = "Control de Fitxatges",
+                        text = "Registre de Fitxatges i Ausències",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF1E293B),
@@ -212,13 +194,16 @@ fun StaffProfilePage(
 
                     VisualMonthCalendarCard(
                         selectedDate = selectedDate,
-                        onDateSelected = { newDate -> selectedDate = newDate },
-                        isClockedInToday = isClockedIn
+                        absences = absences,
+                        onDateSelected = { newDate ->
+                            selectedDate = newDate
+                            currentMonth = YearMonth.from(newDate)
+                        }
                     )
 
                     StaffAttendanceCardForDate(
                         selectedDate = selectedDate,
-                        attendance = selectedAttendance
+                        selectedAbsence = selectedAbsence
                     )
                 }
 
@@ -237,10 +222,11 @@ fun StaffProfilePage(
         )
     }
 }
+
 @Composable
 fun StaffHeaderCard(
     staff: User,
-    attendance: DailyAttendance,
+    selectedAbsence: AbsenceEvent?,
     canManageStaff: Boolean,
     onEditClick: () -> Unit
 ) {
@@ -261,14 +247,12 @@ fun StaffHeaderCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
-
-            // BOTÓ D'EDITAR A DALT A LA DRETA DINS LA TARGETA
             if (canManageStaff) {
                 IconButton(
                     onClick = onEditClick,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(8.dp) // Marge per no enganxar-se massa a la vora
+                        .padding(8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Edit,
@@ -285,9 +269,7 @@ fun StaffHeaderCard(
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-
-                // 👇 AQUÍ USAMOS EL NUEVO COMPONENTE UNIVERSAL 👇
-                com.example.dynalar_frontend_v1.ui.components.UserAvatar(
+                UserAvatar(
                     avatarUrl = staff.avatarUrl,
                     userId = staff.id,
                     sexRaw = staff.sex,
@@ -313,11 +295,11 @@ fun StaffHeaderCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                val (statusText, statusBg, statusTextColor) = when (attendance.status) {
-                    ClockInStatus.COMPLETED -> Triple("Jornada Completada", Color(0xFFE8F5E9), Color(0xFF2E7D32))
-                    ClockInStatus.WORKING -> Triple("Treballant ara", Color(0xFFE3F2FD), Color(0xFF1565C0))
-                    ClockInStatus.MISSED -> Triple("Sense Fitxar", Color(0xFFFFEBEE), Color(0xFFC62828))
-                    ClockInStatus.PENDING -> Triple("Pendent", Color(0xFFF1F5F9), Color(0xFF64748B))
+                val (statusText, statusBg, statusTextColor) = when (selectedAbsence?.type) {
+                    AbsenceType.VACATION -> Triple("Vacances", Color(0xFFFFF3E0), Color(0xFFF57C00))
+                    AbsenceType.HOLIDAY -> Triple("Dia Festiu", Color(0xFFFFEBEE), Color(0xFFD32F2F))
+                    AbsenceType.SICK_LEAVE -> Triple("Baixa Mèdica", Color(0xFFE3F2FD), Color(0xFF1976D2))
+                    null -> Triple("Jornada Normal", Color(0xFFE8F5E9), Color(0xFF2E7D32))
                 }
 
                 Surface(
@@ -354,6 +336,7 @@ fun StaffHeaderCard(
         }
     }
 }
+
 @Composable
 fun InfoDetailRow(icon: ImageVector, label: String, value: String) {
     Row(
@@ -384,14 +367,13 @@ fun InfoDetailRow(icon: ImageVector, label: String, value: String) {
 
 @Composable
 fun StaffActionGridSection(
-    isDoctor: Boolean,
+    showAdvancedActions: Boolean,
     onDoctorAgendaClick: () -> Unit,
     onDoctorPatientsClick: () -> Unit,
-    onNavigateToChat: () -> Unit,
-    onNavigateToSchedule: () -> Unit
+    onNavigateToChat: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        if (isDoctor) {
+        if (showAdvancedActions) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -416,13 +398,6 @@ fun StaffActionGridSection(
             icon = Icons.AutoMirrored.Filled.Chat,
             modifier = Modifier.fillMaxWidth(),
             onClick = onNavigateToChat
-        )
-
-        StaffActionCard(
-            title = "Calendari Laboral i Vacances",
-            icon = Icons.Default.EventNote,
-            modifier = Modifier.fillMaxWidth(),
-            onClick = onNavigateToSchedule
         )
     }
 }
@@ -469,8 +444,8 @@ fun StaffActionCard(
 @Composable
 private fun VisualMonthCalendarCard(
     selectedDate: LocalDate,
-    onDateSelected: (LocalDate) -> Unit,
-    isClockedInToday: Boolean?
+    absences: List<AbsenceEvent>,
+    onDateSelected: (LocalDate) -> Unit
 ) {
     var currentMonth by remember { mutableStateOf(YearMonth.from(selectedDate)) }
     val today = LocalDate.now()
@@ -479,24 +454,13 @@ private fun VisualMonthCalendarCard(
     val monthYearFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", locale)
     val monthYearText = currentMonth.format(monthYearFormatter).replaceFirstChar { it.uppercase() }
 
-    val attendanceData = remember(currentMonth, isClockedInToday) {
-        val map = mutableMapOf<LocalDate, DailyAttendance>()
-        for (i in 1..currentMonth.lengthOfMonth()) {
-            val date = currentMonth.atDay(i)
-            map[date] = getAttendanceForDate(date, isClockedInToday)
-        }
-        map
-    }
-
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(1.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        // PADDINGS MÁS PEQUEÑOS EN EL CALENDARIO PARA QUE SEA MÁS COMPACTO
         Column(modifier = Modifier.padding(10.dp)) {
-            // Cabecera: Canvi de Mes
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -526,7 +490,6 @@ private fun VisualMonthCalendarCard(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Dies de la setmana
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 val daysOfWeek = listOf("Dl", "Dt", "Dc", "Dj", "Dv", "Ds", "Dg")
                 daysOfWeek.forEach { day ->
@@ -543,7 +506,6 @@ private fun VisualMonthCalendarCard(
 
             Spacer(modifier = Modifier.height(2.dp))
 
-            // Graella del mes (Filas más juntas)
             val offset = currentMonth.atDay(1).dayOfWeek.value - 1
             val daysInMonth = currentMonth.lengthOfMonth()
             val totalCells = offset + daysInMonth
@@ -551,7 +513,7 @@ private fun VisualMonthCalendarCard(
 
             for (row in 0 until rows) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp), // Menos espacio entre semanas
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     for (col in 0..6) {
@@ -565,30 +527,28 @@ private fun VisualMonthCalendarCard(
                             if (day in 1..daysInMonth) {
                                 val date = currentMonth.atDay(day)
                                 val isSelected = date == selectedDate
-                                val attendance = attendanceData[date]
+                                val dayAbsence = absences.find { !date.isBefore(it.startDate) && !date.isAfter(it.endDate) }
                                 val isToday = date == today
 
                                 val bgColor = when {
                                     isSelected -> Color(0xFF0D47A1)
-                                    attendance?.status == ClockInStatus.COMPLETED -> Color(0xFFE8F5E9)
-                                    attendance?.status == ClockInStatus.WORKING -> Color(0xFFE3F2FD)
-                                    attendance?.status == ClockInStatus.MISSED -> Color(0xFFFFEBEE)
+                                    dayAbsence?.type == AbsenceType.VACATION -> Color(0xFFFFB300)
+                                    dayAbsence?.type == AbsenceType.HOLIDAY -> Color(0xFFE53935)
+                                    dayAbsence?.type == AbsenceType.SICK_LEAVE -> Color(0xFF039BE5)
                                     isToday -> Color(0xFFEFF6FF)
                                     else -> Color.Transparent
                                 }
 
                                 val textColor = when {
                                     isSelected -> Color.White
-                                    attendance?.status == ClockInStatus.COMPLETED -> Color(0xFF2E7D32)
-                                    attendance?.status == ClockInStatus.WORKING -> Color(0xFF1565C0)
-                                    attendance?.status == ClockInStatus.MISSED -> Color(0xFFC62828)
+                                    dayAbsence != null -> Color.White
                                     isToday -> Color(0xFF0D47A1)
                                     else -> Color(0xFF1E293B)
                                 }
 
                                 Box(
                                     modifier = Modifier
-                                        .size(28.dp) // CÍRCULOS MÁS PEQUEÑOS (Antes 36.dp, ahora 28.dp)
+                                        .size(28.dp)
                                         .clip(CircleShape)
                                         .background(bgColor)
                                         .clickable {
@@ -601,9 +561,9 @@ private fun VisualMonthCalendarCard(
                                 ) {
                                     Text(
                                         text = day.toString(),
-                                        fontSize = 12.sp, // Fuente un pelín más pequeña
+                                        fontSize = 12.sp,
                                         color = textColor,
-                                        fontWeight = if (isSelected || attendance?.status != ClockInStatus.PENDING) FontWeight.Bold else FontWeight.Normal
+                                        fontWeight = if (isSelected || dayAbsence != null) FontWeight.Bold else FontWeight.Normal
                                     )
                                 }
                             }
@@ -615,29 +575,42 @@ private fun VisualMonthCalendarCard(
     }
 }
 
-private data class AttendanceStyle(
-    val icon: ImageVector,
-    val tintColor: Color,
-    val bgColor: Color,
-    val title: String
-)
-
 @Composable
 private fun StaffAttendanceCardForDate(
     selectedDate: LocalDate,
-    attendance: DailyAttendance
+    selectedAbsence: AbsenceEvent?
 ) {
     val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
-    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
-    val checkInStr = attendance.checkInTime?.format(timeFormatter) ?: "---"
-    val checkOutStr = attendance.checkOutTime?.format(timeFormatter) ?: "---"
-
-    val style = when (attendance.status) {
-        ClockInStatus.COMPLETED -> AttendanceStyle(Icons.Default.CheckCircle, Color(0xFF2E7D32), Color(0xFFE8F5E9), "Jornada Completada")
-        ClockInStatus.WORKING -> AttendanceStyle(Icons.Default.PlayCircle, Color(0xFF1565C0), Color(0xFFE3F2FD), "Treballant Actualment")
-        ClockInStatus.MISSED -> AttendanceStyle(Icons.Default.Cancel, Color(0xFFC62828), Color(0xFFFFEBEE), "Sense Fitxar")
-        ClockInStatus.PENDING -> AttendanceStyle(Icons.Default.Schedule, Color(0xFF64748B), Color(0xFFF1F5F9), "No Computable")
+    val (icon, color, bgColor, titleText, subtitleText) = when (selectedAbsence?.type) {
+        AbsenceType.VACATION -> Quintuple(
+            Icons.Default.FlightTakeoff,
+            Color(0xFFF57C00),
+            Color(0xFFFFF3E0),
+            "Vacances",
+            "Dia de vacances registrat"
+        )
+        AbsenceType.HOLIDAY -> Quintuple(
+            Icons.Default.Celebration,
+            Color(0xFFD32F2F),
+            Color(0xFFFFEBEE),
+            "Dia Festiu",
+            "Festiu oficial"
+        )
+        AbsenceType.SICK_LEAVE -> Quintuple(
+            Icons.Default.LocalHospital,
+            Color(0xFF1976D2),
+            Color(0xFFE3F2FD),
+            "Baixa Mèdica",
+            "Absència per motius de salut"
+        )
+        null -> Quintuple(
+            Icons.Default.Schedule,
+            Color(0xFF64748B),
+            Color(0xFFF1F5F9),
+            "No Computable",
+            "Sense fitxatge ni ausència registrada"
+        )
     }
 
     Card(
@@ -654,43 +627,42 @@ private fun StaffAttendanceCardForDate(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(style.bgColor),
+                    .background(bgColor),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = style.icon,
+                    imageVector = icon,
                     contentDescription = null,
-                    tint = style.tintColor,
+                    tint = color,
                     modifier = Modifier.size(20.dp)
                 )
             }
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = style.title,
+                    text = titleText,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
-                    color = style.tintColor
+                    color = color
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text("Data: ${selectedDate.format(dateFormatter)}", color = Color.Gray, fontSize = 12.sp)
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text("Entrada", fontSize = 11.sp, color = Color.Gray)
-                        Text(checkInStr, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text("Sortida", fontSize = 11.sp, color = Color.Gray)
-                        Text(checkOutStr, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
-                    }
-                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = subtitleText,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF475569)
+                )
             }
         }
     }
 }
+
+private data class Quintuple<A, B, C, D, E>(
+    val first: A,
+    val second: B,
+    val third: C,
+    val fourth: D,
+    val fifth: E
+)
