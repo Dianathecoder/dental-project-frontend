@@ -2,7 +2,6 @@ package com.example.dynalar_frontend_v1.ui.screens.staff
 
 import android.app.DatePickerDialog
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,9 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,7 +34,6 @@ import com.example.dynalar_frontend_v1.ui.components.AbsencesCalendarView
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.components.StaffRoleFilterDropdown
 import com.example.dynalar_frontend_v1.ui.components.UserAvatar
-import com.example.dynalar_frontend_v1.ui.components.getStaffImage
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.utils.SessionManager
 import com.example.dynalar_frontend_v1.viewmodel.StaffControlViewModel
@@ -57,7 +53,6 @@ fun AbsenceCalendarScreen(
     var selectedRoleFilter by remember { mutableStateOf(StaffRoleFilter.ALL) }
     var sortAscending by remember { mutableStateOf(true) }
 
-    // Estado para guardar los IDs de los empleados seleccionados
     var selectedEmployees by remember { mutableStateOf(setOf<Long>()) }
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -65,7 +60,7 @@ fun AbsenceCalendarScreen(
 
     LaunchedEffect(currentMonth) {
         viewModel.fetchMonthlyAbsences(currentMonth)
-        userViewModel.getAllStaff() // Cargamos la lista de empleados
+        userViewModel.getAllStaff()
     }
 
     if (showDatePicker) {
@@ -108,7 +103,6 @@ fun AbsenceCalendarScreen(
             SearchStaffBar(textFieldState = searchState)
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Filtro reducido (Solo Ordenación y Roles)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 val sessionManager = remember { SessionManager(context) }
                 val isSuperAdmin = sessionManager.hasRole("SUPERADMIN") || sessionManager.hasRole("ROLE_SUPERADMIN")
@@ -151,11 +145,12 @@ fun AbsenceCalendarScreen(
                         else list.sortedByDescending { it.name?.uppercase() }
                     }
 
+                    // 👉 SI NO HAY NADA SELECCIONADO, LA LISTA DE NOMBRES ESTÁ VACÍA Y NO SE PINTA NADA 👈
                     val activeNamesFilter = if (selectedEmployees.isNotEmpty()) {
                         staffList.filter { it.id in selectedEmployees }
                             .map { "${it.name} ${it.surname}".trim() }
                     } else {
-                        staffList.map { "${it.name} ${it.surname}".trim() }
+                        emptyList()
                     }
 
                     val calendarEvents = state.data.map { dto ->
@@ -270,7 +265,6 @@ fun AbsenceCalendarScreen(
                                 }
                             }
                         }
-
                     }
                 }
                 is InterfaceGlobal.Error -> {

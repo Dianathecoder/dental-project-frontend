@@ -25,9 +25,14 @@ data class AbsenceResponseDTO(
 
 )
 
+data class AbsenceRequestDTO(
+    val title: String,
+    val type: String,
+    val startDate: String,
+    val endDate: String
+)
 enum class AttendanceStatusType { ON_TIME, LATE_CLOCKED, ABSENT_RED, PENDING }
 enum class AbsenceType { VACATION, HOLIDAY, SICK_LEAVE }
-enum class StaffRoleFilter { ALL, OWNER, ADMIN, DOCTOR, AUXILIAR }
 enum class StaffClockFilter { ALL, CLOCKED_IN, NOT_CLOCKED, LATE_WARNING }
 
 data class AttendanceEntry(

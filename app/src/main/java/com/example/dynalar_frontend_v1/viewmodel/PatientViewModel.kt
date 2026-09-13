@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.dynalar_frontend_v1.model.patient.Patient
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.repository.PatientRepository
+import com.example.dynalar_frontend_v1.network.RetrofitClient // <-- Importante para la llamada directa si no está en el repo
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -40,6 +41,27 @@ class PatientViewModel: ViewModel() {
     private var searchJob: Job? = null
 
     var isDeleteHintShown by mutableStateOf(false)
+
+    // 👇 VARIABLES NUEVAS PARA LA LISTA DEL DOCTOR 👇
+    var doctorPatients by mutableStateOf<List<Patient>>(emptyList())
+        private set
+
+    fun getDoctorPatients(doctorId: Long) {
+        viewModelScope.launch {
+            try {
+                // Llama al API para obtener solo los pacientes de este doctor
+                val response = RetrofitClient.patientApiService.getPatientsByDoctor(doctorId)
+                if (response.isSuccessful) {
+                    doctorPatients = response.body() ?: emptyList()
+                } else {
+                    Log.e("PatientViewModel", "Error fetching doctor patients: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("PatientViewModel", "Exception fetching doctor patients: ${e.message}")
+            }
+        }
+    }
+    // 👆 FIN DE LO NUEVO 👆
 
     fun getPatients() {
         if (isFetching) return
@@ -143,6 +165,7 @@ class PatientViewModel: ViewModel() {
             }
         }
     }
+
     fun getPatientById(id: Long) {
         viewModelScope.launch {
             try {

@@ -47,4 +47,8 @@ interface PatientApiService {
     suspend fun deletePatientDocument(
         @Path("documentId") documentId: Long
     ): Response<Unit>
+
+    @GET("patient/doctor/{doctorId}")
+    suspend fun getPatientsByDoctor(@Path("doctorId") doctorId: Long): Response<List<Patient>>
+
 }

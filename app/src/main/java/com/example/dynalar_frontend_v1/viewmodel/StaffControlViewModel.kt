@@ -1,11 +1,13 @@
 package com.example.dynalar_frontend_v1.viewmodel
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
+import com.example.dynalar_frontend_v1.model.staff.AbsenceRequestDTO
 // IMPORTACIONES EXPLÍCITAS PARA EVITAR ERRORES
 import com.example.dynalar_frontend_v1.model.staff.AbsenceResponseDTO
 import com.example.dynalar_frontend_v1.model.staff.AttendanceResponseDTO
@@ -17,7 +19,9 @@ import java.time.YearMonth
 
 class StaffControlViewModel : ViewModel() {
 
-    var uiStateAttendance by mutableStateOf<InterfaceGlobal<List<AttendanceResponseDTO>>>(InterfaceGlobal.Idle)
+    var uiStateAttendance by mutableStateOf<InterfaceGlobal<List<AttendanceResponseDTO>>>(
+        InterfaceGlobal.Idle
+    )
         private set
 
     var uiStateAbsences by mutableStateOf<InterfaceGlobal<List<AbsenceResponseDTO>>>(InterfaceGlobal.Idle)
@@ -27,7 +31,8 @@ class StaffControlViewModel : ViewModel() {
         viewModelScope.launch {
             uiStateAttendance = InterfaceGlobal.Loading
             try {
-                val response = RetrofitClient.staffControlApiService.getDailyAttendance(date.toString())
+                val response =
+                    RetrofitClient.staffControlApiService.getDailyAttendance(date.toString())
                 if (response.isSuccessful && response.body() != null) {
                     uiStateAttendance = InterfaceGlobal.Success(response.body()!!)
                 } else {
@@ -43,7 +48,9 @@ class StaffControlViewModel : ViewModel() {
         viewModelScope.launch {
             uiStateAbsences = InterfaceGlobal.Loading
             try {
-                val response = RetrofitClient.staffControlApiService.getMonthlyAbsences(yearMonth.year, yearMonth.monthValue)
+                val response = RetrofitClient.staffControlApiService.getMonthlyAbsences(
+                    yearMonth.toString()
+                )
                 if (response.isSuccessful && response.body() != null) {
                     uiStateAbsences = InterfaceGlobal.Success(response.body()!!)
                 } else {
@@ -65,13 +72,42 @@ class StaffControlViewModel : ViewModel() {
 
                 if (response.isSuccessful) {
                     onResult(true)
-                    // Recargar los datos de hoy para que la UI se actualice
                     fetchDailyAttendance(LocalDate.now())
                 } else {
                     onResult(false)
                 }
             } catch (e: Exception) {
                 onResult(false)
+            }
+        }
+    }
+
+    fun registerAbsence(
+        title: String,
+        type: String,
+        startDate: LocalDate,
+        endDate: LocalDate,
+        onSuccess: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            try {
+                // USAR AbsenceRequestDTO EN LUGAR DE ClockRequestDTO
+                val dto = AbsenceRequestDTO(
+                    title = title,
+                    type = type,
+                    startDate = startDate.toString(),
+                    endDate = endDate.toString()
+                )
+
+                val response = RetrofitClient.staffControlApiService.createAbsence(dto)
+                if (response.isSuccessful) {
+                    fetchMonthlyAbsences(YearMonth.from(startDate))
+                    onSuccess()
+                } else {
+                    Log.e("StaffControlVM", "Error registrante ausencia: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("StaffControlVM", "Excepción al registrar ausencia: ${e.message}")
             }
         }
     }
