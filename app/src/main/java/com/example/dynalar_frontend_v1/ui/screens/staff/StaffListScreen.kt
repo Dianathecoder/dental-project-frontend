@@ -2,17 +2,7 @@ package com.example.dynalar_frontend_v1.ui.screens.staff
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -20,28 +10,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Badge
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -50,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dynalar_frontend_v1.R
+import com.example.dynalar_frontend_v1.model.staff.StaffRoleFilter
 import com.example.dynalar_frontend_v1.model.user.User
 import com.example.dynalar_frontend_v1.ui.components.AddButton
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
@@ -57,18 +29,6 @@ import com.example.dynalar_frontend_v1.ui.components.DeleteConfirmationDialog
 import com.example.dynalar_frontend_v1.ui.components.SwipeToDeleteContainer
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.utils.SessionManager
-
-// Propiedad de extensión de respaldo para evitar errores de compilación si User no la incluye en el backend
-val User.isClockedIn: Boolean?
-    get() = null
-
-enum class StaffRoleFilter {
-    ALL, OWNER, ADMIN, DOCTOR, AUXILIAR
-}
-
-enum class StaffClockFilter {
-    ALL, CLOCKED_IN, NOT_CLOCKED, LATE_WARNING
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,7 +45,6 @@ fun StaffListScreen(
     var staffToDelete by remember { mutableStateOf<Long?>(null) }
 
     var selectedRoleFilter by remember { mutableStateOf(StaffRoleFilter.ALL) }
-    var selectedClockFilter by remember { mutableStateOf(StaffClockFilter.ALL) }
     var sortAscending by remember { mutableStateOf(true) }
 
     val context = LocalContext.current
@@ -97,7 +56,7 @@ fun StaffListScreen(
     val canManageStaff = isSuperAdmin || isOwner || isAdmin
     val query = searchState.text.toString().trim()
 
-    val filteredStaff = remember(staffList, query, selectedRoleFilter, selectedClockFilter, sortAscending, isSuperAdmin, isOwner, isAdmin) {
+    val filteredStaff = remember(staffList, query, selectedRoleFilter, sortAscending, isSuperAdmin, isOwner, isAdmin) {
         staffList
             .filter { user ->
                 val roles = user.roles.map { it.uppercase() }
@@ -120,15 +79,6 @@ fun StaffListScreen(
                     StaffRoleFilter.ADMIN -> roles.any { it.contains("ADMIN") && !it.contains("SUPERADMIN") }
                     StaffRoleFilter.DOCTOR -> roles.any { it.contains("DOCTOR") || it.contains("DENTIST") }
                     StaffRoleFilter.AUXILIAR -> roles.any { it.contains("AUXILIAR") }
-                }
-            }
-            .filter { user ->
-                val status = evaluateClockInStatus(user.isClockedIn)
-                when (selectedClockFilter) {
-                    StaffClockFilter.ALL -> true
-                    StaffClockFilter.CLOCKED_IN -> status == ClockInStatus.CLOCKED_IN
-                    StaffClockFilter.NOT_CLOCKED -> status == ClockInStatus.PENDING || status == ClockInStatus.LATE_WARNING
-                    StaffClockFilter.LATE_WARNING -> status == ClockInStatus.LATE_WARNING
                 }
             }
             .let { list ->
@@ -161,13 +111,10 @@ fun StaffListScreen(
             ) {
                 StaffFilterDropdown(
                     selectedRoleFilter = selectedRoleFilter,
-                    selectedClockFilter = selectedClockFilter,
                     sortAscending = sortAscending,
                     isSuperAdmin = isSuperAdmin,
                     isOwner = isOwner,
-                    isAdmin = isAdmin,
                     onRoleFilterChanged = { filter -> selectedRoleFilter = filter },
-                    onClockFilterChanged = { filter -> selectedClockFilter = filter },
                     onSortChanged = { sort -> sortAscending = sort }
                 )
             }
@@ -201,7 +148,6 @@ fun StaffListScreen(
                                 ) {
                                     StaffItem(
                                         staff = staff,
-                                        isClockedIn = staff.isClockedIn,
                                         onClick = { selected ->
                                             selected.id?.let { onNavigateToStaffProfile(it) }
                                         }
@@ -210,7 +156,6 @@ fun StaffListScreen(
                             } else {
                                 StaffItem(
                                     staff = staff,
-                                    isClockedIn = staff.isClockedIn,
                                     onClick = { selected ->
                                         selected.id?.let { onNavigateToStaffProfile(it) }
                                     }
@@ -264,7 +209,10 @@ fun StaffTopBar(
 }
 
 @Composable
-fun SearchStaffBar(textFieldState: TextFieldState) {
+fun SearchStaffBar(
+    textFieldState: TextFieldState,
+    placeholderText: String = "Cercar treballador..."
+) {
     val query = textFieldState.text.toString()
 
     OutlinedTextField(
@@ -280,7 +228,7 @@ fun SearchStaffBar(textFieldState: TextFieldState) {
         },
         placeholder = {
             Text(
-                "Cercar treballador...",
+                placeholderText,
                 color = Color.Gray.copy(alpha = 0.8f)
             )
         },
@@ -299,33 +247,20 @@ fun SearchStaffBar(textFieldState: TextFieldState) {
 @Composable
 fun StaffFilterDropdown(
     selectedRoleFilter: StaffRoleFilter,
-    selectedClockFilter: StaffClockFilter,
     sortAscending: Boolean,
     isSuperAdmin: Boolean,
     isOwner: Boolean,
-    isAdmin: Boolean,
     onRoleFilterChanged: (StaffRoleFilter) -> Unit,
-    onClockFilterChanged: (StaffClockFilter) -> Unit,
     onSortChanged: (Boolean) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val hasFilter = selectedRoleFilter != StaffRoleFilter.ALL || selectedClockFilter != StaffClockFilter.ALL
+    val hasFilter = selectedRoleFilter != StaffRoleFilter.ALL
 
-    val label = when {
-        selectedRoleFilter != StaffRoleFilter.ALL && selectedClockFilter != StaffClockFilter.ALL -> "Filtres actius (2)"
-        selectedRoleFilter != StaffRoleFilter.ALL -> when (selectedRoleFilter) {
-            StaffRoleFilter.OWNER -> "Propietaris"
-            StaffRoleFilter.ADMIN -> "Administratius"
-            StaffRoleFilter.DOCTOR -> "Doctors"
-            StaffRoleFilter.AUXILIAR -> "Auxiliars"
-            else -> "Filtrar"
-        }
-        selectedClockFilter != StaffClockFilter.ALL -> when (selectedClockFilter) {
-            StaffClockFilter.CLOCKED_IN -> "Fitxats"
-            StaffClockFilter.NOT_CLOCKED -> "Sense fitxar"
-            StaffClockFilter.LATE_WARNING -> "Alerta (+1h)"
-            else -> "Filtrar"
-        }
+    val label = when (selectedRoleFilter) {
+        StaffRoleFilter.OWNER -> "Propietaris"
+        StaffRoleFilter.ADMIN -> "Administratius"
+        StaffRoleFilter.DOCTOR -> "Doctors"
+        StaffRoleFilter.AUXILIAR -> "Auxiliars"
         else -> "Filtrar"
     }
 
@@ -371,7 +306,7 @@ fun StaffFilterDropdown(
             expanded = expanded,
             onDismissRequest = { expanded = false },
             modifier = Modifier
-                .width(230.dp)
+                .width(220.dp)
                 .background(Color.White)
         ) {
             Text(
@@ -433,43 +368,6 @@ fun StaffFilterDropdown(
                     },
                     onClick = {
                         onRoleFilterChanged(filterOption)
-                        expanded = false
-                    },
-                    trailingIcon = {
-                        if (isSelected) Icon(Icons.Default.Check, null, tint = ButtonPrimary, modifier = Modifier.size(14.dp))
-                    }
-                )
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-            Text(
-                text = "Estat de fitxatge",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-            )
-
-            val clockOptions = listOf(
-                StaffClockFilter.ALL to "Tots els estats",
-                StaffClockFilter.CLOCKED_IN to "Fitxats",
-                StaffClockFilter.NOT_CLOCKED to "Pendent / Sense fitxar",
-                StaffClockFilter.LATE_WARNING to "Alerta (+1h retard)"
-            )
-
-            clockOptions.forEach { (filterOption, optionLabel) ->
-                val isSelected = selectedClockFilter == filterOption
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            optionLabel,
-                            fontSize = 14.sp,
-                            color = if (isSelected) ButtonPrimary else Color.Black,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                        )
-                    },
-                    onClick = {
-                        onClockFilterChanged(filterOption)
                         expanded = false
                     },
                     trailingIcon = {

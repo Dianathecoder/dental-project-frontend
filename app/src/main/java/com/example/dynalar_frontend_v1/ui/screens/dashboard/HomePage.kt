@@ -182,33 +182,29 @@ fun HomePage(
             }
         )
     }
-}
-
-@Composable
+}@Composable
 fun Header_HomePage(
     onNavigateProfileUserProfile: () -> Unit,
     onLanguageChange: (String) -> Unit
 ) {
     val context = LocalContext.current
-    val prefs = remember { context.getSharedPreferences("settings", Context.MODE_PRIVATE) }
     val sessionManager = remember { SessionManager(context) }
 
-    // Validación de seguridad para asegurar que el ID es un Drawable válido
-    val savedAvatarResId = prefs.getInt("user_avatar", R.drawable.avatar_color)
-    val safeAvatarResId = remember(savedAvatarResId) {
-        try {
-            val typeName = context.resources.getResourceTypeName(savedAvatarResId)
-            if (typeName == "drawable") {
-                savedAvatarResId
-            } else {
-                prefs.edit().putInt("user_avatar", R.drawable.avatar_color).apply()
-                R.drawable.avatar_color
-            }
-        } catch (e: Exception) {
-            prefs.edit().putInt("user_avatar", R.drawable.avatar_color).apply()
-            R.drawable.avatar_color
-        }
+    // 1. Obtenemos el ID del usuario actual sin usar getUser()
+    val currentUserId = sessionManager.getUserId()
+
+    // 2. Comprobamos si es doctor para que getStaffImage sepa qué avatares buscar
+    val tempRoles = mutableListOf<String>()
+    if (sessionManager.hasRole("DOCTOR") || sessionManager.hasRole("DENTIST") || sessionManager.hasRole("ROLE_DOCTOR")) {
+        tempRoles.add("DOCTOR")
     }
+
+    // 3. OBTENEMOS EL AVATAR USANDO LA FUNCIÓN GLOBAL (Soporta Galería, Recursos e IDs)
+    val avatarData = com.example.dynalar_frontend_v1.ui.components.getStaffImage(
+        userId = currentUserId,
+        roles = tempRoles,
+        sex = null // Lo dejamos nulo, la función ya sabe asignarle uno random si no tiene
+    )
 
     val roleLabel = when {
         sessionManager.hasRole("SUPERADMIN") || sessionManager.hasRole("ROLE_SUPERADMIN") -> stringResource(id = R.string.role_superadmin)
@@ -234,14 +230,28 @@ fun Header_HomePage(
                 .clickable { onNavigateProfileUserProfile() }
                 .padding(end = 8.dp, top = 4.dp, bottom = 4.dp)
         ) {
-            Image(
-                painter = painterResource(id = safeAvatarResId),
-                contentDescription = stringResource(id = R.string.home_my_profile),
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
+
+            // 4. PINTAMOS EL AVATAR (Galería o Dibujo)
+            if (avatarData is String) {
+                coil.compose.AsyncImage(
+                    model = avatarData,
+                    contentDescription = stringResource(id = R.string.home_my_profile),
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            } else if (avatarData is Int) {
+                Image(
+                    painter = painterResource(id = avatarData),
+                    contentDescription = stringResource(id = R.string.home_my_profile),
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
@@ -266,7 +276,6 @@ fun Header_HomePage(
         HomeLanguageSelector(onLanguageChange = onLanguageChange)
     }
 }
-
 @Composable
 fun GreetingSection(citasHoy: Int) {
     Column(

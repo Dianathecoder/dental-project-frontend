@@ -1,14 +1,17 @@
 package com.example.dynalar_frontend_v1.ui.screens.staff
 
+import android.app.DatePickerDialog
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,27 +24,60 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dynalar_frontend_v1.model.user.User
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.components.DeleteConfirmationDialog
+import com.example.dynalar_frontend_v1.ui.components.getStaffImage
 import com.example.dynalar_frontend_v1.utils.SessionManager
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
+// 1. Nous Estats de Fitxatge
 enum class ClockInStatus {
-    CLOCKED_IN,
-    PENDING,
-    LATE_WARNING
+    COMPLETED, // Verd: Ha fitxat entrada i sortida
+    WORKING,   // Blau: Ha fitxat entrada però encara no ha sortit
+    MISSED,    // Vermell: No ha fitxat (ni entrada ni sortida)
+    PENDING    // Gris: Dies futurs o no computables
 }
 
-fun evaluateClockInStatus(isClockedIn: Boolean?, expectedStartTime: LocalTime = LocalTime.of(8, 0)): ClockInStatus {
-    if (isClockedIn == true) return ClockInStatus.CLOCKED_IN
-    val now = LocalTime.now()
-    val warningThreshold = expectedStartTime.plusHours(1)
-    return if (now.isAfter(warningThreshold)) ClockInStatus.LATE_WARNING else ClockInStatus.PENDING
+// 2. Model de dades per a cada dia
+data class DailyAttendance(
+    val status: ClockInStatus,
+    val checkInTime: LocalTime? = null,
+    val checkOutTime: LocalTime? = null
+)
+
+// 3. Lògica de simulació
+fun getAttendanceForDate(date: LocalDate, isClockedInToday: Boolean?): DailyAttendance {
+    val today = LocalDate.now()
+    return when {
+        date.isAfter(today) || date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY -> {
+            DailyAttendance(ClockInStatus.PENDING)
+        }
+        date == today -> {
+            if (isClockedInToday == true) {
+                DailyAttendance(ClockInStatus.WORKING, LocalTime.of(8, 5), null)
+            } else {
+                DailyAttendance(ClockInStatus.MISSED, null, null)
+            }
+        }
+        else -> {
+            if (date.dayOfMonth == 15 || date.dayOfMonth == 5) {
+                DailyAttendance(ClockInStatus.MISSED, null, null)
+            } else if (date.dayOfMonth % 2 == 0) {
+                DailyAttendance(ClockInStatus.COMPLETED, LocalTime.of(8, 0), LocalTime.of(17, 0))
+            } else {
+                DailyAttendance(ClockInStatus.COMPLETED, LocalTime.of(7, 55), LocalTime.of(17, 10))
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,7 +90,7 @@ fun StaffProfilePage(
     onNavigateToChat: (Long) -> Unit = {},
     onDoctorAgendaClick: () -> Unit = {},
     onDoctorPatientsClick: () -> Unit = {},
-    onAttendanceHistoryClick: () -> Unit = {},
+    onNavigateToSchedule: (Long) -> Unit = {},
     isClockedIn: Boolean? = false
 ) {
     val context = LocalContext.current
@@ -66,15 +102,22 @@ fun StaffProfilePage(
 
     val roles = staff.roles.map { it.uppercase() }
     val isDoctor = roles.any { it.contains("DOCTOR") || it.contains("DENTIST") }
-    val status = remember(isClockedIn) { evaluateClockInStatus(isClockedIn) }
 
+    val todayAttendance = remember(isClockedIn) { getAttendanceForDate(LocalDate.now(), isClockedIn) }
+
+    var selectedDate by remember { mutableStateOf(LocalDate.now()) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var expandedMenu by remember { mutableStateOf(false) }
+
+    val selectedAttendance = remember(selectedDate, isClockedIn) {
+        getAttendanceForDate(selectedDate, isClockedIn)
+    }
 
     Scaffold(
         containerColor = Color(0xFFF5F7FA),
         topBar = {
             Column(modifier = Modifier.background(Color(0xFFF5F7FA))) {
-                Spacer(modifier = Modifier.height(27.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Box(modifier = Modifier.fillMaxWidth()) {
                     CustomTopBar(
                         title = "Perfil de l'Empleat",
@@ -82,105 +125,104 @@ fun StaffProfilePage(
                     )
 
                     if (canManageStaff) {
-                        IconButton(
-                            onClick = { staff.id?.let { onEditClick(it) } },
+                        Row(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
-                                .padding(end = 12.dp)
+                                .padding(end = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFF0D47A1))
+                            // NOMÉS QUEDA EL MENÚ DE 3 PUNTS, L'EDITAR ESTÀ A LA TARGETA
+                            Box {
+                                IconButton(onClick = { expandedMenu = true }) {
+                                    Icon(Icons.Default.MoreVert, contentDescription = "Opcions", tint = Color(0xFF0D47A1))
+                                }
+                                DropdownMenu(
+                                    expanded = expandedMenu,
+                                    onDismissRequest = { expandedMenu = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Eliminar Empleat", color = Color(0xFFD32F2F)) },
+                                        onClick = {
+                                            expandedMenu = false
+                                            showDeleteDialog = true
+                                        },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Delete, contentDescription = null, tint = Color(0xFFD32F2F))
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
         }
     ) { paddingValues ->
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 24.dp)
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            val minScreenHeight = maxHeight
 
-            StaffHeaderCard(staff = staff, status = status)
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            StaffActionGridSection(
-                isDoctor = isDoctor,
-                onDoctorAgendaClick = onDoctorAgendaClick,
-                onDoctorPatientsClick = onDoctorPatientsClick,
-                onAttendanceHistoryClick = onAttendanceHistoryClick,
-                onNavigateToChat = { staff.id?.let { onNavigateToChat(it) } }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Registre d'Activitat i Fitxatges",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            LazyColumn(
+            Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentPadding = PaddingValues(bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = minScreenHeight)
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                item {
-                    AttendanceStatusRow(status = status)
+
+                // BLOQUE 1: CABECERA Y BOTONES
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    StaffHeaderCard(
+                        staff = staff,
+                        attendance = todayAttendance,
+                        canManageStaff = canManageStaff,
+                        onEditClick = { staff.id?.let { onEditClick(it) } }
+                    )
+
+                    StaffActionGridSection(
+                        isDoctor = isDoctor,
+                        onDoctorAgendaClick = onDoctorAgendaClick,
+                        onDoctorPatientsClick = onDoctorPatientsClick,
+                        onNavigateToChat = { staff.id?.let { onNavigateToChat(it) } },
+                        onNavigateToSchedule = { staff.id?.let { onNavigateToSchedule(it) } }
+                    )
                 }
 
-                // OPCIÓ D'ELIMINAR PERFIL EN UNA SECCIÓ DE PERILL MENYS ACCESSIBLE
-                if (canManageStaff) {
-                    item {
-                        Card(
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            border = BorderStroke(1.dp, Color(0xFFFFCDD2)),
-                            elevation = CardDefaults.cardElevation(1.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 16.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                horizontalAlignment = Alignment.Start
-                            ) {
-                                Text(
-                                    text = "Gestió de Compte",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                    color = Color(0xFFC62828)
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Eliminar definitivament aquest registre d'empleat del sistema.",
-                                    fontSize = 12.sp,
-                                    color = Color.Gray
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                OutlinedButton(
-                                    onClick = { showDeleteDialog = true },
-                                    border = BorderStroke(1.dp, Color(0xFFD32F2F)),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFD32F2F)),
-                                    shape = RoundedCornerShape(10.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Eliminar Empleat", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                                }
-                            }
-                        }
-                    }
+                // BLOQUE 2: CALENDARIO (MÁS COMPACTO) Y ESTADO DETALLADO
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp, bottom = 16.dp)
+                ) {
+                    Text(
+                        text = "Control de Fitxatges",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1E293B),
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+
+                    VisualMonthCalendarCard(
+                        selectedDate = selectedDate,
+                        onDateSelected = { newDate -> selectedDate = newDate },
+                        isClockedInToday = isClockedIn
+                    )
+
+                    StaffAttendanceCardForDate(
+                        selectedDate = selectedDate,
+                        attendance = selectedAttendance
+                    )
                 }
+
+                Spacer(modifier = Modifier.height(1.dp))
             }
         }
     }
@@ -197,7 +239,12 @@ fun StaffProfilePage(
 }
 
 @Composable
-fun StaffHeaderCard(staff: User, status: ClockInStatus) {
+fun StaffHeaderCard(
+    staff: User,
+    attendance: DailyAttendance,
+    canManageStaff: Boolean,
+    onEditClick: () -> Unit
+) {
     val roles = staff.roles.map { it.uppercase() }
     val roleLabel = when {
         roles.any { it.contains("SUPERADMIN") } -> "SuperAdmin"
@@ -211,82 +258,106 @@ fun StaffHeaderCard(staff: User, status: ClockInStatus) {
     val avatarRes = getStaffImage(staff.id, staff.roles, staff.sex)
 
     Card(
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Image(
-                painter = painterResource(id = avatarRes),
-                contentDescription = "Avatar",
-                modifier = Modifier
-                    .size(85.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
+        Box(modifier = Modifier.fillMaxWidth()) {
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Text(
-                text = "${staff.name ?: ""} ${staff.surname ?: ""}".trim(),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
-            )
-
-            Spacer(modifier = Modifier.height(2.dp))
-
-            Text(
-                text = roleLabel,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF0D47A1)
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            val (statusText, statusBg, statusTextColor) = when (status) {
-                ClockInStatus.CLOCKED_IN -> Triple("Fitxat", Color(0xFFE8F5E9), Color(0xFF2E7D32))
-                ClockInStatus.PENDING -> Triple("Sense fitxar", Color(0xFFF1F5F9), Color(0xFF64748B))
-                ClockInStatus.LATE_WARNING -> Triple("Alerta: +1h sense fitxar", Color(0xFFFFEBEE), Color(0xFFC62828))
+            // BOTÓ D'EDITAR A DALT A LA DRETA DINS LA TARGETA
+            if (canManageStaff) {
+                IconButton(
+                    onClick = onEditClick,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp) // Marge per no enganxar-se massa a la vora
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Editar",
+                        tint = Color(0xFF0D47A1),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
-
-            Surface(
-                color = statusBg,
-                shape = RoundedCornerShape(20.dp)
-            ) {
-                Text(
-                    text = statusText,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = statusTextColor,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(color = Color(0xFFF1F5F9))
-            Spacer(modifier = Modifier.height(16.dp))
 
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                val userEmail = staff.email
-                if (!userEmail.isNullOrBlank()) {
-                    InfoDetailRow(icon = Icons.Default.Email, label = "Email", value = userEmail)
+                if (avatarRes is String) {
+                    coil.compose.AsyncImage(
+                        model = avatarRes,
+                        contentDescription = "Avatar",
+                        modifier = Modifier.size(90.dp).clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else if (avatarRes is Int) {
+                    Image(
+                        painter = painterResource(id = avatarRes),
+                        contentDescription = "Avatar",
+                        modifier = Modifier.size(90.dp).clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
                 }
-                val userDni = staff.dni
-                if (!userDni.isNullOrBlank()) {
-                    InfoDetailRow(icon = Icons.Default.Badge, label = "DNI", value = userDni)
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = "${staff.name ?: ""} ${staff.surname ?: ""}".trim(),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1E293B)
+                )
+
+                Text(
+                    text = roleLabel,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF0D47A1)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val (statusText, statusBg, statusTextColor) = when (attendance.status) {
+                    ClockInStatus.COMPLETED -> Triple("Jornada Completada", Color(0xFFE8F5E9), Color(0xFF2E7D32))
+                    ClockInStatus.WORKING -> Triple("Treballant ara", Color(0xFFE3F2FD), Color(0xFF1565C0))
+                    ClockInStatus.MISSED -> Triple("Sense Fitxar", Color(0xFFFFEBEE), Color(0xFFC62828))
+                    ClockInStatus.PENDING -> Triple("Pendent", Color(0xFFF1F5F9), Color(0xFF64748B))
                 }
-                val userPhone = staff.phone
-                if (!userPhone.isNullOrBlank()) {
-                    InfoDetailRow(icon = Icons.Default.Phone, label = "Telèfon", value = userPhone)
+
+                Surface(
+                    color = statusBg,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = statusText,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = statusTextColor,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = Color(0xFFF1F5F9))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val userEmail = staff.email
+                    if (!userEmail.isNullOrBlank()) {
+                        InfoDetailRow(icon = Icons.Default.Email, label = "Email", value = userEmail)
+                    }
+                    val userPhone = staff.phone
+                    if (!userPhone.isNullOrBlank()) {
+                        InfoDetailRow(icon = Icons.Default.Phone, label = "Telèfon", value = userPhone)
+                    }
                 }
             }
         }
@@ -303,9 +374,9 @@ fun InfoDetailRow(icon: ImageVector, label: String, value: String) {
             imageVector = icon,
             contentDescription = label,
             tint = Color(0xFF64748B),
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(16.dp)
         )
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = "$label: ",
             fontSize = 13.sp,
@@ -326,15 +397,15 @@ fun StaffActionGridSection(
     isDoctor: Boolean,
     onDoctorAgendaClick: () -> Unit,
     onDoctorPatientsClick: () -> Unit,
-    onAttendanceHistoryClick: () -> Unit,
-    onNavigateToChat: () -> Unit
+    onNavigateToChat: () -> Unit,
+    onNavigateToSchedule: () -> Unit
 ) {
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            if (isDoctor) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (isDoctor) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 StaffActionCard(
                     title = "Agenda Cites",
                     icon = Icons.Default.DateRange,
@@ -347,21 +418,22 @@ fun StaffActionGridSection(
                     modifier = Modifier.weight(1f),
                     onClick = onDoctorPatientsClick
                 )
-            } else {
-                StaffActionCard(
-                    title = "Control Fitxatges",
-                    icon = Icons.Default.AccessTime,
-                    modifier = Modifier.weight(1f),
-                    onClick = onAttendanceHistoryClick
-                )
-                StaffActionCard(
-                    title = "Xat Intern",
-                    icon = Icons.Default.Chat,
-                    modifier = Modifier.weight(1f),
-                    onClick = onNavigateToChat
-                )
             }
         }
+
+        StaffActionCard(
+            title = "Xat Intern",
+            icon = Icons.AutoMirrored.Filled.Chat,
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onNavigateToChat
+        )
+
+        StaffActionCard(
+            title = "Calendari Laboral i Vacances",
+            icon = Icons.Default.EventNote,
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onNavigateToSchedule
+        )
     }
 }
 
@@ -373,174 +445,259 @@ fun StaffActionCard(
     onClick: () -> Unit
 ) {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(2.dp),
         modifier = modifier
-            .height(95.dp)
+            .height(55.dp)
             .clickable { onClick() }
     ) {
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
-            contentAlignment = Alignment.Center
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = title,
-                    tint = Color(0xFF0D47A1),
-                    modifier = Modifier.size(34.dp)
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = title,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF1E293B)
-                )
-            }
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = Color(0xFF0D47A1),
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF1E293B)
+            )
         }
     }
 }
 
 @Composable
-fun AttendanceStatusRow(
-    status: ClockInStatus,
-    clockInDate: LocalDate = LocalDate.now(),
-    clockInTime: LocalTime? = LocalTime.of(8, 15)
+private fun VisualMonthCalendarCard(
+    selectedDate: LocalDate,
+    onDateSelected: (LocalDate) -> Unit,
+    isClockedInToday: Boolean?
 ) {
-    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm'h'")
+    var currentMonth by remember { mutableStateOf(YearMonth.from(selectedDate)) }
+    val today = LocalDate.now()
+
+    val locale = Locale.forLanguageTag("ca")
+    val monthYearFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", locale)
+    val monthYearText = currentMonth.format(monthYearFormatter).replaceFirstChar { it.uppercase() }
+
+    val attendanceData = remember(currentMonth, isClockedInToday) {
+        val map = mutableMapOf<LocalDate, DailyAttendance>()
+        for (i in 1..currentMonth.lengthOfMonth()) {
+            val date = currentMonth.atDay(i)
+            map[date] = getAttendanceForDate(date, isClockedInToday)
+        }
+        map
+    }
+
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(1.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // PADDINGS MÁS PEQUEÑOS EN EL CALENDARIO PARA QUE SEA MÁS COMPACTO
+        Column(modifier = Modifier.padding(10.dp)) {
+            // Cabecera: Canvi de Mes
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = { currentMonth = currentMonth.minusMonths(1) },
+                    modifier = Modifier.size(26.dp)
+                ) {
+                    Icon(Icons.Default.ChevronLeft, "Mes anterior", tint = Color(0xFF0D47A1))
+                }
+
+                Text(
+                    text = monthYearText,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1E293B)
+                )
+
+                IconButton(
+                    onClick = { currentMonth = currentMonth.plusMonths(1) },
+                    modifier = Modifier.size(26.dp)
+                ) {
+                    Icon(Icons.Default.ChevronRight, "Mes següent", tint = Color(0xFF0D47A1))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Dies de la setmana
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                val daysOfWeek = listOf("Dl", "Dt", "Dc", "Dj", "Dv", "Ds", "Dg")
+                daysOfWeek.forEach { day ->
+                    Text(
+                        text = day,
+                        fontSize = 11.sp,
+                        color = Color.Gray,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            // Graella del mes (Filas más juntas)
+            val offset = currentMonth.atDay(1).dayOfWeek.value - 1
+            val daysInMonth = currentMonth.lengthOfMonth()
+            val totalCells = offset + daysInMonth
+            val rows = (totalCells + 6) / 7
+
+            for (row in 0 until rows) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp), // Menos espacio entre semanas
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    for (col in 0..6) {
+                        val cellIndex = row * 7 + col
+                        val day = cellIndex - offset + 1
+
+                        Box(
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (day in 1..daysInMonth) {
+                                val date = currentMonth.atDay(day)
+                                val isSelected = date == selectedDate
+                                val attendance = attendanceData[date]
+                                val isToday = date == today
+
+                                val bgColor = when {
+                                    isSelected -> Color(0xFF0D47A1)
+                                    attendance?.status == ClockInStatus.COMPLETED -> Color(0xFFE8F5E9)
+                                    attendance?.status == ClockInStatus.WORKING -> Color(0xFFE3F2FD)
+                                    attendance?.status == ClockInStatus.MISSED -> Color(0xFFFFEBEE)
+                                    isToday -> Color(0xFFEFF6FF)
+                                    else -> Color.Transparent
+                                }
+
+                                val textColor = when {
+                                    isSelected -> Color.White
+                                    attendance?.status == ClockInStatus.COMPLETED -> Color(0xFF2E7D32)
+                                    attendance?.status == ClockInStatus.WORKING -> Color(0xFF1565C0)
+                                    attendance?.status == ClockInStatus.MISSED -> Color(0xFFC62828)
+                                    isToday -> Color(0xFF0D47A1)
+                                    else -> Color(0xFF1E293B)
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp) // CÍRCULOS MÁS PEQUEÑOS (Antes 36.dp, ahora 28.dp)
+                                        .clip(CircleShape)
+                                        .background(bgColor)
+                                        .clickable {
+                                            onDateSelected(date)
+                                            if (date.monthValue != currentMonth.monthValue) {
+                                                currentMonth = YearMonth.from(date)
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = day.toString(),
+                                        fontSize = 12.sp, // Fuente un pelín más pequeña
+                                        color = textColor,
+                                        fontWeight = if (isSelected || attendance?.status != ClockInStatus.PENDING) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private data class AttendanceStyle(
+    val icon: ImageVector,
+    val tintColor: Color,
+    val bgColor: Color,
+    val title: String
+)
+
+@Composable
+private fun StaffAttendanceCardForDate(
+    selectedDate: LocalDate,
+    attendance: DailyAttendance
+) {
     val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
-    when (status) {
-        ClockInStatus.CLOCKED_IN -> {
-            val timeStr = clockInTime?.format(timeFormatter) ?: ""
-            val dateStr = clockInDate.format(dateFormatter)
+    val checkInStr = attendance.checkInTime?.format(timeFormatter) ?: "---"
+    val checkOutStr = attendance.checkOutTime?.format(timeFormatter) ?: "---"
 
-            Card(
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                modifier = Modifier.fillMaxWidth()
+    val style = when (attendance.status) {
+        ClockInStatus.COMPLETED -> AttendanceStyle(Icons.Default.CheckCircle, Color(0xFF2E7D32), Color(0xFFE8F5E9), "Jornada Completada")
+        ClockInStatus.WORKING -> AttendanceStyle(Icons.Default.PlayCircle, Color(0xFF1565C0), Color(0xFFE3F2FD), "Treballant Actualment")
+        ClockInStatus.MISSED -> AttendanceStyle(Icons.Default.Cancel, Color(0xFFC62828), Color(0xFFFFEBEE), "Sense Fitxar")
+        ClockInStatus.PENDING -> AttendanceStyle(Icons.Default.Schedule, Color(0xFF64748B), Color(0xFFF1F5F9), "No Computable")
+    }
+
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(style.bgColor),
+                contentAlignment = Alignment.Center
             ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFE8F5E9)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint = Color(0xFF2E7D32)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Fitxat el $dateStr a les $timeStr",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = Color(0xFF2E7D32)
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Jornada registrada correctament.",
-                            color = Color.Gray,
-                            fontSize = 13.sp
-                        )
-                    }
-                }
+                Icon(
+                    imageVector = style.icon,
+                    contentDescription = null,
+                    tint = style.tintColor,
+                    modifier = Modifier.size(20.dp)
+                )
             }
-        }
-        ClockInStatus.LATE_WARNING -> {
-            Card(
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF5F5)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                border = BorderStroke(1.dp, Color(0xFFEF5350)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = style.title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = style.tintColor
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text("Data: ${selectedDate.format(dateFormatter)}", color = Color.Gray, fontSize = 12.sp)
+
+                Spacer(modifier = Modifier.height(6.dp))
+
                 Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFFFEBEE)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = Color(0xFFC62828)
-                        )
+                    Column {
+                        Text("Entrada", fontSize = 11.sp, color = Color.Gray)
+                        Text(checkInStr, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
                     }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Alerta de Fitxatge (+1 Hora)",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = Color(0xFFC62828)
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Ha transcorregut més d'una hora des de l'horari d'entrada i no hi ha fitxatge registrat.",
-                            color = Color(0xFFC62828),
-                            fontSize = 13.sp
-                        )
-                    }
-                }
-            }
-        }
-        ClockInStatus.PENDING -> {
-            Card(
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFF1F5F9)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Schedule,
-                            contentDescription = null,
-                            tint = Color(0xFF64748B)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Estat de Jornada: Pendent",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = Color(0xFF1E293B)
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Aquest treballador encara no ha iniciat el registre de jornada.",
-                            color = Color.Gray,
-                            fontSize = 13.sp
-                        )
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Sortida", fontSize = 11.sp, color = Color.Gray)
+                        Text(checkOutStr, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
                     }
                 }
             }

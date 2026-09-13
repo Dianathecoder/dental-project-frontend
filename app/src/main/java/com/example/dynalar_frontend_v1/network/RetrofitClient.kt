@@ -72,5 +72,5 @@ object RetrofitClient {
     val boxApiService: BoxApiService by lazy { retrofit.create(BoxApiService::class.java) }
     val attendanceApiService: AttendanceApiService by lazy { retrofit.create(AttendanceApiService::class.java) }
 
-
+    val staffControlApiService: StaffControlApiService by lazy { retrofit.create(StaffControlApiService::class.java) }
 }

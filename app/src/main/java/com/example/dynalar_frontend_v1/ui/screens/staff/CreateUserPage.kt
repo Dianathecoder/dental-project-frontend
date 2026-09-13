@@ -92,15 +92,17 @@ fun CreateUserPage(
     val invalidEmailMsg = stringResource(R.string.validation_invalid_email)
     val invalidPhoneMsg = stringResource(R.string.validation_invalid_phone)
     val invalidDniMsg = stringResource(R.string.validation_invalid_dni)
+    val userCreatedSuccessMsg = stringResource(R.string.user_created_successfully)
+    val unknownServerErrorMsg = stringResource(R.string.error_unknown_server)
 
     LaunchedEffect(adminInviteState) {
         if (adminInviteState is InterfaceGlobal.Success) {
-            Toast.makeText(context, context.getString(R.string.user_created_successfully), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, userCreatedSuccessMsg, Toast.LENGTH_SHORT).show()
             adminViewModel.resetInviteState()
             onNavigateBack()
         } else if (adminInviteState is InterfaceGlobal.Error) {
             val errorState = adminInviteState as InterfaceGlobal.Error
-            val errorMsg = errorState.message ?: context.getString(R.string.error_unknown_server)
+            val errorMsg = errorState.message ?: unknownServerErrorMsg
             Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
             adminViewModel.resetInviteState()
         }

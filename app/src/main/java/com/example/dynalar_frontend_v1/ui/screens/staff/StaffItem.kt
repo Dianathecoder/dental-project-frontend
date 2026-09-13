@@ -14,15 +14,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Badge
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,57 +27,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dynalar_frontend_v1.R
-import com.example.dynalar_frontend_v1.model.patient.Sex
 import com.example.dynalar_frontend_v1.model.user.User
-import com.example.dynalar_frontend_v1.ui.components.getPatientImage
-
-fun getStaffImage(userId: Long?, roles: List<String>, sex: Any?): Int {
-    val id = userId ?: 0L
-    val upperRoles = roles.map { it.uppercase() }
-    val isDoctor = upperRoles.any { it.contains("DOCTOR") || it.contains("DENTIST") }
-
-    val sexEnum = when (sex) {
-        is Sex -> sex
-        is String -> try { Sex.valueOf(sex.uppercase()) } catch (e: Exception) { null }
-        else -> null
-    }
-
-    return if (isDoctor) {
-        when (sexEnum) {
-            Sex.FEMALE -> {
-                val femaleDoctorOptions = listOf(
-                    R.drawable.doctor1,
-                    R.drawable.doctor3,
-                    R.drawable.doctor5,
-                    R.drawable.doctor7,
-                    R.drawable.doctor9
-                )
-                femaleDoctorOptions[(id % femaleDoctorOptions.size).toInt()]
-            }
-            Sex.MALE -> {
-                val maleDoctorOptions = listOf(
-                    R.drawable.doctor2,
-                    R.drawable.doctor4,
-                    R.drawable.doctor6,
-                    R.drawable.doctor8
-                )
-                maleDoctorOptions[(id % maleDoctorOptions.size).toInt()]
-            }
-            Sex.OTHER, null -> R.drawable.doctorincog
-        }
-    } else {
-        getPatientImage(userId, sexEnum)
-    }
-}
+import com.example.dynalar_frontend_v1.ui.components.getStaffImage
 
 @Composable
 fun StaffItem(
     staff: User,
-    onClick: (User) -> Unit,
-    isClockedIn: Boolean? = false
+    isClockedIn: Boolean? = false,
+    onClick: (User) -> Unit
 ) {
     val roles = staff.roles.map { it.uppercase() }
 
@@ -100,29 +58,42 @@ fun StaffItem(
         else -> Color(0xFFF57C00)
     }
 
-    val clockStatus = remember(isClockedIn) { evaluateClockInStatus(isClockedIn) }
     val avatarRes = getStaffImage(staff.id, staff.roles, staff.sex)
+
+    // Lógica visual para el estado del fichaje
+    val isClockedInNow = isClockedIn == true
+    val statusText = if (isClockedInNow) "Fitxat" else "Sense fitxar"
+    val statusBg = if (isClockedInNow) Color(0xFFE8F5E9) else Color(0xFFF1F5F9)
+    val statusTextColor = if (isClockedInNow) Color(0xFF2E7D32) else Color(0xFF64748B)
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 22.dp, vertical = 8.dp)
+            .padding(horizontal = 22.dp, vertical = 6.dp)
             .clickable { onClick(staff) },
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(12.dp)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Image(
-                painter = painterResource(id = avatarRes),
-                contentDescription = "Staff Avatar",
-                modifier = Modifier
-                    .size(65.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
+            if (avatarRes is String) {
+                coil.compose.AsyncImage(
+                    model = avatarRes,
+                    contentDescription = "Staff Avatar",
+                    modifier = Modifier.size(65.dp).clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            } else if (avatarRes is Int) {
+                Image(
+                    painter = painterResource(id = avatarRes),
+                    contentDescription = "Staff Avatar",
+                    modifier = Modifier.size(65.dp).clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            }
 
             Spacer(modifier = Modifier.width(16.dp))
 
@@ -133,7 +104,9 @@ fun StaffItem(
                 Text(
                     text = "${staff.name ?: ""} ${staff.surname ?: ""}".trim(),
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -148,57 +121,38 @@ fun StaffItem(
                         text = roleLabel,
                         color = roleColor,
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
-                // Indicador de Estado de Fichaje
-                when (clockStatus) {
-                    ClockInStatus.CLOCKED_IN -> {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = Color(0xFF388E3C),
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Fitxat",
-                                color = Color(0xFF388E3C),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-                    ClockInStatus.LATE_WARNING -> {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Warning,
-                                contentDescription = null,
-                                tint = Color(0xFFD32F2F),
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Sense fitxar (+1h)",
-                                color = Color(0xFFD32F2F),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                    ClockInStatus.PENDING -> {
-                        val email = staff.email
-                        if (!email.isNullOrBlank()) {
-                            Text(
-                                text = email,
-                                color = Color.Gray,
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
+                val email = staff.email
+                if (!email.isNullOrBlank()) {
+                    Text(
+                        text = email,
+                        color = Color.Gray,
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Etiqueta del estado de fichaje
+            Surface(
+                color = statusBg,
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = statusText,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = statusTextColor,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
             }
         }
     }
