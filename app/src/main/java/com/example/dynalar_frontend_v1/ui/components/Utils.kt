@@ -13,6 +13,11 @@ import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.model.common.CountryInfo
 import com.example.dynalar_frontend_v1.model.patient.Sex
 import java.util.Locale
+import androidx.compose.foundation.Image
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import coil.compose.AsyncImage
 
 val patientImages = listOf(
     R.drawable.usuario1, R.drawable.usuario2, R.drawable.usuario3,
@@ -85,13 +90,10 @@ fun getStaffImage(userId: Long?, roles: List<String>, sex: Any?): Any {
         }
     }
 
-    // 1. Si hay foto de galería, la devuelve
     if (customAvatarUri != null) return customAvatarUri!!
 
-    // 2. Si hay avatar por defecto elegido, lo devuelve
     if (customAvatarRes != 0) return customAvatarRes!!
 
-    // SI NO HAY NADA: Lógica de avatares por defecto según el sexo
     val upperRoles = roles.map { it.uppercase() }
     val isDoctor = upperRoles.any { it.contains("DOCTOR") || it.contains("DENTIST") }
 
@@ -122,7 +124,74 @@ fun getStaffImage(userId: Long?, roles: List<String>, sex: Any?): Any {
         }
     }
 }
+@Composable
+fun UserAvatar(
+    avatarUrl: String?,
+    userId: Long?,
+    sexRaw: Any?,
+    rolesRaw: Any?,
+    modifier: Modifier = Modifier,
+    contentDescription: String = "Avatar del usuario"
+) {
+    val context = LocalContext.current
+    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
+    // 1. Prioridad: ¿La base de datos nos manda un enlace?
+    if (!avatarUrl.isNullOrEmpty()) {
+        AsyncImage(
+            model = avatarUrl,
+            contentDescription = contentDescription,
+            modifier = modifier,
+            contentScale = ContentScale.Crop
+        )
+    } else {
+        // 2. Prioridad: ¿Tenemos una foto guardada en la memoria del teléfono para este usuario?
+        val localSavedUri = prefs.getString("user_avatar_uri_$userId", null)
+        val localSavedRes = prefs.getInt("user_avatar_$userId", 0)
+
+        if (localSavedUri != null) {
+            AsyncImage(
+                model = localSavedUri,
+                contentDescription = contentDescription,
+                modifier = modifier,
+                contentScale = ContentScale.Crop
+            )
+        } else if (localSavedRes != 0) {
+            Image(
+                painter = painterResource(id = localSavedRes),
+                contentDescription = contentDescription,
+                modifier = modifier,
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            // 3. Prioridad: Dibujo de stock por defecto
+            val safeRoles = when (rolesRaw) {
+                is List<*> -> rolesRaw.map { it.toString() }
+                is String -> listOf(rolesRaw)
+                else -> emptyList()
+            }
+
+            // CORREGIDO: roles y sex sin el sufijo "Raw"
+            val avatarResult = getStaffImage(userId = userId, roles = safeRoles, sex = sexRaw)
+
+            if (avatarResult is String) {
+                AsyncImage(
+                    model = avatarResult,
+                    contentDescription = contentDescription,
+                    modifier = modifier,
+                    contentScale = ContentScale.Crop
+                )
+            } else if (avatarResult is Int) {
+                Image(
+                    painter = painterResource(id = avatarResult),
+                    contentDescription = contentDescription,
+                    modifier = modifier,
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
+    }
+}
 val countriesList = listOf(
     CountryInfo("+34", "Espanya", "🇪🇸"),
     CountryInfo("+376", "Andorra", "🇦🇩"),

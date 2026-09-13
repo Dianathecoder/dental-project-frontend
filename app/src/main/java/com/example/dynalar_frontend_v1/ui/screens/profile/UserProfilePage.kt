@@ -26,13 +26,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
 import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.user.User
 import com.example.dynalar_frontend_v1.ui.components.BannerGenericProfile
 import com.example.dynalar_frontend_v1.ui.components.ErrorScreenWithImage
 import com.example.dynalar_frontend_v1.ui.components.InputField
+import com.example.dynalar_frontend_v1.ui.components.UserAvatar
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.ui.theme.FondoPagina
 import com.example.dynalar_frontend_v1.utils.SessionManager
@@ -51,11 +51,6 @@ fun UserProfilePage(
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
     val userId = sessionManager.getUserId()
-    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-
-    // Leer el avatar específico de este usuario
-    val customAvatarUri = prefs.getString("user_avatar_uri_$userId", null)
-    val defaultAvatarResId = prefs.getInt("user_avatar_$userId", R.drawable.avatar_color)
 
     LaunchedEffect(Unit) {
         viewModel.getProfile()
@@ -64,7 +59,6 @@ fun UserProfilePage(
     Scaffold(containerColor = FondoPagina) { paddingValues ->
         Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
 
-            // LA CLAVE ESTÁ AQUÍ: Si falla el endpoint, carga la caché de SessionManager
             val userDataFromApi = (profileState as? InterfaceGlobal.Success)?.data
             val userData = userDataFromApi ?: User(
                 id = userId,
@@ -85,28 +79,19 @@ fun UserProfilePage(
             }
 
             BannerGenericProfile(
-                userName = userData?.name ?: "Usuari",
+                userName = userData.name ?: "Usuari",
                 userRole = userRoleText,
                 profileImage = {
                     Box(
                         modifier = Modifier.fillMaxSize().clip(CircleShape).clickable { onNavigateToChangeAvatar() }
                     ) {
-                        // Mostrar imagen de Galería (Coil) o el Avatar Vectorial
-                        if (customAvatarUri != null) {
-                            AsyncImage(
-                                model = customAvatarUri,
-                                contentDescription = "Avatar",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Image(
-                                painter = painterResource(id = defaultAvatarResId),
-                                contentDescription = "Avatar",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
+                        UserAvatar(
+                            avatarUrl = userData.avatarUrl,
+                            userId = userData.id,
+                            sexRaw = userData.sex,
+                            rolesRaw = userData.roles,
+                            modifier = Modifier.fillMaxSize()
+                        )
 
                         Box(
                             modifier = Modifier
@@ -125,7 +110,7 @@ fun UserProfilePage(
             )
 
             // Si tenemos userData, ignoramos el error de red y pintamos los datos
-            if (userData != null) {
+            if (userDataFromApi != null || userId != 0L) {
                 Box(modifier = Modifier.weight(1f)) {
                     UserInfoContent(
                         userData = userData,

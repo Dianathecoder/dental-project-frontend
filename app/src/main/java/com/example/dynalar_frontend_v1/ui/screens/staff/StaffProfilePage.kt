@@ -237,7 +237,6 @@ fun StaffProfilePage(
         )
     }
 }
-
 @Composable
 fun StaffHeaderCard(
     staff: User,
@@ -254,8 +253,6 @@ fun StaffHeaderCard(
         roles.any { it.contains("AUXILIAR") } -> "Auxiliar"
         else -> "Personal"
     }
-
-    val avatarRes = getStaffImage(staff.id, staff.roles, staff.sex)
 
     Card(
         shape = RoundedCornerShape(16.dp),
@@ -288,21 +285,15 @@ fun StaffHeaderCard(
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (avatarRes is String) {
-                    coil.compose.AsyncImage(
-                        model = avatarRes,
-                        contentDescription = "Avatar",
-                        modifier = Modifier.size(90.dp).clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                } else if (avatarRes is Int) {
-                    Image(
-                        painter = painterResource(id = avatarRes),
-                        contentDescription = "Avatar",
-                        modifier = Modifier.size(90.dp).clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                }
+
+                // 👇 AQUÍ USAMOS EL NUEVO COMPONENTE UNIVERSAL 👇
+                com.example.dynalar_frontend_v1.ui.components.UserAvatar(
+                    avatarUrl = staff.avatarUrl,
+                    userId = staff.id,
+                    sexRaw = staff.sex,
+                    rolesRaw = staff.roles,
+                    modifier = Modifier.size(90.dp).clip(CircleShape)
+                )
 
                 Spacer(modifier = Modifier.height(10.dp))
 
@@ -363,7 +354,6 @@ fun StaffHeaderCard(
         }
     }
 }
-
 @Composable
 fun InfoDetailRow(icon: ImageVector, label: String, value: String) {
     Row(

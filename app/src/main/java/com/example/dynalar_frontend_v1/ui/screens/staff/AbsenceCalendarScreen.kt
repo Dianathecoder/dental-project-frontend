@@ -32,14 +32,19 @@ import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.staff.AbsenceEvent
 import com.example.dynalar_frontend_v1.model.staff.AbsenceType
-import com.example.dynalar_frontend_v1.model.staff.StaffRoleFilter
+import com.example.dynalar_frontend_v1.model.filter.StaffRoleFilter
+import com.example.dynalar_frontend_v1.ui.components.AbsencesCalendarView
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
+import com.example.dynalar_frontend_v1.ui.components.StaffRoleFilterDropdown
+import com.example.dynalar_frontend_v1.ui.components.UserAvatar
 import com.example.dynalar_frontend_v1.ui.components.getStaffImage
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
+import com.example.dynalar_frontend_v1.utils.SessionManager
 import com.example.dynalar_frontend_v1.viewmodel.StaffControlViewModel
 import com.example.dynalar_frontend_v1.viewmodel.UserViewModel
 import java.time.LocalDate
 import java.time.YearMonth
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AbsenceCalendarScreen(
@@ -105,9 +110,13 @@ fun AbsenceCalendarScreen(
 
             // Filtro reducido (Solo Ordenación y Roles)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                val sessionManager = remember { SessionManager(context) }
+                val isSuperAdmin = sessionManager.hasRole("SUPERADMIN") || sessionManager.hasRole("ROLE_SUPERADMIN")
+
                 StaffRoleFilterDropdown(
                     selectedRoleFilter = selectedRoleFilter,
                     sortAscending = sortAscending,
+                    isSuperAdmin = isSuperAdmin,
                     onRoleFilterChanged = { selectedRoleFilter = it },
                     onSortChanged = { sortAscending = it }
                 )
@@ -131,6 +140,7 @@ fun AbsenceCalendarScreen(
                         val roleStr = staff.roles.joinToString(",").uppercase()
                         when (selectedRoleFilter) {
                             StaffRoleFilter.ALL -> true
+                            StaffRoleFilter.SUPERADMIN -> roleStr.contains("SUPERADMIN")
                             StaffRoleFilter.OWNER -> roleStr.contains("OWNER")
                             StaffRoleFilter.ADMIN -> roleStr.contains("ADMIN")
                             StaffRoleFilter.DOCTOR -> roleStr.contains("DOCTOR") || roleStr.contains("DENTIST")
@@ -141,9 +151,9 @@ fun AbsenceCalendarScreen(
                         else list.sortedByDescending { it.name?.uppercase() }
                     }
 
-                    // Determinar a quién mostrar en el calendario
                     val activeNamesFilter = if (selectedEmployees.isNotEmpty()) {
-                        staffList.filter { it.id in selectedEmployees }.map { "${it.name} ${it.surname}".trim() }
+                        staffList.filter { it.id in selectedEmployees }
+                            .map { "${it.name} ${it.surname}".trim() }
                     } else {
                         staffList.map { "${it.name} ${it.surname}".trim() }
                     }
@@ -153,7 +163,11 @@ fun AbsenceCalendarScreen(
                             id = dto.id,
                             title = dto.title,
                             staffName = dto.staffName,
-                            type = try { AbsenceType.valueOf(dto.type.uppercase()) } catch (e: Exception) { AbsenceType.HOLIDAY },
+                            type = try {
+                                AbsenceType.valueOf(dto.type.uppercase())
+                            } catch (e: Exception) {
+                                AbsenceType.HOLIDAY
+                            },
                             startDate = LocalDate.parse(dto.startDate),
                             endDate = LocalDate.parse(dto.endDate)
                         )
@@ -192,7 +206,10 @@ fun AbsenceCalendarScreen(
 
                             if (selectedEmployees.isNotEmpty()) {
                                 TextButton(onClick = { selectedEmployees = emptySet() }) {
-                                    Text(stringResource(R.string.clear_selection), color = Color.Gray)
+                                    Text(
+                                        stringResource(R.string.clear_selection),
+                                        color = Color.Gray
+                                    )
                                 }
                             }
                         }
@@ -201,7 +218,11 @@ fun AbsenceCalendarScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     if (staffList.isEmpty()) {
-                        Text(stringResource(R.string.no_records_found), color = Color.Gray, fontSize = 14.sp)
+                        Text(
+                            stringResource(R.string.no_records_found),
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
                     } else {
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -209,7 +230,6 @@ fun AbsenceCalendarScreen(
                         ) {
                             items(staffList, key = { it.id ?: 0L }) { staff ->
                                 val isSelected = selectedEmployees.contains(staff.id)
-                                val avatarRes = getStaffImage(staff.id ?: 0L, staff.roles, staff.sex?.toString() ?: "OTHER")
 
                                 Card(
                                     shape = RoundedCornerShape(12.dp),
@@ -227,26 +247,22 @@ fun AbsenceCalendarScreen(
                                     }
                                 ) {
                                     Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        if (avatarRes is String) {
-                                            coil.compose.AsyncImage(
-                                                model = avatarRes,
-                                                contentDescription = "Avatar",
-                                                modifier = Modifier.size(44.dp).clip(CircleShape),
-                                                contentScale = ContentScale.Crop
-                                            )
-                                        } else if (avatarRes is Int) {
-                                            Image(
-                                                painter = painterResource(id = avatarRes),
-                                                contentDescription = "Avatar",
-                                                modifier = Modifier.size(44.dp).clip(CircleShape),
-                                                contentScale = ContentScale.Crop
-                                            )
-                                        }
+
+                                        UserAvatar(
+                                            avatarUrl = staff.avatarUrl,
+                                            userId = staff.id,
+                                            sexRaw = staff.sex,
+                                            rolesRaw = staff.roles,
+                                            modifier = Modifier.size(44.dp).clip(CircleShape)
+                                        )
+
                                         Spacer(modifier = Modifier.width(12.dp))
+
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text("${staff.name} ${staff.surname}", fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
                                             Text(staff.roles.firstOrNull()?.uppercase() ?: "", fontSize = 12.sp, color = Color.Gray)
                                         }
+
                                         if (isSelected) {
                                             Icon(Icons.Default.CheckCircle, contentDescription = "Seleccionado", tint = ButtonPrimary)
                                         }
@@ -254,6 +270,7 @@ fun AbsenceCalendarScreen(
                                 }
                             }
                         }
+
                     }
                 }
                 is InterfaceGlobal.Error -> {

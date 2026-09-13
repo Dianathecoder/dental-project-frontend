@@ -75,8 +75,6 @@ fun ClockInScreen(
     var localAbsences by remember { mutableStateOf<List<AbsenceEvent>>(emptyList()) }
     var localWorkedDays by remember { mutableStateOf(setOf<LocalDate>()) }
 
-    // FIXED: Removed the problematic getUser() calls.
-    // They initialize with generic text and update immediately via the LaunchedEffect below.
     val loadingText = stringResource(id = R.string.loading_staff_info) // e.g., "Cargando..."
     val defaultRole = stringResource(id = R.string.default_clinic_name) // e.g., "Clínica Dynalar"
 

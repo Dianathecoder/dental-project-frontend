@@ -1,5 +1,3 @@
-package com.example.dynalar_frontend_v1.ui.screens.staff
-
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,13 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -27,70 +20,96 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.model.user.User
-import com.example.dynalar_frontend_v1.ui.components.getStaffImage
 
+// 1. Función actualizada: Ahora acepta "Any?" para evitar cualquier error de compilación
+fun getStaffImage(userId: Long?, sexRaw: Any?, rolesRaw: Any?): Int {
+    val id = userId ?: 0L
+
+    // Convertimos los roles a texto de forma segura para comprobar si es doctor
+    val rolesString = rolesRaw?.toString()?.uppercase() ?: ""
+    val isDoctor = rolesString.contains("DOCTOR") || rolesString.contains("DENTIST")
+
+    // Convertimos el sexo a texto de forma segura
+    val sexStr = sexRaw?.toString()?.uppercase()
+
+    return if (isDoctor) {
+        when (sexStr) {
+            "FEMALE", "DONA", "MUJER" -> {
+                val femaleDoctors = listOf(R.drawable.doctor1, R.drawable.doctor2, R.drawable.doctor3, R.drawable.doctor4)
+                femaleDoctors[(id % femaleDoctors.size).toInt()]
+            }
+            "MALE", "HOME", "HOMBRE" -> {
+                val maleDoctors = listOf(R.drawable.doctor5, R.drawable.doctor6, R.drawable.doctor7, R.drawable.doctor8, R.drawable.doctor9)
+                maleDoctors[(id % maleDoctors.size).toInt()]
+            }
+            else -> R.drawable.doctorincog
+        }
+    } else {
+        when (sexStr) {
+            "FEMALE", "DONA", "MUJER" -> {
+                val femaleOptions = listOf(R.drawable.usuario1, R.drawable.usuario4, R.drawable.usuario5, R.drawable.usuario6, R.drawable.usuario7, R.drawable.usuario8, R.drawable.usuario11)
+                femaleOptions[(id % femaleOptions.size).toInt()]
+            }
+            "MALE", "HOME", "HOMBRE" -> {
+                val maleOptions = listOf(R.drawable.usuario2, R.drawable.usuario3, R.drawable.usuario9, R.drawable.usuario10, R.drawable.usuario12, R.drawable.usuario13, R.drawable.usuario20)
+                maleOptions[(id % maleOptions.size).toInt()]
+            }
+            else -> R.drawable.incog
+        }
+    }
+}
+
+// 2. Componente StaffItem actualizado
 @Composable
 fun StaffItem(
     staff: User,
-    isClockedIn: Boolean? = false,
     onClick: (User) -> Unit
 ) {
-    val roles = staff.roles.map { it.uppercase() }
-
-    val roleLabel = when {
-        roles.any { it.contains("SUPERADMIN") } -> "SuperAdmin"
-        roles.any { it.contains("OWNER") } -> "Propietari/a"
-        roles.any { it.contains("ADMIN") } -> "Administrador/a"
-        roles.any { it.contains("DOCTOR") || it.contains("DENTIST") } -> "Doctor/a"
-        roles.any { it.contains("AUXILIAR") } -> "Auxiliar"
-        else -> "Personal"
+    // Formatear los roles de forma segura (funciona tanto si es una Lista como si es un String simple)
+    val displayRoles = when (val r = staff.roles) {
+        is List<*> -> r.joinToString(", ") {
+            it.toString().replace("ROLE_", "").lowercase().replaceFirstChar { char -> char.uppercase() }
+        }
+        is String -> r.replace("ROLE_", "").lowercase().replaceFirstChar { char -> char.uppercase() }
+        else -> ""
     }
-
-    val roleColor = when {
-        roles.any { it.contains("SUPERADMIN") || it.contains("OWNER") } -> Color(0xFF7B1FA2)
-        roles.any { it.contains("ADMIN") } -> Color(0xFF1976D2)
-        roles.any { it.contains("DOCTOR") || it.contains("DENTIST") } -> Color(0xFF388E3C)
-        else -> Color(0xFFF57C00)
-    }
-
-    val avatarRes = getStaffImage(staff.id, staff.roles, staff.sex)
-
-    // Lógica visual para el estado del fichaje
-    val isClockedInNow = isClockedIn == true
-    val statusText = if (isClockedInNow) "Fitxat" else "Sense fitxar"
-    val statusBg = if (isClockedInNow) Color(0xFFE8F5E9) else Color(0xFFF1F5F9)
-    val statusTextColor = if (isClockedInNow) Color(0xFF2E7D32) else Color(0xFF64748B)
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 22.dp, vertical = 6.dp)
+            .padding(horizontal = 22.dp, vertical = 8.dp)
             .clickable { onClick(staff) },
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        shape = RoundedCornerShape(12.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (avatarRes is String) {
-                coil.compose.AsyncImage(
-                    model = avatarRes,
-                    contentDescription = "Staff Avatar",
-                    modifier = Modifier.size(65.dp).clip(CircleShape),
+
+            // Comprobamos si el usuario tiene un avatar en la Base de Datos
+            if (!staff.avatarUrl.isNullOrEmpty()) {
+                AsyncImage(
+                    model = staff.avatarUrl,
+                    contentDescription = "Avatar de ${staff.name}",
+                    modifier = Modifier
+                        .size(65.dp)
+                        .clip(CircleShape),
                     contentScale = ContentScale.Crop
                 )
-            } else if (avatarRes is Int) {
+            } else {
                 Image(
-                    painter = painterResource(id = avatarRes),
-                    contentDescription = "Staff Avatar",
-                    modifier = Modifier.size(65.dp).clip(CircleShape),
+                    // Al usar Any?, esto nunca más dará un error de "Type Mismatch"
+                    painter = painterResource(id = getStaffImage(staff.id, staff.sex, staff.roles)),
+                    contentDescription = "Avatar por defecto",
+                    modifier = Modifier
+                        .size(65.dp)
+                        .clip(CircleShape),
                     contentScale = ContentScale.Crop
                 )
             }
@@ -102,56 +121,14 @@ fun StaffItem(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = "${staff.name ?: ""} ${staff.surname ?: ""}".trim(),
+                    text = "${staff.name ?: ""} ${staff.surname ?: ""}",
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    fontWeight = FontWeight.Medium
                 )
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Badge,
-                        contentDescription = null,
-                        tint = roleColor,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = roleLabel,
-                        color = roleColor,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                val email = staff.email
-                if (!email.isNullOrBlank()) {
-                    Text(
-                        text = email,
-                        color = Color.Gray,
-                        fontSize = 12.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Etiqueta del estado de fichaje
-            Surface(
-                color = statusBg,
-                shape = RoundedCornerShape(8.dp)
-            ) {
                 Text(
-                    text = statusText,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = statusTextColor,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    text = displayRoles,
+                    fontSize = 13.sp,
+                    color = Color.Gray
                 )
             }
         }
