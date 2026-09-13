@@ -138,6 +138,25 @@ class UserViewModel : ViewModel() {
         _userUiState.value = InterfaceGlobal.Error(stringResId = stringResId)
     }
 
+    fun updateUserAvatar(avatarUrl: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                val body = mapOf("avatarUrl" to avatarUrl)
+                val response = RetrofitClient.userApiService.updateAvatar(body)
+
+                if (response.isSuccessful) {
+                    // Si se ha guardado bien en el backend, recargamos el perfil
+                    getProfile()
+                    getAllStaff()
+                    onSuccess()
+                } else {
+                    Log.e("UserViewModel", "Error al actualizar avatar: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("UserViewModel", "Excepción al actualizar avatar: ${e.message}")
+            }
+        }
+    }
     fun setIdle() {
         _userUiState.value = InterfaceGlobal.Idle
         _profileUiState.value = InterfaceGlobal.Idle

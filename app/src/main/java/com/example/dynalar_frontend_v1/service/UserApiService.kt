@@ -35,4 +35,7 @@ interface UserApiService {
     suspend fun getProfile(): Response<User>
     @DELETE("user/{id}")
     suspend fun deleteUser(@Path("id") userId: Long): Response<Unit>
+    @POST("user/update-avatar")
+    suspend fun updateAvatar(@Body body: Map<String, String>): retrofit2.Response<Any>
+
 }

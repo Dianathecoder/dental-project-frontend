@@ -12,12 +12,14 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -32,6 +34,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
@@ -40,6 +43,15 @@ import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.utils.SessionManager
 import java.io.File
 import java.io.FileOutputStream
+
+// Función auxiliar para cargar las fotos que el usuario ha guardado localmente
+fun loadCustomAvatars(context: Context, userId: Long): List<Uri> {
+    val dir = context.filesDir
+    val files = dir.listFiles { _, name -> name.startsWith("avatar_${userId}_") }
+    // Ordenamos para que las fotos más recientes salgan primero
+    files?.sortByDescending { it.lastModified() }
+    return files?.map { Uri.fromFile(it) } ?: emptyList()
+}
 
 @Composable
 fun ChangeAvatarPage(
@@ -51,18 +63,39 @@ fun ChangeAvatarPage(
     val userId = sessionManager.getUserId()
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
+    val userViewModel: com.example.dynalar_frontend_v1.viewmodel.UserViewModel = viewModel()
+
     val savedUri = prefs.getString("user_avatar_uri_$userId", null)
     val savedResId = prefs.getInt("user_avatar_$userId", doctorImages.first())
 
     var selectedAvatarRes by remember { mutableStateOf<Int?>(if (savedUri == null) savedResId else null) }
     var selectedAvatarUri by remember { mutableStateOf<Uri?>(savedUri?.let { Uri.parse(it) }) }
 
-    // MAGIA AÑADIDA AQUÍ: Copiar la imagen de la galería a la app permanentemente
+    // Estado que guarda la lista de fotos personalizadas
+    var customAvatars by remember { mutableStateOf(loadCustomAvatars(context, userId)) }
+
+    // Lógica para borrar un avatar personalizado
+    fun deleteCustomAvatar(uri: Uri) {
+        uri.path?.let { path ->
+            val file = File(path)
+            if (file.exists()) {
+                file.delete()
+            }
+        }
+        // Recargamos la lista
+        customAvatars = loadCustomAvatars(context, userId)
+
+        // Si borramos el que teníamos seleccionado, volvemos a uno por defecto
+        if (selectedAvatarUri == uri) {
+            selectedAvatarUri = null
+            selectedAvatarRes = doctorImages.first()
+        }
+    }
+
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
             try {
                 val inputStream = context.contentResolver.openInputStream(it)
-                // Le ponemos el timestamp al nombre para que Coil no use caché vieja
                 val file = File(context.filesDir, "avatar_${userId}_${System.currentTimeMillis()}.jpg")
                 val outputStream = FileOutputStream(file)
                 inputStream?.copyTo(outputStream)
@@ -71,13 +104,13 @@ fun ChangeAvatarPage(
 
                 selectedAvatarUri = Uri.fromFile(file)
                 selectedAvatarRes = null
+                customAvatars = loadCustomAvatars(context, userId) // Recargamos la galería
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
     }
 
-    // MAGIA AÑADIDA AQUÍ: Guardar la foto de la cámara permanentemente
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap: Bitmap? ->
         bitmap?.let {
             try {
@@ -89,6 +122,7 @@ fun ChangeAvatarPage(
 
                 selectedAvatarUri = Uri.fromFile(file)
                 selectedAvatarRes = null
+                customAvatars = loadCustomAvatars(context, userId) // Recargamos la galería
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -115,16 +149,25 @@ fun ChangeAvatarPage(
                 Button(
                     onClick = {
                         val editor = prefs.edit()
+
                         if (selectedAvatarUri != null) {
-                            editor.putString("user_avatar_uri_$userId", selectedAvatarUri.toString())
+                            val uriString = selectedAvatarUri.toString()
+                            editor.putString("user_avatar_uri_$userId", uriString)
                             editor.remove("user_avatar_$userId")
                             editor.apply()
-                            onAvatarSelected(selectedAvatarUri.toString())
+
+                            userViewModel.updateUserAvatar(uriString) {
+                                onAvatarSelected(uriString)
+                            }
+
                         } else if (selectedAvatarRes != null) {
                             editor.putInt("user_avatar_$userId", selectedAvatarRes!!)
                             editor.remove("user_avatar_uri_$userId")
                             editor.apply()
-                            onAvatarSelected(selectedAvatarRes!!)
+
+                            userViewModel.updateUserAvatar("") {
+                                onAvatarSelected(selectedAvatarRes!!)
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -181,11 +224,22 @@ fun ChangeAvatarPage(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            if (selectedAvatarUri != null) {
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            // El avatar grande destacado ahora siempre muestra lo que esté seleccionado
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                if (selectedAvatarUri != null) {
                     AsyncImage(
                         model = selectedAvatarUri,
-                        contentDescription = "Avatar Personalizado",
+                        contentDescription = "Avatar Seleccionat",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(120.dp)
+                            .clip(CircleShape)
+                            .border(3.dp, ButtonPrimary, CircleShape)
+                    )
+                } else if (selectedAvatarRes != null) {
+                    Image(
+                        painter = painterResource(id = selectedAvatarRes!!),
+                        contentDescription = "Avatar Seleccionat",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(120.dp)
@@ -193,11 +247,9 @@ fun ChangeAvatarPage(
                             .border(3.dp, ButtonPrimary, CircleShape)
                     )
                 }
-                Spacer(modifier = Modifier.height(24.dp))
             }
 
-            Text("Avatars per defecte", color = Color.Gray, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
@@ -205,6 +257,63 @@ fun ChangeAvatarPage(
                 verticalArrangement = Arrangement.spacedBy(24.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
+                // SECCIÓN 1: FOTOS PERSONALIZADAS
+                if (customAvatars.isNotEmpty()) {
+                    item(span = { GridItemSpan(3) }) {
+                        Text("Les meves fotos", color = Color.Gray, fontWeight = FontWeight.Bold)
+                    }
+                    items(customAvatars) { uri ->
+                        val isSelected = selectedAvatarUri == uri
+
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .aspectRatio(1f)
+                        ) {
+                            // La imagen en sí
+                            AsyncImage(
+                                model = uri,
+                                contentDescription = "La meva foto",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape)
+                                    .background(if (isSelected) ButtonPrimary.copy(alpha = 0.1f) else Color.Transparent)
+                                    .border(
+                                        width = if (isSelected) 3.dp else 1.dp,
+                                        color = if (isSelected) ButtonPrimary else Color.Transparent,
+                                        shape = CircleShape
+                                    )
+                                    .clickable {
+                                        selectedAvatarUri = uri
+                                        selectedAvatarRes = null
+                                    }
+                            )
+
+                            // Botoncito de Eliminar (X) en la esquina superior derecha
+                            IconButton(
+                                onClick = { deleteCustomAvatar(uri) },
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(24.dp)
+                                    .background(Color(0xFFE53935), CircleShape) // Rojo
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Esborrar foto",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // SECCIÓN 2: AVATARES POR DEFECTO
+                item(span = { GridItemSpan(3) }) {
+                    Text("Avatars per defecte", color = Color.Gray, fontWeight = FontWeight.Bold)
+                }
+
                 items(doctorImages) { imageRes ->
                     val isSelected = selectedAvatarRes == imageRes
 

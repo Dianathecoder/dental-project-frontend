@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private const val BASE_URL = "http://192.168.1.55:8080/"
+    private const val BASE_URL = "http://192.168.1.57:8080/"
     private var sessionManager: SessionManager? = null
 
     fun init(context: Context) {

@@ -22,7 +22,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.staff.*
+import com.example.dynalar_frontend_v1.model.filter.StaffRoleFilter
+import com.example.dynalar_frontend_v1.ui.components.AttendanceEntryCard
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
+import com.example.dynalar_frontend_v1.ui.components.DailyAttendanceFilterDropdown
+import com.example.dynalar_frontend_v1.ui.components.DateHeaderCard
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.utils.SessionManager
 import com.example.dynalar_frontend_v1.viewmodel.StaffControlViewModel
@@ -45,11 +49,11 @@ fun DailyAttendanceScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    // Verificamos los roles del usuario que está viendo la pantalla
     val sessionManager = remember { SessionManager(context) }
     val isSuperAdmin = sessionManager.hasRole("SUPERADMIN") || sessionManager.hasRole("ROLE_SUPERADMIN")
     val isOwner = sessionManager.hasRole("OWNER") || sessionManager.hasRole("ROLE_OWNER")
     val isAdmin = sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN")
+    val isAuxiliar = sessionManager.hasRole("AUXILIAR") || sessionManager.hasRole("ROLE_AUXILIAR")
 
     LaunchedEffect(selectedDate) {
         viewModel.fetchDailyAttendance(selectedDate)
@@ -106,6 +110,7 @@ fun DailyAttendanceScreen(
                     selectedRoleFilter = selectedRoleFilter,
                     selectedClockFilter = selectedClockFilter,
                     sortAscending = sortAscending,
+                    isSuperAdmin = isSuperAdmin,
                     onRoleFilterChanged = { selectedRoleFilter = it },
                     onClockFilterChanged = { selectedClockFilter = it },
                     onSortChanged = { sortAscending = it }
@@ -123,21 +128,23 @@ fun DailyAttendanceScreen(
 
                     val attendanceList = state.data.map { dto ->
                         AttendanceEntry(
-                            id = dto.id,
-                            staffName = dto.staffName,
-                            role = dto.role,
+                            id = dto.id ?: 0L,
+                            staffName = dto.staffName ?: "Desconegut",
+                            role = dto.role ?: "",
                             roles = dto.roles,
                             sex = dto.sex,
-                            date = LocalDate.parse(dto.date),
+                            date = if (!dto.date.isNullOrEmpty()) LocalDate.parse(dto.date) else selectedDate,
                             checkInTime = dto.checkInTime?.let { LocalTime.parse(it) },
-                            checkOutTime = dto.checkOutTime?.let { LocalTime.parse(it) }
+                            checkOutTime = dto.checkOutTime?.let { LocalTime.parse(it) },
+                            avatarUrl = dto.avatarUrl
                         )
                     }.filter { entry ->
-                        // LÓGICA DE JERARQUÍA (Ocultar jefes a los admins)
                         val rolesStr = entry.roles.joinToString(" ").uppercase()
                         when {
-                            isSuperAdmin || isOwner -> true // Superadmin y Owner ven a todo el mundo
-                            isAdmin -> !rolesStr.contains("SUPERADMIN") && !rolesStr.contains("OWNER") // Admins ven al resto
+                            isSuperAdmin -> true
+                            isOwner -> !rolesStr.contains("SUPERADMIN")
+                            isAdmin -> !rolesStr.contains("SUPERADMIN") && !rolesStr.contains("OWNER")
+                            isAuxiliar -> rolesStr.contains("DOCTOR") || rolesStr.contains("DENTIST") || rolesStr.contains("AUXILIAR")
                             else -> false
                         }
                     }.filter { entry ->
@@ -146,6 +153,7 @@ fun DailyAttendanceScreen(
                         val roleUpper = entry.role.uppercase()
                         when (selectedRoleFilter) {
                             StaffRoleFilter.ALL -> true
+                            StaffRoleFilter.SUPERADMIN -> roleUpper.contains("SUPERADMIN")
                             StaffRoleFilter.OWNER -> roleUpper.contains("OWNER")
                             StaffRoleFilter.ADMIN -> roleUpper.contains("ADMIN")
                             StaffRoleFilter.DOCTOR -> roleUpper.contains("DOCTOR") || roleUpper.contains("DENTIST")
@@ -199,8 +207,13 @@ fun DailyAttendanceScreen(
                 Text(text = stringResource(R.string.schedule_of_title, employee.staffName), fontWeight = FontWeight.Bold)
             },
             text = {
+                val expectedTimeStr = try {
+                    employee.expectedTime.format(timeFormatter)
+                } catch (e: Exception) {
+                    "--:--h"
+                }
                 Column {
-                    Text(stringResource(R.string.schedule_expected, employee.expectedTime.format(timeFormatter)))
+                    Text(stringResource(R.string.schedule_expected, expectedTimeStr))
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Rol: ${employee.role}")
                 }

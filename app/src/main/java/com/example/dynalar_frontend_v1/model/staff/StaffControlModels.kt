@@ -4,23 +4,25 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 data class AttendanceResponseDTO(
-    val id: Long,
-    val staffName: String,
-    val role: String,
-    val roles: List<String>,
-    val sex: String,
-    val date: String,
+    val id: Long?,
+    val staffName: String?,
+    val role: String?,
+    val roles: List<String> = emptyList(),
+    val sex: String?,
+    val date: String?,
     val checkInTime: String?,
-    val checkOutTime: String? 
+    val checkOutTime: String?,
+    val avatarUrl: String? = null
 )
-
 data class AbsenceResponseDTO(
     val id: Long,
     val title: String,
     val staffName: String?,
     val type: String,
     val startDate: String,
-    val endDate: String
+    val endDate: String,
+    val avatarUrl: String? = null
+
 )
 
 enum class AttendanceStatusType { ON_TIME, LATE_CLOCKED, ABSENT_RED, PENDING }
@@ -32,12 +34,14 @@ data class AttendanceEntry(
     val id: Long,
     val staffName: String,
     val role: String,
-    val roles: List<String>,
-    val sex: String,
+    val roles: List<String> = emptyList(),
+    val sex: String? = null,
     val date: LocalDate,
     val checkInTime: LocalTime?,
-    val checkOutTime: LocalTime?, // <-- AÑADIDO
-    val expectedTime: LocalTime = LocalTime.of(8, 0)
+    val checkOutTime: LocalTime?,
+    val expectedTime: LocalTime = LocalTime.of(8, 0),
+    val expectedOutTime: LocalTime = LocalTime.of(16, 0),
+    val avatarUrl: String? = null
 ) {
     val status: AttendanceStatusType
         get() {

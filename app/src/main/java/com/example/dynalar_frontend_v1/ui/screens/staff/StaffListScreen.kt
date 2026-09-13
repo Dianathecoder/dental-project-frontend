@@ -1,5 +1,6 @@
 package com.example.dynalar_frontend_v1.ui.screens.staff
 
+import StaffItem
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,11 +18,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dynalar_frontend_v1.R
-import com.example.dynalar_frontend_v1.model.staff.StaffRoleFilter
+import com.example.dynalar_frontend_v1.model.filter.StaffRoleFilter
 import com.example.dynalar_frontend_v1.model.user.User
 import com.example.dynalar_frontend_v1.ui.components.AddButton
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
@@ -29,7 +31,7 @@ import com.example.dynalar_frontend_v1.ui.components.DeleteConfirmationDialog
 import com.example.dynalar_frontend_v1.ui.components.SwipeToDeleteContainer
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.utils.SessionManager
-
+import androidx.compose.ui.text.style.TextAlign
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StaffListScreen(
@@ -52,18 +54,21 @@ fun StaffListScreen(
     val isSuperAdmin = sessionManager.hasRole("SUPERADMIN") || sessionManager.hasRole("ROLE_SUPERADMIN")
     val isOwner = sessionManager.hasRole("OWNER") || sessionManager.hasRole("ROLE_OWNER")
     val isAdmin = sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN") && !isSuperAdmin && !isOwner
+    val isAuxiliar = sessionManager.hasRole("AUXILIAR") || sessionManager.hasRole("ROLE_AUXILIAR")
 
     val canManageStaff = isSuperAdmin || isOwner || isAdmin
     val query = searchState.text.toString().trim()
 
-    val filteredStaff = remember(staffList, query, selectedRoleFilter, sortAscending, isSuperAdmin, isOwner, isAdmin) {
+    val filteredStaff = remember(staffList, query, selectedRoleFilter, sortAscending, isSuperAdmin, isOwner, isAdmin, isAuxiliar) {
         staffList
             .filter { user ->
                 val roles = user.roles.map { it.uppercase() }
                 when {
-                    isAdmin -> roles.any { it.contains("DOCTOR") || it.contains("DENTIST") || it.contains("AUXILIAR") }
-                    isOwner -> !roles.any { it.contains("SUPERADMIN") }
-                    else -> true
+                    isSuperAdmin -> true
+                    isOwner -> !roles.contains("SUPERADMIN")
+                    isAdmin -> !roles.contains("SUPERADMIN") && !roles.contains("OWNER")
+                    isAuxiliar -> roles.contains("DOCTOR") || roles.contains("DENTIST") || roles.contains("AUXILIAR")
+                    else -> false
                 }
             }
             .filter { user ->
@@ -75,6 +80,7 @@ fun StaffListScreen(
                 val roles = user.roles.map { it.uppercase() }
                 when (selectedRoleFilter) {
                     StaffRoleFilter.ALL -> true
+                    StaffRoleFilter.SUPERADMIN -> roles.any { it.contains("SUPERADMIN") }
                     StaffRoleFilter.OWNER -> roles.any { it.contains("OWNER") }
                     StaffRoleFilter.ADMIN -> roles.any { it.contains("ADMIN") && !it.contains("SUPERADMIN") }
                     StaffRoleFilter.DOCTOR -> roles.any { it.contains("DOCTOR") || it.contains("DENTIST") }
@@ -191,7 +197,7 @@ fun StaffTopBar(
 ) {
     Box(modifier = Modifier.fillMaxWidth()) {
         CustomTopBar(
-            title = "Equip de la Clínica",
+            title = stringResource(id = R.string.staff_list_title),
             onNavigateBack = onNavigateBack,
             modifier = Modifier.align(Alignment.CenterStart)
         )
@@ -210,8 +216,7 @@ fun StaffTopBar(
 
 @Composable
 fun SearchStaffBar(
-    textFieldState: TextFieldState,
-    placeholderText: String = "Cercar treballador..."
+    textFieldState: TextFieldState
 ) {
     val query = textFieldState.text.toString()
 
@@ -228,7 +233,7 @@ fun SearchStaffBar(
         },
         placeholder = {
             Text(
-                placeholderText,
+                stringResource(id = R.string.search_employee),
                 color = Color.Gray.copy(alpha = 0.8f)
             )
         },
@@ -257,11 +262,12 @@ fun StaffFilterDropdown(
     val hasFilter = selectedRoleFilter != StaffRoleFilter.ALL
 
     val label = when (selectedRoleFilter) {
-        StaffRoleFilter.OWNER -> "Propietaris"
-        StaffRoleFilter.ADMIN -> "Administratius"
-        StaffRoleFilter.DOCTOR -> "Doctors"
-        StaffRoleFilter.AUXILIAR -> "Auxiliars"
-        else -> "Filtrar"
+        StaffRoleFilter.SUPERADMIN -> stringResource(id = R.string.role_superadmin)
+        StaffRoleFilter.OWNER -> stringResource(id = R.string.filter_owners)
+        StaffRoleFilter.ADMIN -> stringResource(id = R.string.filter_admins)
+        StaffRoleFilter.DOCTOR -> stringResource(id = R.string.filter_doctors)
+        StaffRoleFilter.AUXILIAR -> stringResource(id = R.string.filter_auxiliars)
+        else -> stringResource(id = R.string.filter_label)
     }
 
     val activeColor = ButtonPrimary
@@ -310,7 +316,7 @@ fun StaffFilterDropdown(
                 .background(Color.White)
         ) {
             Text(
-                text = "Ordenació",
+                text = stringResource(id = R.string.filter_order_header),
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.Gray,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
@@ -320,7 +326,7 @@ fun StaffFilterDropdown(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.ArrowUpward, null, modifier = Modifier.size(14.dp), tint = if (sortAscending) ButtonPrimary else Color.Gray)
                         Spacer(Modifier.width(8.dp))
-                        Text("A → Z", fontSize = 14.sp, color = if (sortAscending) ButtonPrimary else Color.Black, fontWeight = if (sortAscending) FontWeight.Bold else FontWeight.Normal)
+                        Text(stringResource(id = R.string.filter_order_asc), fontSize = 14.sp, color = if (sortAscending) ButtonPrimary else Color.Black, fontWeight = if (sortAscending) FontWeight.Bold else FontWeight.Normal)
                     }
                 },
                 onClick = { onSortChanged(true); expanded = false },
@@ -331,7 +337,7 @@ fun StaffFilterDropdown(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.ArrowDownward, null, modifier = Modifier.size(14.dp), tint = if (!sortAscending) ButtonPrimary else Color.Gray)
                         Spacer(Modifier.width(8.dp))
-                        Text("Z → A", fontSize = 14.sp, color = if (!sortAscending) ButtonPrimary else Color.Black, fontWeight = if (!sortAscending) FontWeight.Bold else FontWeight.Normal)
+                        Text(stringResource(id = R.string.filter_order_desc), fontSize = 14.sp, color = if (!sortAscending) ButtonPrimary else Color.Black, fontWeight = if (!sortAscending) FontWeight.Bold else FontWeight.Normal)
                     }
                 },
                 onClick = { onSortChanged(false); expanded = false },
@@ -341,19 +347,26 @@ fun StaffFilterDropdown(
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
             Text(
-                text = "Rol de personal",
+                text = stringResource(id = R.string.filter_role_header),
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.Gray,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
             )
 
-            val roleOptions = mutableListOf(StaffRoleFilter.ALL to "Tots els rols")
-            if (isSuperAdmin || isOwner) {
-                roleOptions.add(StaffRoleFilter.OWNER to "Propietaris")
-                roleOptions.add(StaffRoleFilter.ADMIN to "Administratius")
+            // SE FUERZA EL TIPO DE LA LISTA AQUÍ PARA EVITAR EL ERROR DEL COMPILADOR
+            val roleOptions = mutableListOf<Pair<StaffRoleFilter, String>>(
+                StaffRoleFilter.ALL to stringResource(id = R.string.filter_role_all)
+            )
+
+            if (isSuperAdmin) {
+                roleOptions.add(StaffRoleFilter.SUPERADMIN to stringResource(id = R.string.role_superadmin))
             }
-            roleOptions.add(StaffRoleFilter.DOCTOR to "Doctors")
-            roleOptions.add(StaffRoleFilter.AUXILIAR to "Auxiliars")
+            if (isSuperAdmin || isOwner) {
+                roleOptions.add(StaffRoleFilter.OWNER to stringResource(id = R.string.filter_owners))
+                roleOptions.add(StaffRoleFilter.ADMIN to stringResource(id = R.string.filter_admins))
+            }
+            roleOptions.add(StaffRoleFilter.DOCTOR to stringResource(id = R.string.filter_doctors))
+            roleOptions.add(StaffRoleFilter.AUXILIAR to stringResource(id = R.string.filter_auxiliars))
 
             roleOptions.forEach { (filterOption, optionLabel) ->
                 val isSelected = selectedRoleFilter == filterOption
@@ -411,10 +424,12 @@ private fun EmptyStaffState(modifier: Modifier = Modifier) {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Sense membres de l'equip registrats.",
+            text = stringResource(id = R.string.no_records_found),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Normal,
-            color = Color.Gray
+            color = Color.Gray,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 32.dp)
         )
     }
 }
