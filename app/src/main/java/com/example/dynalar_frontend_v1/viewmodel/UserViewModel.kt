@@ -18,15 +18,14 @@ import java.net.UnknownHostException
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.example.dynalar_frontend_v1.model.staff.dentist.DentistAvailabilityDTO
 import com.example.dynalar_frontend_v1.network.RetrofitClient
 
 class UserViewModel : ViewModel() {
 
-    // Estado para el Login (Guarda AuthResponse)
     private val _userUiState = MutableStateFlow<InterfaceGlobal<AuthResponse>>(InterfaceGlobal.Idle)
     val userUiState: StateFlow<InterfaceGlobal<AuthResponse>> = _userUiState.asStateFlow()
 
-    // NUEVO: Estado separado para el Perfil del Usuario (Guarda User)
     private val _profileUiState = MutableStateFlow<InterfaceGlobal<User>>(InterfaceGlobal.Idle)
     val profileUiState: StateFlow<InterfaceGlobal<User>> = _profileUiState.asStateFlow()
 
@@ -35,9 +34,10 @@ class UserViewModel : ViewModel() {
     var staffList by mutableStateOf<List<User>>(emptyList())
         private set
 
-    // 2. Variable para guardar el trabajador seleccionado
     var selectedUser by mutableStateOf<User?>(null)
         private set
+
+    var dentistAvailability by mutableStateOf<DentistAvailabilityDTO?>(null)
 
     fun login(mail: String, pass: String) {
         viewModelScope.launch {
@@ -66,12 +66,12 @@ class UserViewModel : ViewModel() {
 
     fun getProfile() {
         viewModelScope.launch {
-            _profileUiState.value = InterfaceGlobal.Loading // Usamos el nuevo estado
+            _profileUiState.value = InterfaceGlobal.Loading
             try {
                 val userProfile = userRepository.getProfile()
 
                 if (userProfile != null) {
-                    _profileUiState.value = InterfaceGlobal.Success(userProfile) // Guardamos el User
+                    _profileUiState.value = InterfaceGlobal.Success(userProfile)
                 } else {
                     _profileUiState.value = InterfaceGlobal.Error(stringResId = R.string.error_user_not_found)
                 }
@@ -88,12 +88,13 @@ class UserViewModel : ViewModel() {
             }
         }
     }
+
     fun deleteUser(userId: Long, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             try {
                 val response = RetrofitClient.userApiService.deleteUser(userId)
                 if (response.isSuccessful) {
-                    getAllStaff() // Recarga la lista de empleados
+                    getAllStaff()
                     onSuccess()
                 } else {
                     Log.e("UserViewModel", "Error al eliminar usuario: ${response.code()}")
@@ -103,11 +104,10 @@ class UserViewModel : ViewModel() {
             }
         }
     }
+
     fun getAllStaff() {
         viewModelScope.launch {
             try {
-                // userRepository debe llamar a tu UserApiService.getAllUsers()
-                // Si aún no lo tienes en UserRepository, puedes llamar a la API directamente
                 val response = RetrofitClient.userApiService.getAllUsers()
                 if (response.isSuccessful) {
                     staffList = response.body() ?: emptyList()
@@ -125,7 +125,6 @@ class UserViewModel : ViewModel() {
                 if (response.isSuccessful) {
                     selectedUser = response.body()
                 } else {
-                    // Fallback de seguridad: buscarlo en la lista si falla la petición
                     selectedUser = staffList.find { it.id == id }
                 }
             } catch (e: Exception) {
@@ -134,7 +133,8 @@ class UserViewModel : ViewModel() {
             }
         }
     }
-    fun setLocalError(@StringRes stringResId: Int) {
+
+    fun setLocalError(stringResId: Int) {
         _userUiState.value = InterfaceGlobal.Error(stringResId = stringResId)
     }
 
@@ -145,7 +145,6 @@ class UserViewModel : ViewModel() {
                 val response = RetrofitClient.userApiService.updateAvatar(body)
 
                 if (response.isSuccessful) {
-                    // Si se ha guardado bien en el backend, recargamos el perfil
                     getProfile()
                     getAllStaff()
                     onSuccess()
@@ -157,8 +156,75 @@ class UserViewModel : ViewModel() {
             }
         }
     }
+
     fun setIdle() {
         _userUiState.value = InterfaceGlobal.Idle
         _profileUiState.value = InterfaceGlobal.Idle
+    }
+
+    fun fetchDentistAvailability(userId: Long) {
+        dentistAvailability = null
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.userApiService.getDentistAvailability(userId)
+                if (response.isSuccessful) {
+                    dentistAvailability = response.body()
+                } else {
+                    dentistAvailability = DentistAvailabilityDTO()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                dentistAvailability = DentistAvailabilityDTO()
+            }
+        }
+    }
+
+    fun updateDentistAvailability(userId: Long, dto: DentistAvailabilityDTO, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.userApiService.updateDentistAvailability(userId, dto)
+                if (response.isSuccessful) {
+                    onSuccess()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    // --- FUNCIÓN AÑADIDA PARA EDITAR AL TRABAJADOR ---
+    fun updateStaffUser(
+        userId: Long, name: String, surname: String, email: String,
+        role: String, dni: String, phone: String, sex: String,
+        onSuccess: () -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                // Reutilizamos el DTO InviteUserRequest que ya tiene los campos necesarios
+                val request = com.example.dynalar_frontend_v1.model.auth.InviteUserRequest(
+                    name = name,
+                    surname = surname,
+                    email = email,
+                    role = role,
+                    dni = dni,
+                    phone = phone,
+                    sex = sex
+                )
+
+                // Asegúrate de que este endpoint esté declarado en tu UserApiService
+                val response = RetrofitClient.userApiService.updateUser(userId, request)
+
+                if (response.isSuccessful) {
+                    // Refrescamos la lista de staff y los datos de este usuario
+                    getAllStaff()
+                    getUserById(userId)
+                    onSuccess()
+                } else {
+                    Log.e("UserViewModel", "Error al actualizar trabajador: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("UserViewModel", "Excepción al actualizar trabajador", e)
+            }
+        }
     }
 }

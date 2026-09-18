@@ -1,8 +1,11 @@
 package com.example.dynalar_frontend_v1.ui.screens.staff
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,22 +21,25 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
+import com.example.dynalar_frontend_v1.model.management.Treatment
 import com.example.dynalar_frontend_v1.model.staff.AbsenceEvent
 import com.example.dynalar_frontend_v1.model.staff.AbsenceType
+import com.example.dynalar_frontend_v1.model.staff.dentist.DentistAvailabilityDTO
 import com.example.dynalar_frontend_v1.model.user.User
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.components.DeleteConfirmationDialog
 import com.example.dynalar_frontend_v1.ui.components.UserAvatar
+import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.utils.SessionManager
 import com.example.dynalar_frontend_v1.viewmodel.StaffControlViewModel
+import com.example.dynalar_frontend_v1.viewmodel.TreatmentViewModel
+import com.example.dynalar_frontend_v1.viewmodel.UserViewModel
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -49,7 +55,10 @@ fun StaffProfilePage(
     onNavigateToChat: (Long) -> Unit = {},
     onDoctorAgendaClick: (Long) -> Unit = {},
     onDoctorPatientsClick: (Long) -> Unit = {},
+    onNavigateToAvailability: (Long) -> Unit = {},
     staffControlViewModel: StaffControlViewModel = viewModel(),
+    userViewModel: UserViewModel = viewModel(),
+    treatmentViewModel: TreatmentViewModel = viewModel(),
     isClockedIn: Boolean? = false
 ) {
     val context = LocalContext.current
@@ -73,7 +82,13 @@ fun StaffProfilePage(
     LaunchedEffect(currentMonth, staff.id) {
         staffControlViewModel.fetchMonthlyAbsences(currentMonth)
         staffControlViewModel.fetchDailyAttendance(selectedDate)
+
+        staff.id?.let { userViewModel.fetchDentistAvailability(it) }
+        treatmentViewModel.getTreatments()
     }
+
+    val availabilityDto = userViewModel.dentistAvailability
+    val allTreatments = treatmentViewModel.treatmentList
 
     val absences = remember(staffControlViewModel.uiStateAbsences, staff) {
         val state = staffControlViewModel.uiStateAbsences
@@ -165,16 +180,26 @@ fun StaffProfilePage(
                     StaffHeaderCard(
                         staff = staff,
                         selectedAbsence = selectedAbsence,
+                        availabilityDto = availabilityDto,
                         canManageStaff = canManageStaff,
                         onEditClick = { staff.id?.let { onEditClick(it) } }
                     )
 
-                    // NO CONTIENE EL BOTÓN DE CALENDARIO Y VACACIONES (SE MUESTRA ABAJO)
+                    if (showAdvancedActions) {
+                        ReadOnlyClinicalInfoCard(
+                            availabilityDto = availabilityDto,
+                            allTreatments = allTreatments
+                        )
+                    }
+
                     StaffActionGridSection(
                         showAdvancedActions = showAdvancedActions,
+                        canManageStaff = canManageStaff,
+                        roles = roles,
                         onDoctorAgendaClick = { staff.id?.let { onDoctorAgendaClick(it) } },
                         onDoctorPatientsClick = { staff.id?.let { onDoctorPatientsClick(it) } },
-                        onNavigateToChat = { staff.id?.let { onNavigateToChat(it) } }
+                        onNavigateToChat = { staff.id?.let { onNavigateToChat(it) } },
+                        onNavigateToAvailability = { staff.id?.let { onNavigateToAvailability(it) } }
                     )
                 }
 
@@ -227,6 +252,7 @@ fun StaffProfilePage(
 fun StaffHeaderCard(
     staff: User,
     selectedAbsence: AbsenceEvent?,
+    availabilityDto: DentistAvailabilityDTO?,
     canManageStaff: Boolean,
     onEditClick: () -> Unit
 ) {
@@ -238,6 +264,15 @@ fun StaffHeaderCard(
         roles.any { it.contains("DOCTOR") || it.contains("DENTIST") } -> "Doctor/a"
         roles.any { it.contains("AUXILIAR") } -> "Auxiliar"
         else -> "Personal"
+    }
+
+    // LÓGICA DINÁMICA DE LA ETIQUETA DE JORNADA
+    val scheduleType = availabilityDto?.let { detectScheduleTypeLocal(it) } ?: 2
+    val scheduleText = when (scheduleType) {
+        1 -> "Jornada Completa"
+        2 -> "Jornada Parcial"
+        3 -> "Jornada Específica"
+        else -> "Jornada Parcial"
     }
 
     Card(
@@ -295,11 +330,12 @@ fun StaffHeaderCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // MUESTRA LA JORNADA REAL SEGÚN SU CONFIGURACIÓN
                 val (statusText, statusBg, statusTextColor) = when (selectedAbsence?.type) {
                     AbsenceType.VACATION -> Triple("Vacances", Color(0xFFFFF3E0), Color(0xFFF57C00))
                     AbsenceType.HOLIDAY -> Triple("Dia Festiu", Color(0xFFFFEBEE), Color(0xFFD32F2F))
                     AbsenceType.SICK_LEAVE -> Triple("Baixa Mèdica", Color(0xFFE3F2FD), Color(0xFF1976D2))
-                    null -> Triple("Jornada Normal", Color(0xFFE8F5E9), Color(0xFF2E7D32))
+                    null -> Triple(scheduleText, Color(0xFFE8F5E9), Color(0xFF2E7D32))
                 }
 
                 Surface(
@@ -338,6 +374,97 @@ fun StaffHeaderCard(
 }
 
 @Composable
+fun ReadOnlyClinicalInfoCard(
+    availabilityDto: DentistAvailabilityDTO?,
+    allTreatments: List<Treatment>
+) {
+    val scheduleType = availabilityDto?.let { detectScheduleTypeLocal(it) } ?: 2
+    val scheduleName = when (scheduleType) {
+        1 -> "Jornada Completa"
+        2 -> "Jornada Parcial"
+        3 -> "Jornada Específica"
+        else -> "Sense Definir"
+    }
+
+    val assignedTreatments = allTreatments.filter { availabilityDto?.treatmentIds?.contains(it.id) == true }
+
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(2.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+
+            Text("Tractaments Assignats:", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF475569))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (assignedTreatments.isEmpty()) {
+                Text("Cap tractament assignat actualment.", fontSize = 13.sp, color = Color.Gray)
+            } else {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(assignedTreatments) { treatment ->
+                        Surface(
+                            color = Color(0xFFEFF6FF),
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, ButtonPrimary)
+                        ) {
+                            Text(
+                                text = treatment.name ?: "",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = ButtonPrimary,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fun detectScheduleTypeLocal(dto: DentistAvailabilityDTO): Int {
+    val isFull = dto.mondayMorningActive && dto.mondayAfternoonActive &&
+            dto.tuesdayMorningActive && dto.tuesdayAfternoonActive &&
+            dto.wednesdayMorningActive && dto.wednesdayAfternoonActive &&
+            dto.thursdayMorningActive && dto.thursdayAfternoonActive &&
+            dto.fridayMorningActive && dto.fridayAfternoonActive &&
+            dto.mondayMorningStart == "09:00" && dto.mondayMorningEnd == "14:00" &&
+            dto.mondayAfternoonStart == "16:00" && dto.mondayAfternoonEnd == "20:00" &&
+            dto.tuesdayMorningStart == "09:00" && dto.tuesdayMorningEnd == "14:00" &&
+            dto.tuesdayAfternoonStart == "16:00" && dto.tuesdayAfternoonEnd == "20:00" &&
+            dto.wednesdayMorningStart == "09:00" && dto.wednesdayMorningEnd == "14:00" &&
+            dto.wednesdayAfternoonStart == "16:00" && dto.wednesdayAfternoonEnd == "20:00" &&
+            dto.thursdayMorningStart == "09:00" && dto.thursdayMorningEnd == "14:00" &&
+            dto.thursdayAfternoonStart == "16:00" && dto.thursdayAfternoonEnd == "20:00" &&
+            dto.fridayMorningStart == "09:00" && dto.fridayMorningEnd == "14:00" &&
+            dto.fridayAfternoonStart == "16:00" && dto.fridayAfternoonEnd == "20:00"
+    if (isFull) return 1
+
+    if (dto.mondayEveningActive || dto.tuesdayEveningActive || dto.wednesdayEveningActive || dto.thursdayEveningActive || dto.fridayEveningActive) return 3
+
+    val checkCustom = { active: Boolean, start: String?, end: String?, stdStart: String, stdEnd: String ->
+        active && (start != stdStart || end != stdEnd)
+    }
+
+    val isCustom = checkCustom(dto.mondayMorningActive, dto.mondayMorningStart, dto.mondayMorningEnd, "09:00", "14:00") ||
+            checkCustom(dto.mondayAfternoonActive, dto.mondayAfternoonStart, dto.mondayAfternoonEnd, "15:00", "20:00") ||
+            checkCustom(dto.tuesdayMorningActive, dto.tuesdayMorningStart, dto.tuesdayMorningEnd, "09:00", "14:00") ||
+            checkCustom(dto.tuesdayAfternoonActive, dto.tuesdayAfternoonStart, dto.tuesdayAfternoonEnd, "15:00", "20:00") ||
+            checkCustom(dto.wednesdayMorningActive, dto.wednesdayMorningStart, dto.wednesdayMorningEnd, "09:00", "14:00") ||
+            checkCustom(dto.wednesdayAfternoonActive, dto.wednesdayAfternoonStart, dto.wednesdayAfternoonEnd, "15:00", "20:00") ||
+            checkCustom(dto.thursdayMorningActive, dto.thursdayMorningStart, dto.thursdayMorningEnd, "09:00", "14:00") ||
+            checkCustom(dto.thursdayAfternoonActive, dto.thursdayAfternoonStart, dto.thursdayAfternoonEnd, "15:00", "20:00") ||
+            checkCustom(dto.fridayMorningActive, dto.fridayMorningStart, dto.fridayMorningEnd, "09:00", "14:00") ||
+            checkCustom(dto.fridayAfternoonActive, dto.fridayAfternoonStart, dto.fridayAfternoonEnd, "15:00", "20:00")
+
+    if (isCustom) return 3
+
+    return 2
+}
+
+@Composable
 fun InfoDetailRow(icon: ImageVector, label: String, value: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -368,9 +495,12 @@ fun InfoDetailRow(icon: ImageVector, label: String, value: String) {
 @Composable
 fun StaffActionGridSection(
     showAdvancedActions: Boolean,
+    canManageStaff: Boolean,
+    roles: List<String>,
     onDoctorAgendaClick: () -> Unit,
     onDoctorPatientsClick: () -> Unit,
-    onNavigateToChat: () -> Unit
+    onNavigateToChat: () -> Unit,
+    onNavigateToAvailability: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (showAdvancedActions) {
@@ -391,6 +521,15 @@ fun StaffActionGridSection(
                     onClick = onDoctorPatientsClick
                 )
             }
+        }
+
+        if (canManageStaff && (roles.contains("DOCTOR") || roles.contains("DENTIST") || roles.contains("ROLE_DOCTOR") || roles.contains("ROLE_DENTIST"))) {
+            StaffActionCard(
+                title = "Disponibilitat i Tractaments",
+                icon = Icons.Default.Settings,
+                modifier = Modifier.fillMaxWidth(),
+                onClick = onNavigateToAvailability
+            )
         }
 
         StaffActionCard(

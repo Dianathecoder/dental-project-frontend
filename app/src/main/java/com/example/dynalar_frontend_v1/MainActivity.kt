@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -36,6 +37,7 @@ import com.example.dynalar_frontend_v1.ui.screens.dashboard.HomePage
 import com.example.dynalar_frontend_v1.ui.screens.files.PatientFileUploadPage
 import com.example.dynalar_frontend_v1.ui.screens.files.PatientFilesPage
 import com.example.dynalar_frontend_v1.ui.screens.management.BoxPage
+import com.example.dynalar_frontend_v1.ui.screens.management.ClinicalManagementHome
 import com.example.dynalar_frontend_v1.ui.screens.management.ListProtocolsPage
 import com.example.dynalar_frontend_v1.ui.screens.management.ListStockPage
 import com.example.dynalar_frontend_v1.ui.screens.management.MaterialsHome
@@ -51,10 +53,13 @@ import com.example.dynalar_frontend_v1.ui.screens.patient.PatientProfilePage
 import com.example.dynalar_frontend_v1.ui.screens.profile.ChangeAvatarPage
 import com.example.dynalar_frontend_v1.ui.screens.profile.UserProfilePage
 import com.example.dynalar_frontend_v1.ui.screens.staff.AbsenceCalendarScreen
+import com.example.dynalar_frontend_v1.ui.screens.staff.ClockInScreen
 import com.example.dynalar_frontend_v1.ui.screens.staff.CreateUserPage
 import com.example.dynalar_frontend_v1.ui.screens.staff.DailyAttendanceScreen
 import com.example.dynalar_frontend_v1.ui.screens.staff.DoctorAgendaScreen
+import com.example.dynalar_frontend_v1.ui.screens.staff.DoctorAvailabilityScreen
 import com.example.dynalar_frontend_v1.ui.screens.staff.DoctorPatientsScreen
+import com.example.dynalar_frontend_v1.ui.screens.staff.EditStaffPage
 import com.example.dynalar_frontend_v1.ui.screens.staff.StaffControlHomeScreen
 import com.example.dynalar_frontend_v1.ui.screens.staff.StaffListScreen
 import com.example.dynalar_frontend_v1.ui.screens.staff.StaffProfilePage
@@ -64,7 +69,7 @@ import com.example.dynalar_frontend_v1.utils.SessionManager
 import com.example.dynalar_frontend_v1.viewmodel.*
 import java.time.LocalDate
 import java.util.Locale
-import com.example.dynalar_frontend_v1.ui.screens.staff.ClockInScreen
+
 class MainActivity : ComponentActivity() {
 
     override fun attachBaseContext(newBase: Context) {
@@ -197,8 +202,39 @@ class MainActivity : ComponentActivity() {
                             MaterialsHome(
                                 onNavigateBack = { navController.popBackStack() },
                                 onNavigateBox = { navController.navigate(AppRoutes.BoxPage.route) },
-                                onNavigateStock = { navController.navigate(AppRoutes.ListStock.route) },
-                                onNavigateProtocolo = { navController.navigate(AppRoutes.ListProtocols.route) }
+                                onNavigateStock = { navController.navigate(AppRoutes.ListStock.route) }
+                            )
+                        }
+
+                        composable(AppRoutes.ClinicalHome.route) {
+                            ClinicalManagementHome(
+                                onNavigateBack = { navController.popBackStack() },
+                                onNavigateTreatments = { navController.navigate(AppRoutes.ListProtocols.route) },
+                                onNavigateDoctorAvailability = { navController.navigate(AppRoutes.DoctorAvailabilityList.route) }
+                            )
+                        }
+
+                        composable(AppRoutes.DoctorAvailabilityList.route) {
+                            DoctorAvailabilityScreen(
+                                doctorId = -1L,
+                                userViewModel = userViewModel,
+                                treatmentViewModel = treatmentViewModel,
+                                onNavigateBack = { navController.popBackStack() },
+                                onNavigateToStaffProfile = { id -> navController.navigate(AppRoutes.StaffProfile.createRoute(id)) }
+                            )
+                        }
+
+                        composable(
+                            route = AppRoutes.DoctorAvailability.route,
+                            arguments = listOf(navArgument("doctorId") { type = NavType.LongType })
+                        ) { backStackEntry ->
+                            val doctorId = backStackEntry.arguments?.getLong("doctorId") ?: -1L
+                            DoctorAvailabilityScreen(
+                                doctorId = doctorId,
+                                userViewModel = userViewModel,
+                                treatmentViewModel = treatmentViewModel,
+                                onNavigateBack = { navController.popBackStack() },
+                                onNavigateToStaffProfile = { id -> navController.navigate(AppRoutes.StaffProfile.createRoute(id)) }
                             )
                         }
 
@@ -351,12 +387,11 @@ class MainActivity : ComponentActivity() {
                             val treatmentId = backStackEntry.arguments?.getLong("treatmentId") ?: return@composable
                             ProtocolPage(
                                 treatmentId = treatmentId,
-                                materialViewModel,
-                                treatmentViewModel,
+                                materialViewModel = materialViewModel,
+                                viewModel = treatmentViewModel,
                                 onBack = { navController.popBackStack() }
                             )
                         }
-
                         composable(
                             route = AppRoutes.OdontogramPage.route,
                             arguments = listOf(navArgument("odontogramId") { type = NavType.LongType })
@@ -559,9 +594,19 @@ class MainActivity : ComponentActivity() {
                                 onNavigatePatients = { navController.navigate(AppRoutes.ListPatients.route) },
                                 onNavigateBoxCalendar = { navController.navigate(AppRoutes.CalendarPage.route) },
                                 onNavigateManagement = { navController.navigate(AppRoutes.MaterialsHome.route) },
+                                onNavigateClinical = { navController.navigate(AppRoutes.ClinicalHome.route) },
                                 onNavigateStaff = { navController.navigate(AppRoutes.StaffList.route) },
-                                onNavigateAttendance = { navController.navigate(AppRoutes.StaffControlHome.route) },
-                                onNavigateToClockInDirect = { navController.navigate(AppRoutes.ClockInScreen.route) }, // NUEVO: Va directo a fichar
+                                onNavigateAttendance = {
+                                    val isManager = sessionManager.hasRole("SUPERADMIN") ||
+                                            sessionManager.hasRole("ADMIN") ||
+                                            sessionManager.hasRole("OWNER")
+                                    if (isManager) {
+                                        navController.navigate(AppRoutes.StaffControlHome.route)
+                                    } else {
+                                        navController.navigate(AppRoutes.ClockInScreen.route)
+                                    }
+                                },
+                                onNavigateToClockInDirect = { navController.navigate(AppRoutes.ClockInScreen.route) },
                                 onNavigateToAppointmentDetail = { appointment ->
                                     appointmentViewModel.selectedAppointment = appointment
                                     navController.navigate(AppRoutes.ResumeDate.route)
@@ -608,11 +653,13 @@ class MainActivity : ComponentActivity() {
                                 StaffProfilePage(
                                     staff = staffUser,
                                     onNavigateBack = { navController.popBackStack() },
-                                    onEditClick = { id -> navController.navigate("edit_staff/$id") },
+                                    // ---> AQUÍ SE CORRIGE EL ERROR DEL LOGCAT <---
+                                    onEditClick = { id -> navController.navigate(AppRoutes.EditStaff.createRoute(id)) },
                                     onDeleteClick = { id -> userViewModel.deleteUser(id) { navController.popBackStack() } },
                                     onNavigateToChat = { id -> navController.navigate(AppRoutes.ChatScreen.createRoute(id)) },
                                     onDoctorAgendaClick = { id -> navController.navigate(AppRoutes.DoctorAgenda.createRoute(id)) },
-                                    onDoctorPatientsClick = { id -> navController.navigate(AppRoutes.DoctorPatients.createRoute(id)) }
+                                    onDoctorPatientsClick = { id -> navController.navigate(AppRoutes.DoctorPatients.createRoute(id)) },
+                                    onNavigateToAvailability = { id -> navController.navigate(AppRoutes.DoctorAvailability.createRoute(id)) }
                                 )
                             } else {
                                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -620,12 +667,27 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         }
+
+                        // ---> AÑADIDO: PANTALLA DE EDITAR TRABAJADOR <---
+                        composable(
+                            route = AppRoutes.EditStaff.route,
+                            arguments = listOf(navArgument("staffId") { type = NavType.LongType })
+                        ) { backStackEntry ->
+                            val staffId = backStackEntry.arguments?.getLong("staffId") ?: -1L
+
+                            // Aquí deberás llamar a tu pantalla para editar trabajador (ej: EditStaffPage)
+                            // Si aún no la has creado, te aparecerá este mensaje temporal:
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("AQUÍ VA TU PANTALLA DE EDITAR AL TRABAJADOR $staffId")
+                            }
+                        }
+
                         composable(AppRoutes.StaffControlHome.route) {
                             StaffControlHomeScreen(
                                 onNavigateBack = { navController.popBackStack() },
                                 onNavigateToDaily = { navController.navigate(AppRoutes.DailyAttendance.route) },
                                 onNavigateToCalendar = { navController.navigate(AppRoutes.AbsenceCalendar.route) },
-                                onNavigateToClockIn = { navController.navigate(AppRoutes.ClockInScreen.route) } // Configurado el botón del menú
+                                onNavigateToClockIn = { navController.navigate(AppRoutes.ClockInScreen.route) }
                             )
                         }
 
@@ -650,32 +712,6 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        composable(AppRoutes.AdminDashboard.route) {
-                            AdminDashboardPage(
-                                viewModel = appointmentViewModel,
-                                onNavigateProfileUserProfile = { navController.navigate(AppRoutes.UserProfile.route) },
-                                onNavigatePatients = { navController.navigate(AppRoutes.ListPatients.route) },
-                                onNavigateBoxCalendar = { navController.navigate(AppRoutes.CalendarPage.route) },
-                                onNavigateManagement = { navController.navigate(AppRoutes.MaterialsHome.route) },
-                                onNavigateStaff = { navController.navigate(AppRoutes.StaffList.route) },
-                                onNavigateAttendance = {
-                                    val isManager = sessionManager.hasRole("SUPERADMIN") ||
-                                            sessionManager.hasRole("ADMIN") ||
-                                            sessionManager.hasRole("OWNER")
-                                    if (isManager) {
-                                        navController.navigate(AppRoutes.StaffControlHome.route)
-                                    } else {
-                                        navController.navigate(AppRoutes.ClockInScreen.route)
-                                    }
-                                },
-                                onNavigateToClockInDirect = { navController.navigate(AppRoutes.ClockInScreen.route) },
-                                onNavigateToAppointmentDetail = { appointment ->
-                                    appointmentViewModel.selectedAppointment = appointment
-                                    navController.navigate(AppRoutes.ResumeDate.route)
-                                },
-                                onLanguageChange = onLanguageChange
-                            )
-                        }
                         composable(
                             route = AppRoutes.ChatScreen.route,
                             arguments = listOf(navArgument("receiverId") { type = NavType.LongType })
@@ -687,6 +723,7 @@ class MainActivity : ComponentActivity() {
                                 sessionManager = sessionManager
                             )
                         }
+
                         composable(
                             route = AppRoutes.DoctorAgenda.route,
                             arguments = listOf(navArgument("doctorId") { type = NavType.LongType })
@@ -713,6 +750,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
+
                         composable(
                             route = AppRoutes.StaffSchedule.route,
                             arguments = listOf(navArgument("staffId") { type = NavType.LongType })
@@ -725,8 +763,19 @@ class MainActivity : ComponentActivity() {
                                 onNavigateBack = { navController.popBackStack() }
                             )
                         }
+                        composable(
+                            route = AppRoutes.EditStaff.route,
+                            arguments = listOf(navArgument("staffId") { type = NavType.LongType })
+                        ) { backStackEntry ->
+                            val staffId = backStackEntry.arguments?.getLong("staffId") ?: -1L
 
-
+                            EditStaffPage(
+                                staffId = staffId,
+                                onNavigateBack = { navController.popBackStack() },
+                                userViewModel = userViewModel,
+                                treatmentViewModel = treatmentViewModel
+                            )
+                        }
 
                     }
                 }

@@ -1,7 +1,6 @@
 package com.example.dynalar_frontend_v1.ui.screens.staff
 
 import StaffItem
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,7 +10,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dynalar_frontend_v1.R
@@ -28,10 +29,11 @@ import com.example.dynalar_frontend_v1.model.user.User
 import com.example.dynalar_frontend_v1.ui.components.AddButton
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.components.DeleteConfirmationDialog
+import com.example.dynalar_frontend_v1.ui.components.SharedFilterDropdown
 import com.example.dynalar_frontend_v1.ui.components.SwipeToDeleteContainer
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.utils.SessionManager
-import androidx.compose.ui.text.style.TextAlign
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StaffListScreen(
@@ -93,9 +95,14 @@ fun StaffListScreen(
             }
     }
 
-    Scaffold { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues)) {
-
+    Scaffold(
+        containerColor = Color(0xFFF8FAFC)
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
             StaffTopBar(
                 onNavigateToAddUser = onNavigateToAddUser,
                 onNavigateBack = onNavigateBack,
@@ -115,13 +122,38 @@ fun StaffListScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.End
             ) {
-                StaffFilterDropdown(
-                    selectedRoleFilter = selectedRoleFilter,
+                // DEFINICIÓN DE OPCIONES DE FILTRO BASADAS EN EL ROL DEL USUARIO ACTUAL
+                val filterOptions = mutableListOf<Pair<StaffRoleFilter, String>>(
+                    StaffRoleFilter.ALL to stringResource(id = R.string.filter_role_all)
+                )
+                if (isSuperAdmin) {
+                    filterOptions.add(StaffRoleFilter.SUPERADMIN to stringResource(id = R.string.role_superadmin))
+                }
+                if (isSuperAdmin || isOwner) {
+                    filterOptions.add(StaffRoleFilter.OWNER to stringResource(id = R.string.filter_owners))
+                    filterOptions.add(StaffRoleFilter.ADMIN to stringResource(id = R.string.filter_admins))
+                }
+                filterOptions.add(StaffRoleFilter.DOCTOR to stringResource(id = R.string.filter_doctors))
+                filterOptions.add(StaffRoleFilter.AUXILIAR to stringResource(id = R.string.filter_auxiliars))
+
+                val filterLabel = when (selectedRoleFilter) {
+                    StaffRoleFilter.ALL -> stringResource(id = R.string.filter_label)
+                    StaffRoleFilter.SUPERADMIN -> stringResource(id = R.string.role_superadmin)
+                    StaffRoleFilter.OWNER -> stringResource(id = R.string.filter_owners)
+                    StaffRoleFilter.ADMIN -> stringResource(id = R.string.filter_admins)
+                    StaffRoleFilter.DOCTOR -> stringResource(id = R.string.filter_doctors)
+                    StaffRoleFilter.AUXILIAR -> stringResource(id = R.string.filter_auxiliars)
+                }
+
+                SharedFilterDropdown(
+                    selectedFilter = selectedRoleFilter,
+                    defaultFilter = StaffRoleFilter.ALL,
                     sortAscending = sortAscending,
-                    isSuperAdmin = isSuperAdmin,
-                    isOwner = isOwner,
-                    onRoleFilterChanged = { filter -> selectedRoleFilter = filter },
-                    onSortChanged = { sort -> sortAscending = sort }
+                    filterLabel = filterLabel,
+                    filterSectionTitle = stringResource(id = R.string.filter_role_header),
+                    filterOptions = filterOptions,
+                    onFilterChanged = { selectedRoleFilter = it },
+                    onSortChanged = { sortAscending = it }
                 )
             }
 
@@ -176,6 +208,7 @@ fun StaffListScreen(
 
     if (showDeleteDialog && staffToDelete != null) {
         DeleteConfirmationDialog(
+            message = "Estàs segur que vols eliminar aquest empleat?",
             onConfirm = {
                 staffToDelete?.let { id -> onDeleteStaff(id) }
                 showDeleteDialog = false
@@ -195,25 +228,29 @@ fun StaffTopBar(
     onNavigateToAddUser: () -> Unit,
     showAddButton: Boolean = true
 ) {
-    Box(modifier = Modifier.fillMaxWidth()) {
-        CustomTopBar(
-            title = stringResource(id = R.string.staff_list_title),
-            onNavigateBack = onNavigateBack,
-            modifier = Modifier.align(Alignment.CenterStart)
-        )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFF8FAFC))
+            .padding(end = 14.dp, bottom = 8.dp), // Un poco de padding inferior para que respire
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(modifier = Modifier.weight(1f, fill = false)) {
+            CustomTopBar(
+                title = stringResource(id = R.string.staff_list_title),
+                onNavigateBack = onNavigateBack
+            )
+        }
 
         if (showAddButton) {
             AddButton(
                 onClick = onNavigateToAddUser,
                 iconRes = R.drawable.person_add,
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 50.dp, top = 25.dp)
+                modifier = Modifier.padding(end = 8.dp)
             )
         }
     }
 }
-
 @Composable
 fun SearchStaffBar(
     textFieldState: TextFieldState
@@ -250,149 +287,6 @@ fun SearchStaffBar(
 }
 
 @Composable
-fun StaffFilterDropdown(
-    selectedRoleFilter: StaffRoleFilter,
-    sortAscending: Boolean,
-    isSuperAdmin: Boolean,
-    isOwner: Boolean,
-    onRoleFilterChanged: (StaffRoleFilter) -> Unit,
-    onSortChanged: (Boolean) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val hasFilter = selectedRoleFilter != StaffRoleFilter.ALL
-
-    val label = when (selectedRoleFilter) {
-        StaffRoleFilter.SUPERADMIN -> stringResource(id = R.string.role_superadmin)
-        StaffRoleFilter.OWNER -> stringResource(id = R.string.filter_owners)
-        StaffRoleFilter.ADMIN -> stringResource(id = R.string.filter_admins)
-        StaffRoleFilter.DOCTOR -> stringResource(id = R.string.filter_doctors)
-        StaffRoleFilter.AUXILIAR -> stringResource(id = R.string.filter_auxiliars)
-        else -> stringResource(id = R.string.filter_label)
-    }
-
-    val activeColor = ButtonPrimary
-    val inactiveIconTextColor = Color.Gray
-    val inactiveBorderColor = Color(0xFFA0B2C0)
-
-    Box {
-        Surface(
-            onClick = { expanded = true },
-            shape = RoundedCornerShape(12.dp),
-            color = if (hasFilter) activeColor else Color.Transparent,
-            border = BorderStroke(1.5.dp, if (hasFilter) activeColor else inactiveBorderColor),
-            modifier = Modifier.height(48.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.FilterList,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = if (hasFilter) Color.White else inactiveIconTextColor
-                )
-                Text(
-                    text = label,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (hasFilter) Color.White else inactiveIconTextColor
-                )
-                Icon(
-                    imageVector = if (sortAscending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                    tint = if (hasFilter) Color.White else inactiveIconTextColor
-                )
-            }
-        }
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier
-                .width(220.dp)
-                .background(Color.White)
-        ) {
-            Text(
-                text = stringResource(id = R.string.filter_order_header),
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-            )
-            DropdownMenuItem(
-                text = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.ArrowUpward, null, modifier = Modifier.size(14.dp), tint = if (sortAscending) ButtonPrimary else Color.Gray)
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(id = R.string.filter_order_asc), fontSize = 14.sp, color = if (sortAscending) ButtonPrimary else Color.Black, fontWeight = if (sortAscending) FontWeight.Bold else FontWeight.Normal)
-                    }
-                },
-                onClick = { onSortChanged(true); expanded = false },
-                trailingIcon = { if (sortAscending) Icon(Icons.Default.Check, null, tint = ButtonPrimary, modifier = Modifier.size(14.dp)) }
-            )
-            DropdownMenuItem(
-                text = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.ArrowDownward, null, modifier = Modifier.size(14.dp), tint = if (!sortAscending) ButtonPrimary else Color.Gray)
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(id = R.string.filter_order_desc), fontSize = 14.sp, color = if (!sortAscending) ButtonPrimary else Color.Black, fontWeight = if (!sortAscending) FontWeight.Bold else FontWeight.Normal)
-                    }
-                },
-                onClick = { onSortChanged(false); expanded = false },
-                trailingIcon = { if (!sortAscending) Icon(Icons.Default.Check, null, tint = ButtonPrimary, modifier = Modifier.size(14.dp)) }
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-            Text(
-                text = stringResource(id = R.string.filter_role_header),
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-            )
-
-            // SE FUERZA EL TIPO DE LA LISTA AQUÍ PARA EVITAR EL ERROR DEL COMPILADOR
-            val roleOptions = mutableListOf<Pair<StaffRoleFilter, String>>(
-                StaffRoleFilter.ALL to stringResource(id = R.string.filter_role_all)
-            )
-
-            if (isSuperAdmin) {
-                roleOptions.add(StaffRoleFilter.SUPERADMIN to stringResource(id = R.string.role_superadmin))
-            }
-            if (isSuperAdmin || isOwner) {
-                roleOptions.add(StaffRoleFilter.OWNER to stringResource(id = R.string.filter_owners))
-                roleOptions.add(StaffRoleFilter.ADMIN to stringResource(id = R.string.filter_admins))
-            }
-            roleOptions.add(StaffRoleFilter.DOCTOR to stringResource(id = R.string.filter_doctors))
-            roleOptions.add(StaffRoleFilter.AUXILIAR to stringResource(id = R.string.filter_auxiliars))
-
-            roleOptions.forEach { (filterOption, optionLabel) ->
-                val isSelected = selectedRoleFilter == filterOption
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            optionLabel,
-                            fontSize = 14.sp,
-                            color = if (isSelected) ButtonPrimary else Color.Black,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                        )
-                    },
-                    onClick = {
-                        onRoleFilterChanged(filterOption)
-                        expanded = false
-                    },
-                    trailingIcon = {
-                        if (isSelected) Icon(Icons.Default.Check, null, tint = ButtonPrimary, modifier = Modifier.size(14.dp))
-                    }
-                )
-            }
-        }
-    }
-}
-
-@Composable
 fun CharacterHeader(initial: Char) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -401,7 +295,7 @@ fun CharacterHeader(initial: Char) {
     ) {
         Text(
             text = initial.toString(),
-            modifier = Modifier.padding(horizontal = 22.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 10.dp),
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp,
             color = ButtonPrimary
