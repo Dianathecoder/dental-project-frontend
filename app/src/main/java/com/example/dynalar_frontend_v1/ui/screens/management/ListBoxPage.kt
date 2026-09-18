@@ -4,14 +4,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MeetingRoom
+import androidx.compose.material.icons.filled.NoteAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,20 +27,25 @@ import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.management.Box
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.components.DeleteConfirmationDialog
-import com.example.dynalar_frontend_v1.ui.components.Navegate_Button
-import com.example.dynalar_frontend_v1.ui.components.SwipeToDeleteContainer
+import com.example.dynalar_frontend_v1.ui.components.SharedFilterDropdown
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.viewmodel.BoxViewModel
 import com.example.dynalar_frontend_v1.R
+
+// Enumerador simple para la página de boxes
+enum class BoxFilter { ALL }
 
 @Composable
 fun BoxPage(
     viewModel: BoxViewModel = viewModel(),
     onBack: () -> Unit
 ) {
+    val listState = rememberLazyListState()
     var showAddDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var boxToDelete by remember { mutableStateOf<Box?>(null) }
+
+    var sortAscending by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         viewModel.getAllBoxes()
@@ -47,75 +53,101 @@ fun BoxPage(
 
     val uiState = viewModel.boxesState
 
-    Scaffold { paddingValues ->
+    Scaffold(
+        containerColor = Color(0xFFF8FAFC)
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
         ) {
-            CustomTopBar(
-                title = stringResource(id = R.string.box_title),
-                onNavigateBack = onBack,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            Navegate_Button(
-                text = stringResource(id = R.string.box_add_btn),
-                onClick = { showAddDialog = true },
+            // 1. TOP BAR UNIFICADO
+            Row(
                 modifier = Modifier
-                    .align(Alignment.End)
-                    .padding(end = 22.dp),
-                height = 40.dp,
-                cornerRadius = 24.dp,
-                fillMaxWidth = false
-            )
+                    .fillMaxWidth()
+                    .background(Color(0xFFF8FAFC))
+                    .padding(end = 14.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                androidx.compose.foundation.layout.Box(modifier = Modifier.weight(1f, fill = false)) {
+                    CustomTopBar(title = stringResource(id = R.string.box_title), onNavigateBack = onBack)
+                }
+                IconButton(
+                    onClick = { showAddDialog = true },
+                    modifier = Modifier.size(44.dp).padding(end = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.NoteAdd,
+                        contentDescription = "Afegir Box",
+                        tint = ButtonPrimary,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            // 2. FILTRO REUTILIZABLE (Solo para ordenar en este caso)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End
+            ) {
+                SharedFilterDropdown(
+                    selectedFilter = BoxFilter.ALL,
+                    defaultFilter = BoxFilter.ALL,
+                    sortAscending = sortAscending,
+                    filterLabel = "Tots els boxes",
+                    filterSectionTitle = "Filtres disponibles",
+                    filterOptions = listOf(BoxFilter.ALL to "Tots els boxes"),
+                    onFilterChanged = { },
+                    onSortChanged = { sortAscending = it }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 3. CONTENIDO Y LISTA
+            androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 when (uiState) {
-                    is InterfaceGlobal.Idle -> {}
-                    is InterfaceGlobal.Loading -> {
+                    is InterfaceGlobal.Idle, is InterfaceGlobal.Loading -> {
                         CircularProgressIndicator(color = ButtonPrimary)
                     }
-
                     is InterfaceGlobal.Success -> {
-                        val groupedBoxes = uiState.data
-                            .filter { it.number != null }
-                            .groupBy { it.number.toString().first() }
+                        val validBoxes = uiState.data.filter { it.number != null }
 
-                        if (uiState.data.isEmpty()) {
+                        if (validBoxes.isEmpty()) {
                             EmptyBoxesState(modifier = Modifier.fillMaxSize())
                         } else {
+                            // Lógica de Ordenación
+                            val sortedBoxes = if (sortAscending) validBoxes.sortedBy { it.number } else validBoxes.sortedByDescending { it.number }
+
+                            // Agrupamos por el primer dígito para mantener el diseño
+                            val groupedBoxes = sortedBoxes.groupBy { it.number.toString().first() }
+
                             LazyColumn(
+                                state = listState,
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(bottom = 24.dp)
                             ) {
                                 groupedBoxes.forEach { (initial, boxList) ->
                                     item { CharacterHeaderBox(initial) }
                                     items(boxList, key = { it.number ?: 0L }) { box ->
-                                        SwipeToDeleteContainer(
+                                        BoxItem(
+                                            box = box,
                                             onDelete = {
                                                 boxToDelete = box
                                                 showDeleteDialog = true
                                             }
-                                        ) {
-                                            BoxItem(box = box)
-                                        }
+                                        )
                                     }
                                 }
                             }
                         }
                     }
-
-                    is InterfaceGlobal.Error -> {
-                        Text(
-                            text = "Error: ${uiState.message}",
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(16.dp)
-                        )
-                    }
-
+                    is InterfaceGlobal.Error -> Text(text = "Error: ${uiState.message}", color = Color.Red)
                     else -> {}
                 }
             }
@@ -153,11 +185,7 @@ fun BoxPage(
             onDismissRequest = { viewModel.clearError() },
             title = { Text(stringResource(R.string.dialog_notice)) },
             text = { Text(errorMessage) },
-            confirmButton = {
-                TextButton(onClick = { viewModel.clearError() }) {
-                    Text(stringResource(R.string.dialog_ok))
-                }
-            }
+            confirmButton = { TextButton(onClick = { viewModel.clearError() }) { Text(stringResource(R.string.dialog_ok)) } }
         )
     }
 }
@@ -166,8 +194,7 @@ fun BoxPage(
 fun CharacterHeaderBox(initial: Char) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = Color(0xFFF4F6F9),
-        tonalElevation = 1.dp
+        color = Color.Transparent
     ) {
         Text(
             text = initial.toString(),
@@ -180,7 +207,7 @@ fun CharacterHeaderBox(initial: Char) {
 }
 
 @Composable
-fun BoxItem(box: Box) {
+fun BoxItem(box: Box, onDelete: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -192,7 +219,7 @@ fun BoxItem(box: Box) {
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
+            androidx.compose.foundation.layout.Box(
                 modifier = Modifier
                     .size(50.dp)
                     .clip(RoundedCornerShape(12.dp))
@@ -216,6 +243,17 @@ fun BoxItem(box: Box) {
                     fontWeight = FontWeight.Medium
                 )
             }
+
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Eliminar",
+                    tint = Color(0xFFD32F2F)
+                )
+            }
         }
     }
 }
@@ -226,33 +264,32 @@ fun CreateBoxDialog(onDismiss: () -> Unit, onConfirm: (Long) -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(id = R.string.box_new_dialog_title))},
+        title = { Text(stringResource(id = R.string.box_new_dialog_title), fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(id = R.string.box_new_dialog_msg))
+                Text(stringResource(id = R.string.box_new_dialog_msg), color = Color.Gray, fontSize = 14.sp)
                 OutlinedTextField(
                     value = numberText,
                     onValueChange = { if (it.all { char -> char.isDigit() }) numberText = it },
                     label = { Text("Número del Box") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = RoundedCornerShape(12.dp)
                 )
             }
         },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = { numberText.toLongOrNull()?.let { onConfirm(it) } },
-                enabled = numberText.isNotBlank()
-            ) {
-                Text(stringResource(id = R.string.btn_create))
-            }
+                enabled = numberText.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = ButtonPrimary)
+            ) { Text(stringResource(id = R.string.btn_create), color = Color.White) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(id = R.string.btn_cancel))
-            }
-        }
+            TextButton(onClick = onDismiss) { Text(stringResource(id = R.string.btn_cancel), color = Color.Gray) }
+        },
+        containerColor = Color.White
     )
 }
 
@@ -267,13 +304,13 @@ private fun EmptyBoxesState(modifier: Modifier = Modifier) {
             imageVector = Icons.Default.MeetingRoom,
             contentDescription = null,
             modifier = Modifier.size(72.dp),
-            tint = ButtonPrimary.copy(alpha = 0.5f)
+            tint = Color(0xFFA0B2C0)
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = stringResource(R.string.box_empty),
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Normal,
             color = Color.Gray
         )
     }

@@ -7,5 +7,6 @@ data class InviteUserRequest(
     val role: String,
     val dni: String,
     val phone: String,
-    val sex: String
+    val sex: String,
+    val treatmentIds: List<Long>? = emptyList()
 )

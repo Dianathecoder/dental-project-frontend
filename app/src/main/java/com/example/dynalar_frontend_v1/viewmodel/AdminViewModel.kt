@@ -17,11 +17,13 @@ class AdminViewModel : ViewModel() {
     private val _inviteState = MutableStateFlow<InterfaceGlobal<Unit>>(InterfaceGlobal.Idle)
     val inviteState: StateFlow<InterfaceGlobal<Unit>> = _inviteState.asStateFlow()
 
-    fun inviteUser(name: String, surname: String, email: String, role: String, dni: String, phone: String, sex: String) {
+    fun inviteUser(name: String, surname: String, email: String, role: String, dni: String, phone: String, sex: String, treatmentIds: List<Long>) {
         viewModelScope.launch {
             _inviteState.value = InterfaceGlobal.Loading
             try {
-                val response = api.inviteUser(InviteUserRequest(name, surname, email, role, dni, phone, sex))
+                val request = InviteUserRequest(name, surname, email, role, dni, phone, sex, treatmentIds)
+                val response = api.inviteUser(request)
+
                 if (response.isSuccessful) {
                     _inviteState.value = InterfaceGlobal.Success(Unit)
                 } else {

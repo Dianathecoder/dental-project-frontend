@@ -2,6 +2,7 @@ package com.example.dynalar_frontend_v1.ui.screens.patient
 
 import android.util.Log
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -64,7 +65,7 @@ import com.example.dynalar_frontend_v1.model.patient.Patient
 import com.example.dynalar_frontend_v1.ui.components.AddButton
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.components.DeleteConfirmationDialog
-import com.example.dynalar_frontend_v1.ui.components.PatientFilterDropdown
+import com.example.dynalar_frontend_v1.ui.components.SharedFilterDropdown
 import com.example.dynalar_frontend_v1.ui.components.SwipeToDeleteContainer
 import com.example.dynalar_frontend_v1.ui.components.getPatientImage
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
@@ -90,7 +91,11 @@ fun ListPatientsScreen(
 
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
-    val isDoctor = sessionManager.hasRole("DOCTOR") || sessionManager.hasRole("ROLE_DOCTOR")
+
+    val canManagePatients = sessionManager.hasRole("SUPERADMIN") || sessionManager.hasRole("ROLE_SUPERADMIN") ||
+            sessionManager.hasRole("OWNER") || sessionManager.hasRole("ROLE_OWNER") ||
+            sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN") ||
+            sessionManager.hasRole("AUXILIAR") || sessionManager.hasRole("ROLE_AUXILIAR")
 
     Scaffold { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
@@ -98,7 +103,7 @@ fun ListPatientsScreen(
             PatientsTopBar(
                 onNavigateAddPatient = onNavigateAddPatient,
                 onNavigateBack = onNavigateBack,
-                showAddButton = !isDoctor
+                showAddButton = canManagePatients
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -114,10 +119,26 @@ fun ListPatientsScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.End
             ) {
-                PatientFilterDropdown(
-                    selectedClinicalFilter = selectedClinicalFilter,
+                val filterLabel = when (selectedClinicalFilter) {
+                    ClinicalFilter.ALL -> "Filtrar"
+                    ClinicalFilter.ALLERGIES -> "Al·lèrgies"
+                    ClinicalFilter.INFECTIONS -> "Infeccioses"
+                    ClinicalFilter.HEALTHY -> "Sense alertes"
+                }
+
+                SharedFilterDropdown(
+                    selectedFilter = selectedClinicalFilter,
+                    defaultFilter = ClinicalFilter.ALL,
                     sortAscending = sortAscending,
-                    onClinicalFilterChanged = { selectedClinicalFilter = it },
+                    filterLabel = filterLabel,
+                    filterSectionTitle = "Estat mèdic",
+                    filterOptions = listOf(
+                        ClinicalFilter.ALL to "Tots",
+                        ClinicalFilter.ALLERGIES to "Al·lèrgies",
+                        ClinicalFilter.INFECTIONS to "Infeccioses",
+                        ClinicalFilter.HEALTHY to "Sense alertes"
+                    ),
+                    onFilterChanged = { selectedClinicalFilter = it },
                     onSortChanged = { sortAscending = it }
                 )
             }
@@ -193,7 +214,8 @@ fun ListPatientsScreen(
 
                                     val isFirstElement = (patient.id == firstPatientId)
 
-                                    if (isDoctor) {
+                                    // Aplicamos también el permiso aquí (para deslizar y eliminar)
+                                    if (!canManagePatients) {
                                         PatientItem(
                                             patient = patient,
                                             onClick = { selectedPatient ->
@@ -344,21 +366,24 @@ fun PatientsTopBar(
     onNavigateAddPatient: () -> Unit,
     showAddButton: Boolean = true
 ) {
-    Box(
-        modifier = Modifier.fillMaxWidth()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFF8FAFC))
+            .padding(end = 14.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        CustomTopBar(
-            title = stringResource(R.string.patients_topbar_title),
-            onNavigateBack = onNavigateBack,
-            modifier = Modifier.align(Alignment.CenterStart)
-        )
+        Box(modifier = Modifier.weight(1f, fill = false)) {
+            CustomTopBar(
+                title = stringResource(R.string.patients_topbar_title),
+                onNavigateBack = onNavigateBack
+            )
+        }
 
         if (showAddButton) {
             AddPatientButton(
                 onClick = onNavigateAddPatient,
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 50.dp, top = 25.dp)
+                modifier = Modifier.padding(end = 8.dp)
             )
         }
     }

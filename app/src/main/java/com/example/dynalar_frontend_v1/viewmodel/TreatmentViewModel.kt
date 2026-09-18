@@ -22,15 +22,22 @@ class TreatmentViewModel(
     var uiStateTreatmentDetail by mutableStateOf<InterfaceGlobal<Treatment>>(InterfaceGlobal.Idle)
         private set
 
+    var treatmentList by mutableStateOf<List<Treatment>>(emptyList())
+        private set
+
     fun getTreatments() {
         viewModelScope.launch {
             uiStateTreatment = InterfaceGlobal.Loading
             try {
                 val data = repository.getAllTreatments()
+
+                treatmentList = data // <--- ¡AQUÍ ESTABA EL FALLO PRINCIPAL! Ahora sí se actualiza la lista para la UI
+
                 uiStateTreatment = if (data.isEmpty()) InterfaceGlobal.NotFound
                 else InterfaceGlobal.Success(data)
             } catch (e: Exception) {
                 uiStateTreatment = InterfaceGlobal.Error(e.message ?: "Error desconocido")
+                Log.e("TreatmentViewModel", "Error al obtener tratamientos", e)
             }
         }
     }
@@ -89,10 +96,45 @@ class TreatmentViewModel(
     fun deleteMaterialToTreatment(treatmentId: Long, materialId: Long) {
         viewModelScope.launch {
             try {
-                repository.deleteMaterialToTreatment(treatmentId, materialId)
-                getTreatmentById(treatmentId)
+                val response = repository.deleteMaterialToTreatment(treatmentId, materialId)
+                if (response.isSuccessful) {
+                    getTreatmentById(treatmentId)
+                } else {
+                    uiStateTreatmentDetail = InterfaceGlobal.Error("Error al eliminar material del tratamiento")
+                }
             } catch (e: Exception) {
-                Log.e("TreatmentViewModel", "Error al eliminar material", e)
+                uiStateTreatmentDetail = InterfaceGlobal.Error(e.message ?: "Error al eliminar material")
+            }
+        }
+    }
+
+    fun deleteTreatment(treatmentId: Long, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                val response = repository.deleteTreatment(treatmentId) // Usamos repository
+                if (response.isSuccessful) {
+                    getTreatments()
+                    onSuccess()
+                } else {
+                    Log.e("TreatmentViewModel", "Error al eliminar: ${response.errorBody()?.string()}")
+                }
+            } catch (e: Exception) {
+                Log.e("TreatmentViewModel", "Exception en deleteTreatment", e)
+            }
+        }
+    }
+
+    fun createTreatment(treatment: Treatment, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                val response = repository.createTreatment(treatment)
+                if (response.isSuccessful) {
+                    onSuccess()
+                } else {
+                    Log.e("TreatmentViewModel", "Error al crear tratamiento: ${response.errorBody()?.string()}")
+                }
+            } catch (e: Exception) {
+                Log.e("TreatmentViewModel", "Exception en createTreatment", e)
             }
         }
     }

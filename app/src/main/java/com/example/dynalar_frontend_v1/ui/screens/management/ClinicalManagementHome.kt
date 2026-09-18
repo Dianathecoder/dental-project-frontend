@@ -6,17 +6,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.components.CustomisableButtonMaterials
 
 @Composable
-fun MaterialsHome(
+fun ClinicalManagementHome(
     onNavigateBack: () -> Unit,
-    onNavigateBox: () -> Unit,
-    onNavigateStock: () -> Unit
+    onNavigateTreatments: () -> Unit,
+    onNavigateDoctorAvailability: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -26,7 +25,7 @@ fun MaterialsHome(
         Spacer(modifier = Modifier.height(27.dp))
 
         CustomTopBar(
-            title = "Logística i Materials",
+            title = "Àrea Clínica",
             onNavigateBack = onNavigateBack,
             modifier = Modifier.fillMaxWidth()
         )
@@ -42,19 +41,19 @@ fun MaterialsHome(
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 CustomisableButtonMaterials(
-                    iconRes = R.drawable.clinica_dental,
-                    title = stringResource(id = R.string.box_label),
-                    subtitle = stringResource(id = R.string.management_box_subtitle),
-                    onClick = onNavigateBox
+                    iconRes = R.drawable.protocolo,
+                    title = "Gestió de Tractaments",
+                    subtitle = "Crear nous tractaments i configurar la durada",
+                    onClick = onNavigateTreatments
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(30.dp))
 
                 CustomisableButtonMaterials(
-                    iconRes = R.drawable.stock,
-                    title = stringResource(id = R.string.stock_title),
-                    subtitle = stringResource(id = R.string.management_stock_subtitle),
-                    onClick = onNavigateStock
+                    iconRes = R.drawable.clinica_dental,
+                    title = "Horaris i Especialitats",
+                    subtitle = "Assignar tractaments i torns als doctors",
+                    onClick = onNavigateDoctorAvailability
                 )
             }
         }

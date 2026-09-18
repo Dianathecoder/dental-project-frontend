@@ -9,8 +9,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -64,11 +68,11 @@ fun getStaffImage(userId: Long?, sexRaw: Any?, rolesRaw: Any?): Int {
     }
 }
 
-// 2. Componente StaffItem actualizado
 @Composable
 fun StaffItem(
     staff: User,
-    onClick: (User) -> Unit
+    onClick: (User) -> Unit,
+    onDelete: (() -> Unit)? = null // <-- 1. NUEVO: Parámetro para saber si se puede borrar
 ) {
     // Formatear los roles de forma segura (funciona tanto si es una Lista como si es un String simple)
     val displayRoles = when (val r = staff.roles) {
@@ -117,7 +121,7 @@ fun StaffItem(
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f), // Esto empuja al icono de la derecha
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
@@ -130,6 +134,19 @@ fun StaffItem(
                     fontSize = 13.sp,
                     color = Color.Gray
                 )
+            }
+
+            if (onDelete != null) {
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Eliminar",
+                        tint = Color(0xFFD32F2F) // Rojo
+                    )
+                }
             }
         }
     }
