@@ -38,7 +38,6 @@ import com.example.dynalar_frontend_v1.ui.components.SharedFilterDropdown
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.viewmodel.MaterialViewModel
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListStockPage(
@@ -143,8 +142,11 @@ fun ListStockPage(
                                 if (query.isBlank()) true else material.name.contains(query, ignoreCase = true)
                             }
                             .filter { material ->
-                                // NOTA: Si añades "category" a tu backend, usa: material.category == selectedGroupFilter.displayName
-                                selectedGroupFilter == MaterialGroupFilter.ALL
+                                if (selectedGroupFilter == MaterialGroupFilter.ALL) {
+                                    true
+                                } else {
+                                    material.category == selectedGroupFilter.displayName
+                                }
                             }
                             .let { list ->
                                 if (sortAscending) list.sortedBy { it.name.uppercase() }
@@ -187,10 +189,18 @@ fun ListStockPage(
     if (showAddDialog) {
         CreateMaterialDialog(
             onDismiss = { showAddDialog = false },
-            onConfirm = { name, minStock, category ->
+            onConfirm = { name, initStock, minStock, category ->
+                val initStockInt = initStock.toIntOrNull() ?: 0
                 val minStockInt = minStock.toIntOrNull() ?: 0
-                // IMPORTANTE: Si añades 'category' a la BD, pásala aquí en el objeto Material
-                viewModel.createMaterial(Material(id = 0, name = name, minimumStock = minStockInt, availableStock = 0))
+                viewModel.createMaterial(
+                    Material(
+                        id = 0,
+                        name = name,
+                        minimumStock = minStockInt,
+                        availableStock = initStockInt, // Ahora recoge el valor real
+                        category = category
+                    )
+                )
                 showAddDialog = false
             }
         )
@@ -212,7 +222,6 @@ fun ListStockPage(
     }
 }
 
-// BUSCADOR PARA STOCK
 @Composable
 fun SearchMaterialBar(textFieldState: TextFieldState) {
     val query = textFieldState.text.toString()
@@ -297,18 +306,25 @@ fun MaterialStockItem(material: Material, onClick: () -> Unit, onDelete: () -> U
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = material.name, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2C3E50))
+                Text(text = material.name, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1E293B))
+
+                if (!material.category.isNullOrBlank()) {
+                    Text(text = material.category, fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
                 val isLowStock = material.availableStock <= material.minimumStock
                 Text(
                     text = stringResource(R.string.stock_available, material.availableStock),
                     fontSize = 13.sp,
-                    color = if (isLowStock) Color.Red else Color.Gray,
-                    fontWeight = if (isLowStock) FontWeight.Bold else FontWeight.Normal
+                    color = if (isLowStock) Color(0xFFDC2626) else Color(0xFF64748B),
+                    fontWeight = if (isLowStock) FontWeight.Bold else FontWeight.Medium
                 )
             }
 
             IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Delete, "Eliminar", tint = Color(0xFFD32F2F))
+                Icon(Icons.Default.Delete, "Eliminar", tint = Color(0xFFEF4444))
             }
         }
     }
@@ -316,18 +332,18 @@ fun MaterialStockItem(material: Material, onClick: () -> Unit, onDelete: () -> U
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateMaterialDialog(onDismiss: () -> Unit, onConfirm: (String, String, String) -> Unit) {
+fun CreateMaterialDialog(onDismiss: () -> Unit, onConfirm: (String, String, String, String) -> Unit) {
     var name by remember { mutableStateOf("") }
+    var initStock by remember { mutableStateOf("") } // <-- NUEVO
     var minStock by remember { mutableStateOf("") }
 
-    // Categorías para el nuevo material
     val categories = MaterialGroupFilter.values().filter { it != MaterialGroupFilter.ALL }.map { it.displayName }
     var expandedCategory by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf(categories[0]) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nou Material", fontWeight = FontWeight.Bold) },
+        title = { Text("Nou Material", fontWeight = FontWeight.Bold, color = Color(0xFF1E293B)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
@@ -338,7 +354,6 @@ fun CreateMaterialDialog(onDismiss: () -> Unit, onConfirm: (String, String, Stri
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // Selector de categoría desplegable
                 ExposedDropdownMenuBox(
                     expanded = expandedCategory,
                     onExpandedChange = { expandedCategory = !expandedCategory }
@@ -365,20 +380,34 @@ fun CreateMaterialDialog(onDismiss: () -> Unit, onConfirm: (String, String, Stri
                     }
                 }
 
-                OutlinedTextField(
-                    value = minStock,
-                    onValueChange = { if (it.isEmpty() || it.all { char -> char.isDigit() }) minStock = it },
-                    label = { Text(stringResource(R.string.material_min_stock_label)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Campo Estoc Inicial
+                    OutlinedTextField(
+                        value = initStock,
+                        onValueChange = { if (it.isEmpty() || it.all { char -> char.isDigit() }) initStock = it },
+                        label = { Text("Estoc actual") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    // Campo Estoc Mínimo
+                    OutlinedTextField(
+                        value = minStock,
+                        onValueChange = { if (it.isEmpty() || it.all { char -> char.isDigit() }) minStock = it },
+                        label = { Text("Estoc mínim") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
-                onClick = { onConfirm(name, minStock, selectedCategory) },
-                colors = ButtonDefaults.buttonColors(containerColor = ButtonPrimary)
+                onClick = { onConfirm(name, initStock, minStock, selectedCategory) },
+                colors = ButtonDefaults.buttonColors(containerColor = ButtonPrimary),
+                shape = RoundedCornerShape(8.dp)
             ) { Text(stringResource(R.string.btn_create), color = Color.White) }
         },
         dismissButton = {

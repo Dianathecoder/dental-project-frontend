@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
+import com.example.dynalar_frontend_v1.model.appointment.Appointment
 import com.example.dynalar_frontend_v1.model.management.Treatment
 import com.example.dynalar_frontend_v1.model.staff.AbsenceEvent
 import com.example.dynalar_frontend_v1.model.staff.AbsenceType
@@ -35,8 +36,10 @@ import com.example.dynalar_frontend_v1.model.user.User
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.components.DeleteConfirmationDialog
 import com.example.dynalar_frontend_v1.ui.components.UserAvatar
+import com.example.dynalar_frontend_v1.ui.screens.appointment.ResumeDateScreen
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.utils.SessionManager
+import com.example.dynalar_frontend_v1.viewmodel.AppointmentViewModel
 import com.example.dynalar_frontend_v1.viewmodel.StaffControlViewModel
 import com.example.dynalar_frontend_v1.viewmodel.TreatmentViewModel
 import com.example.dynalar_frontend_v1.viewmodel.UserViewModel
@@ -59,6 +62,7 @@ fun StaffProfilePage(
     staffControlViewModel: StaffControlViewModel = viewModel(),
     userViewModel: UserViewModel = viewModel(),
     treatmentViewModel: TreatmentViewModel = viewModel(),
+    appointmentViewModel: AppointmentViewModel = viewModel(),
     isClockedIn: Boolean? = false
 ) {
     val context = LocalContext.current
@@ -69,26 +73,40 @@ fun StaffProfilePage(
             sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN")
 
     val roles = staff.roles.map { it.uppercase() }
-    val showAdvancedActions = roles.any { role ->
-        role.contains("DOCTOR") || role.contains("DENTIST") ||
-                role.contains("ADMIN") || role.contains("SUPERADMIN") || role.contains("OWNER")
+    val isDoctor = roles.any { it.contains("DOCTOR") || it.contains("DENTIST") }
+    val showAdvancedActions = isDoctor || roles.any {
+        it.contains("ADMIN") || it.contains("SUPERADMIN") || it.contains("OWNER")
     }
 
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var expandedMenu by remember { mutableStateOf(false) }
+    var selectedAppointmentForDetail by remember { mutableStateOf<Appointment?>(null) }
 
     LaunchedEffect(currentMonth, staff.id) {
         staffControlViewModel.fetchMonthlyAbsences(currentMonth)
         staffControlViewModel.fetchDailyAttendance(selectedDate)
 
-        staff.id?.let { userViewModel.fetchDentistAvailability(it) }
+        staff.id?.let { doctorId ->
+            userViewModel.fetchDentistAvailability(doctorId)
+            if (isDoctor) {
+                appointmentViewModel.getDoctorAppointments(doctorId)
+            }
+        }
         treatmentViewModel.getTreatments()
     }
 
     val availabilityDto = userViewModel.dentistAvailability
     val allTreatments = treatmentViewModel.treatmentList
+    val doctorAppointments = appointmentViewModel.doctorAppointments
+
+    // Filtrar citas del doctor para el día seleccionado
+    val appointmentsForSelectedDate = remember(doctorAppointments, selectedDate) {
+        doctorAppointments.filter { appt ->
+            appt.startTime?.startsWith(selectedDate.toString()) == true
+        }
+    }
 
     val absences = remember(staffControlViewModel.uiStateAbsences, staff) {
         val state = staffControlViewModel.uiStateAbsences
@@ -220,6 +238,7 @@ fun StaffProfilePage(
                     VisualMonthCalendarCard(
                         selectedDate = selectedDate,
                         absences = absences,
+                        doctorAppointments = doctorAppointments,
                         onDateSelected = { newDate ->
                             selectedDate = newDate
                             currentMonth = YearMonth.from(newDate)
@@ -230,11 +249,72 @@ fun StaffProfilePage(
                         selectedDate = selectedDate,
                         selectedAbsence = selectedAbsence
                     )
+
+                    // SECCIÓN DE CITAS / PACIENTES DEL DÍA EN SOLO LECTURA
+                    if (isDoctor) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Cites i Pacients de la Data (${selectedDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))})",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1E293B),
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+
+                        if (appointmentsForSelectedDate.isEmpty()) {
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                elevation = CardDefaults.cardElevation(1.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Sense cites programades per a aquesta data.",
+                                        color = Color.Gray,
+                                        fontSize = 13.sp
+                                    )
+                                }
+                            }
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                appointmentsForSelectedDate.forEach { appt ->
+                                    DoctorAppointmentProfileCard(
+                                        appointment = appt,
+                                        onClick = { selectedAppointmentForDetail = appt }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(1.dp))
             }
         }
+    }
+
+    // DIÁLOGO MODAL EN SOLO LECTURA PARA VER DETALLES DE LA CITA
+    selectedAppointmentForDetail?.let { appointment ->
+        AlertDialog(
+            onDismissRequest = { selectedAppointmentForDetail = null },
+            confirmButton = {},
+            dismissButton = null,
+            text = {
+                Box(modifier = Modifier.fillMaxWidth().heightIn(max = 550.dp)) {
+                    ResumeDateScreen(
+                        appointment = appointment,
+                        onBackClick = { selectedAppointmentForDetail = null },
+                        onPatientClick = { }
+                    )
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
     }
 
     if (showDeleteDialog && staff.id != null) {
@@ -266,7 +346,6 @@ fun StaffHeaderCard(
         else -> "Personal"
     }
 
-    // LÓGICA DINÁMICA DE LA ETIQUETA DE JORNADA
     val scheduleType = availabilityDto?.let { detectScheduleTypeLocal(it) } ?: 2
     val scheduleText = when (scheduleType) {
         1 -> "Jornada Completa"
@@ -330,7 +409,6 @@ fun StaffHeaderCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // MUESTRA LA JORNADA REAL SEGÚN SU CONFIGURACIÓN
                 val (statusText, statusBg, statusTextColor) = when (selectedAbsence?.type) {
                     AbsenceType.VACATION -> Triple("Vacances", Color(0xFFFFF3E0), Color(0xFFF57C00))
                     AbsenceType.HOLIDAY -> Triple("Dia Festiu", Color(0xFFFFEBEE), Color(0xFFD32F2F))
@@ -378,14 +456,6 @@ fun ReadOnlyClinicalInfoCard(
     availabilityDto: DentistAvailabilityDTO?,
     allTreatments: List<Treatment>
 ) {
-    val scheduleType = availabilityDto?.let { detectScheduleTypeLocal(it) } ?: 2
-    val scheduleName = when (scheduleType) {
-        1 -> "Jornada Completa"
-        2 -> "Jornada Parcial"
-        3 -> "Jornada Específica"
-        else -> "Sense Definir"
-    }
-
     val assignedTreatments = allTreatments.filter { availabilityDto?.treatmentIds?.contains(it.id) == true }
 
     Card(
@@ -395,7 +465,6 @@ fun ReadOnlyClinicalInfoCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-
             Text("Tractaments Assignats:", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF475569))
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -584,6 +653,7 @@ fun StaffActionCard(
 private fun VisualMonthCalendarCard(
     selectedDate: LocalDate,
     absences: List<AbsenceEvent>,
+    doctorAppointments: List<Appointment> = emptyList(),
     onDateSelected: (LocalDate) -> Unit
 ) {
     var currentMonth by remember { mutableStateOf(YearMonth.from(selectedDate)) }
@@ -669,6 +739,10 @@ private fun VisualMonthCalendarCard(
                                 val dayAbsence = absences.find { !date.isBefore(it.startDate) && !date.isAfter(it.endDate) }
                                 val isToday = date == today
 
+                                val hasAppointments = doctorAppointments.any { appt ->
+                                    appt.startTime?.startsWith(date.toString()) == true
+                                }
+
                                 val bgColor = when {
                                     isSelected -> Color(0xFF0D47A1)
                                     dayAbsence?.type == AbsenceType.VACATION -> Color(0xFFFFB300)
@@ -698,12 +772,27 @@ private fun VisualMonthCalendarCard(
                                         },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = day.toString(),
-                                        fontSize = 12.sp,
-                                        color = textColor,
-                                        fontWeight = if (isSelected || dayAbsence != null) FontWeight.Bold else FontWeight.Normal
-                                    )
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(
+                                            text = day.toString(),
+                                            fontSize = 11.sp,
+                                            color = textColor,
+                                            fontWeight = if (isSelected || dayAbsence != null) FontWeight.Bold else FontWeight.Normal
+                                        )
+
+                                        // Punto indicador para días con citas
+                                        if (hasAppointments && !isSelected && dayAbsence == null) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(4.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color(0xFF0D47A1))
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -747,8 +836,8 @@ private fun StaffAttendanceCardForDate(
             Icons.Default.Schedule,
             Color(0xFF64748B),
             Color(0xFFF1F5F9),
-            "No Computable",
-            "Sense fitxatge ni ausència registrada"
+            "Jornada Laboral",
+            "Fitxatge / Jornada habitual"
         )
     }
 
@@ -796,6 +885,128 @@ private fun StaffAttendanceCardForDate(
             }
         }
     }
+}
+
+@Composable
+private fun DoctorAppointmentProfileCard(
+    appointment: Appointment,
+    onClick: () -> Unit
+) {
+    val startLabel = formatTimeLocal(appointment.startTime)
+    val endLabel = run {
+        val startMin = parseTimeToMinutesLocal(appointment.startTime)
+        val duration = appointment.treatment?.durationMinutes
+        if (startMin != null && duration != null) {
+            val endMin = startMin + duration
+            "%02d:%02d".format(endMin / 60, endMin % 60)
+        } else {
+            formatTimeLocal(appointment.endTime)
+        }
+    }
+    val patientName = "${appointment.patient?.name ?: ""} ${appointment.patient?.lastName ?: ""}".trim()
+    val treatmentName = appointment.treatment?.name ?: "Tractament"
+    val boxInfo = appointment.box?.number?.let { "Box $it" } ?: ""
+
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(1.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color(0xFFEBF4FF)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Event,
+                    contentDescription = null,
+                    tint = ButtonPrimary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = patientName.ifBlank { "Pacient desconegut" },
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = Color(0xFF1E293B)
+                    )
+                    Surface(
+                        color = Color(0xFFF1F5F9),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = if (boxInfo.isNotEmpty()) "$startLabel - $endLabel | $boxInfo" else "$startLabel - $endLabel",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ButtonPrimary,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = treatmentName,
+                    fontSize = 12.sp,
+                    color = Color(0xFF64748B),
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Icon(
+                imageVector = Icons.Default.Visibility,
+                contentDescription = "Veure resum",
+                tint = Color.Gray,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+
+private fun extractTimeOnlyLocal(dateTimeString: String?): String? {
+    if (dateTimeString == null) return null
+    return if (dateTimeString.contains("T")) {
+        dateTimeString.split("T").lastOrNull()
+    } else {
+        dateTimeString.split(" ").lastOrNull()
+    }
+}
+
+private fun parseTimeToMinutesLocal(time: String?): Int? {
+    val cleanTime = extractTimeOnlyLocal(time) ?: return null
+    return try {
+        val parts = cleanTime.split(":")
+        parts[0].toInt() * 60 + parts[1].toInt()
+    } catch (e: Exception) { null }
+}
+
+private fun formatTimeLocal(time: String?): String {
+    val cleanTime = extractTimeOnlyLocal(time) ?: return ""
+    return try {
+        val parts = cleanTime.split(":")
+        "%02d:%02d".format(parts[0].toInt(), parts[1].toInt())
+    } catch (e: Exception) { cleanTime }
 }
 
 private data class Quintuple<A, B, C, D, E>(

@@ -31,6 +31,8 @@ class UserViewModel : ViewModel() {
 
     private val userRepository = UserRepository()
 
+    var qualifiedDoctors by mutableStateOf<InterfaceGlobal<List<User>>>(InterfaceGlobal.Idle)
+        private set
     var staffList by mutableStateOf<List<User>>(emptyList())
         private set
 
@@ -227,4 +229,21 @@ class UserViewModel : ViewModel() {
             }
         }
     }
+    fun getDoctorsByTreatment(treatmentId: Long) {
+        viewModelScope.launch {
+            qualifiedDoctors = InterfaceGlobal.Loading
+            try {
+                // Ajusta 'userApiService' por la variable que uses para llamar a Retrofit
+                val response = RetrofitClient.userApiService.getDentistsByTreatment(treatmentId)
+                if (response.isSuccessful && response.body() != null) {
+                    qualifiedDoctors = InterfaceGlobal.Success(response.body()!!)
+                } else {
+                    qualifiedDoctors = InterfaceGlobal.Error("No s'han trobat doctors.")
+                }
+            } catch (e: Exception) {
+                qualifiedDoctors = InterfaceGlobal.Error(e.message ?: "Error de xarxa")
+            }
+        }
+    }
+
 }

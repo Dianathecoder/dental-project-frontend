@@ -2,14 +2,14 @@ package com.example.dynalar_frontend_v1.ui.screens.management
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,8 +42,17 @@ fun StockPage(
     val uiState = viewModel.materialDetailState
 
     Scaffold(
+        containerColor = Color(0xFFF8FAFC),
         topBar = {
-            CustomTopBar(title = stringResource(R.string.stock_detail_title), onNavigateBack = onBack)        }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFF8FAFC))
+            ) {
+                Spacer(modifier = Modifier.height(24.dp))
+                CustomTopBar(title = stringResource(R.string.stock_detail_title), onNavigateBack = onBack)
+            }
+        }
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -58,24 +67,29 @@ fun StockPage(
 
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 24.dp, vertical = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(100.dp)
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(Color(0xFFEFF3F8)),
+                                .size(90.dp)
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(Color(0xFFEBF4FF)), // Azul súper suave
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.Inventory2, null, modifier = Modifier.size(50.dp), tint = ButtonPrimary)
+                            Icon(Icons.Default.Inventory2, null, modifier = Modifier.size(45.dp), tint = ButtonPrimary)
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        Text(text = material.name, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                        Text(text = material.name, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B), textAlign = TextAlign.Center)
+
+                        if (!material.category.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(text = material.category, fontSize = 14.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
+                        }
 
                         Spacer(modifier = Modifier.height(32.dp))
 
@@ -88,24 +102,33 @@ fun StockPage(
 
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FB)),
-                            shape = RoundedCornerShape(16.dp)
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
                             Column(
-                                modifier = Modifier.padding(16.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp), // AÑADIDO: fillMaxWidth para que el centro sea real
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
-                                Text(stringResource(R.string.stock_management), fontWeight = FontWeight.SemiBold, color = ButtonPrimary)
-                                Spacer(modifier = Modifier.height(16.dp))
+                                // AÑADIDO: textAlign Center y fillMaxWidth al texto
+                                Text(
+                                    text = stringResource(R.string.stock_management),
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF64748B),
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(20.dp))
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                                 ) {
                                     IconButton(
-                                        onClick = {
-                                            if (tempStock > 0) tempStockString = (tempStock - 1).toString()
-                                        },
-                                        modifier = Modifier.background(Color.White, RoundedCornerShape(8.dp))
+                                        onClick = { if (tempStock > 0) tempStockString = (tempStock - 1).toString() },
+                                        modifier = Modifier.background(Color(0xFFF1F5F9), RoundedCornerShape(12.dp)).size(48.dp)
                                     ) {
                                         Icon(Icons.Default.Remove, contentDescription = "Restar", tint = ButtonPrimary)
                                     }
@@ -119,26 +142,24 @@ fun StockPage(
                                         },
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         textStyle = LocalTextStyle.current.copy(
-                                            fontSize = 24.sp,
+                                            fontSize = 28.sp,
                                             fontWeight = FontWeight.Bold,
-                                            textAlign = TextAlign.Center
+                                            textAlign = TextAlign.Center,
+                                            color = Color(0xFF1E293B)
                                         ),
                                         modifier = Modifier.width(100.dp),
                                         singleLine = true,
                                         colors = OutlinedTextFieldDefaults.colors(
                                             focusedBorderColor = ButtonPrimary,
                                             unfocusedBorderColor = Color.Transparent,
-                                            focusedContainerColor = Color.White,
-                                            unfocusedContainerColor = Color.White
+                                            focusedContainerColor = Color.Transparent,
+                                            unfocusedContainerColor = Color.Transparent
                                         )
                                     )
 
-                                    // Botón Sumar
                                     IconButton(
-                                        onClick = {
-                                            tempStockString = (tempStock + 1).toString()
-                                        },
-                                        modifier = Modifier.background(Color.White, RoundedCornerShape(8.dp))
+                                        onClick = { tempStockString = (tempStock + 1).toString() },
+                                        modifier = Modifier.background(Color(0xFFF1F5F9), RoundedCornerShape(12.dp)).size(48.dp)
                                     ) {
                                         Icon(Icons.Default.Add, contentDescription = "Sumar", tint = ButtonPrimary)
                                     }
@@ -148,6 +169,7 @@ fun StockPage(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
+                        // BOTÓN GUARDAR
                         Button(
                             onClick = {
                                 val diff = tempStock - material.availableStock
@@ -158,46 +180,63 @@ fun StockPage(
                                 }
                             },
                             enabled = hasChanged,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().height(52.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (hasChanged) ButtonPrimary else Color.LightGray
+                                containerColor = ButtonPrimary,
+                                disabledContainerColor = Color(0xFFE2E8F0)
                             )
                         ) {
-                            Text(stringResource(R.string.stock_alert_low), color = Color.Red, fontSize = 13.sp)                        }
+                            Text(stringResource(R.string.btn_save), color = if (hasChanged) Color.White else Color(0xFF94A3B8), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
 
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            InfoCard(label = stringResource(R.string.stock_min_label), value = material.minimumStock.toString(), modifier = Modifier.weight(1f))                        }
+                        InfoCard(
+                            label = stringResource(R.string.stock_min_label),
+                            value = material.minimumStock.toString(),
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
+                        // TARJETA DE ALERTA DE STOCK
                         if (tempStock <= material.minimumStock) {
-                            Spacer(modifier = Modifier.height(24.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
                             Card(
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
-                                shape = RoundedCornerShape(12.dp)
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+                                shape = RoundedCornerShape(12.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFCA5A5))
                             ) {
-                                Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Warning, null, tint = Color.Red, modifier = Modifier.size(20.dp))
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(stringResource(R.string.stock_alert_low), color = Color.Red, fontSize = 13.sp)                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.Warning, null, tint = Color(0xFFDC2626), modifier = Modifier.size(24.dp))
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(stringResource(R.string.stock_alert_low), color = Color(0xFFDC2626), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                }
                             }
                         }
 
                         Spacer(modifier = Modifier.height(40.dp))
 
-                        Button(
+                        // BOTÓN DE BORRAR
+                        OutlinedButton(
                             onClick = { showDeleteDialog = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEBEE), contentColor = Color.Red),
-                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFDC2626)),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFCA5A5)),
+                            modifier = Modifier.fillMaxWidth().height(52.dp),
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Icon(Icons.Default.Delete, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.btn_delete_material))                        }
+                            Text(stringResource(R.string.btn_delete_material), fontWeight = FontWeight.SemiBold)
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
-                is InterfaceGlobal.Error -> Text(stringResource(R.string.error_msg_format, uiState.message ?: ""), Modifier.align(Alignment.Center), color = Color.Red)                else -> {}
+                is InterfaceGlobal.Error -> Text(stringResource(R.string.error_msg_format, uiState.message ?: ""), Modifier.align(Alignment.Center), color = Color.Red)
+                else -> {}
             }
         }
     }
@@ -219,16 +258,31 @@ fun StockPage(
 fun InfoCard(label: String, value: String, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FB)),
-        shape = RoundedCornerShape(16.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = label, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = value, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = ButtonPrimary)
+            Text(
+                text = label,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF64748B),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = value,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1E293B),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

@@ -33,8 +33,8 @@ import androidx.compose.ui.unit.sp
 import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.model.appointment.Appointment
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
-import com.example.dynalar_frontend_v1.ui.theme.TreatmentColors
 import com.example.dynalar_frontend_v1.ui.screens.appointment.ResumeDateScreen
+import com.example.dynalar_frontend_v1.ui.theme.TreatmentColors
 import com.example.dynalar_frontend_v1.viewmodel.AppointmentViewModel
 import java.time.LocalDate
 import java.time.format.TextStyle
@@ -128,7 +128,6 @@ fun DoctorAgendaScreen(
         }
     }
 
-    // Modal / Diálogo de solo lectura con el resumen de la cita
     selectedAppointmentForResume?.let { appointment ->
         AlertDialog(
             onDismissRequest = { selectedAppointmentForResume = null },
@@ -158,13 +157,13 @@ private fun CalendarHeaderReadOnly(
     onDateSelected: (LocalDate) -> Unit = {}
 ) {
     val dayName = selectedDate.dayOfWeek
-        .getDisplayName(TextStyle.SHORT, Locale("es"))
+        .getDisplayName(TextStyle.SHORT, Locale.forLanguageTag("es"))
         .replaceFirstChar { it.uppercase() }
 
     val dayNum = selectedDate.dayOfMonth
 
     val monthName = selectedDate.month
-        .getDisplayName(TextStyle.SHORT, Locale("es"))
+        .getDisplayName(TextStyle.SHORT, Locale.forLanguageTag("es"))
         .replaceFirstChar { it.uppercase() }
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -403,7 +402,8 @@ private fun AppointmentCardReadOnly(
     val boxInfo = appointment.box?.number?.let { "Box $it" } ?: ""
 
     val patientName = "${appointment.patient?.name ?: ""} ${appointment.patient?.lastName ?: ""}".trim()
-    val doctorName = "Dr/a. ${appointment.dentist?.surname ?: ""}".trim()
+    val doctorSurname = appointment.dentist?.user?.surname ?: appointment.dentist?.surname ?: ""
+    val doctorName = if (doctorSurname.isNotBlank()) "Dr/a. $doctorSurname" else ""
     val treatmentName = appointment.treatment?.name ?: ""
     val infectiousDeceases = appointment.patient?.medicalRecord?.infectiousDeceases
     val allergies = appointment.patient?.medicalRecord?.allergies
@@ -466,7 +466,7 @@ private fun AppointmentCardReadOnly(
 
             if (treatmentName.isNotBlank()) {
                 Text(
-                    text = "$treatmentName | $doctorName",
+                    text = if (doctorName.isNotBlank()) "$treatmentName | $doctorName" else treatmentName,
                     fontSize = 10.sp,
                     color = Color.DarkGray,
                     maxLines = 1,
