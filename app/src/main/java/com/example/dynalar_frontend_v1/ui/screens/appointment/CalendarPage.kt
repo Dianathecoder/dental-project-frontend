@@ -3,6 +3,7 @@ package com.example.dynalar_frontend_v1.ui.screens.appointment
 import android.app.DatePickerDialog
 import android.graphics.DashPathEffect
 import android.graphics.Paint
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,6 +16,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -41,6 +44,8 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 import com.example.dynalar_frontend_v1.R
+import com.example.dynalar_frontend_v1.utils.SessionManager
+import com.example.dynalar_frontend_v1.viewmodel.UserViewModel
 
 private const val SLOT_HEIGHT_DP = 80
 private const val DAY_START_HOUR = 8
@@ -50,15 +55,32 @@ private const val TOP_MARGIN_DP = 16
 @Composable
 fun CalendarPage(
     viewModel: AppointmentViewModel = viewModel(),
+    userViewModel: UserViewModel = viewModel(),
     onAppointmentClick: (Appointment) -> Unit = {},
     onAddAppointmentClick: (LocalDate, Int, Int) -> Unit = { _, _, _ -> },
     onNavigateBack: () -> Unit = {},
-
 ) {
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+    val myUserId = sessionManager.getUserId()
+
+    // 1. EVALUAR ROLES
+    val isSuperAdmin = sessionManager.hasRole("SUPERADMIN") || sessionManager.hasRole("ROLE_SUPERADMIN")
+    val isOwner = sessionManager.hasRole("OWNER") || sessionManager.hasRole("ROLE_OWNER")
+    val isAdmin = sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN")
+    val isAuxiliar = sessionManager.hasRole("AUXILIAR") || sessionManager.hasRole("ROLE_AUXILIAR")
+    val isDoctor = sessionManager.hasRole("DOCTOR") || sessionManager.hasRole("ROLE_DENTIST")
+
+    val canViewAll = isSuperAdmin || isOwner || isAdmin || isAuxiliar
+    val isManager = isSuperAdmin || isOwner || isAdmin
+    val isDoctorOnly = isDoctor && !canViewAll
+    val canCreateOrEdit = !isDoctorOnly
+
+    // 2. ESTADO DEL FILTRO (-1L = Ver todos, -2L = Mi calendario)
+    var selectedFilterId by remember { mutableStateOf(if (isDoctorOnly) myUserId else -1L) }
 
     val selectedDate = viewModel.selectedCalendarDate
     val sharedScrollState = rememberScrollState()
-
 
     LaunchedEffect(selectedDate) {
         val startOfDay = selectedDate.atStartOfDay()
@@ -66,11 +88,26 @@ fun CalendarPage(
         viewModel.fetchCalendar(startOfDay, endOfDay)
     }
 
+    LaunchedEffect(Unit) {
+        if (canViewAll) userViewModel.getAllStaff()
+    }
+
+    val doctorsList = userViewModel.staffList.filter { staff ->
+        staff.roles.any { it.uppercase().contains("DOCTOR") || it.uppercase().contains("DENTIST") }
+    }
+
     val uiState = viewModel.uiStateCalendar
-    val appointmentsForDay = remember(uiState, selectedDate) {
+    val appointmentsForDay = remember(uiState, selectedDate, selectedFilterId) {
         if (uiState is InterfaceGlobal.Success) {
             uiState.data.filter { appointment ->
                 appointment.startTime?.startsWith(selectedDate.toString()) == true
+            }.filter { appt ->
+                when {
+                    isDoctorOnly -> appt.dentist?.id == myUserId
+                    selectedFilterId == -1L -> true // Global
+                    selectedFilterId == -2L -> appt.dentist?.id == myUserId // Mi propio calendario
+                    else -> appt.dentist?.id == selectedFilterId // Un doctor en específico
+                }
             }
         } else {
             emptyList()
@@ -82,43 +119,32 @@ fun CalendarPage(
         topBar = {
             Column(modifier = Modifier.background(Color.White)) {
                 Spacer(modifier = Modifier.height(12.dp))
+
+                // --- FILA 1: TÍTULO Y BOTÓN + ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 10.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    CustomTopBar(title = stringResource(R.string.calendar_title), onNavigateBack = onNavigateBack)
 
-                    // TOP BAR
-                    Box(modifier = Modifier.weight(1f),
-                        contentAlignment = Alignment.CenterStart) {
-                        CustomTopBar(
-                            title = stringResource(R.string.calendar_title),
-                            onNavigateBack = onNavigateBack
-                        )
-                    }
-
-                    // BOTÓN +
-                    Box(
-                        modifier = Modifier
-                            .offset(y = 2.dp)
-                            .size(42.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF537895))
-                            .clickable {
-                                onAddAppointmentClick(selectedDate, 9, 0)
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = stringResource(R.string.calendar_add_appointment),
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
+                    if (canCreateOrEdit) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFF537895))
+                                .clickable { onAddAppointmentClick(selectedDate, 9, 0) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Añadir", tint = Color.White, modifier = Modifier.size(24.dp))
+                        }
                     }
                 }
-                //ACTUALIZAMOS usando el ViewModel en lugar de variables locales
+
+                // --- FILA 2: CONTROLES DE FECHA (Como en la imagen) ---
                 CalendarHeader(
                     selectedDate = selectedDate,
                     onPrevDay = { viewModel.updateSelectedDate(selectedDate.minusDays(1)) },
@@ -126,41 +152,95 @@ fun CalendarPage(
                     onTodayClick = { viewModel.updateSelectedDate(LocalDate.now()) },
                     onDateSelected = { viewModel.updateSelectedDate(it) }
                 )
-                // Usamos HorizontalDivider de M3 o simplemente una caja fina
+
+                // --- FILA 3: FILTRO DESPLEGABLE (Como en la imagen) ---
+                if (canViewAll) {
+                    var expanded by remember { mutableStateOf(false) }
+
+                    val filterLabel = when (selectedFilterId) {
+                        -1L -> "Tots els doctors (Global)"
+                        -2L -> "El meu calendari"
+                        else -> {
+                            val doc = doctorsList.find { it.id == selectedFilterId }
+                            doc?.let { "Dr/a. ${it.name} ${it.surname}" } ?: "Filtrar per Doctor"
+                        }
+                    }
+
+                    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 12.dp)) {
+                        Surface(
+                            onClick = { expanded = true },
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color.White,
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            modifier = Modifier.fillMaxWidth().height(48.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = filterLabel, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = Color(0xFF1E293B))
+                                Icon(Icons.Default.FilterList, contentDescription = "Filtrar", tint = Color.Gray, modifier = Modifier.size(20.dp))
+                            }
+                        }
+
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier.background(Color.White).fillMaxWidth(0.9f)
+                        ) {
+                            Text("VISTES GLOBALS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+                            DropdownMenuItem(
+                                text = { Text("Tots els doctors (Global)", fontWeight = FontWeight.Medium) },
+                                onClick = { selectedFilterId = -1L; expanded = false }
+                            )
+
+                            if (isManager || isDoctor) {
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = Color(0xFFF1F5F9))
+                                Text("PERSONAL", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF0D47A1), modifier = Modifier.size(18.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text("El meu calendari", color = Color(0xFF0D47A1), fontWeight = FontWeight.Bold)
+                                        }
+                                    },
+                                    onClick = { selectedFilterId = -2L; expanded = false }
+                                )
+                            }
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = Color(0xFFF1F5F9))
+                            Text("FILTRAR PER DOCTOR", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+                            doctorsList.forEach { doctor ->
+                                DropdownMenuItem(
+                                    text = { Text("Dr/a. ${doctor.name} ${doctor.surname}") },
+                                    onClick = { selectedFilterId = doctor.id ?: -1L; expanded = false }
+                                )
+                            }
+                        }
+                    }
+                }
                 Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFEEEEEE)))
             }
         }
     ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(Color.White)
-        ) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding).background(Color.White)) {
             if (uiState is InterfaceGlobal.Loading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = Color(0xFF537895)
-                )
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color(0xFF537895))
             }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(sharedScrollState)
-            ) {
+            Row(modifier = Modifier.fillMaxWidth().verticalScroll(sharedScrollState)) {
                 HoursColumn()
                 AppointmentsColumn(
                     appointments = appointmentsForDay,
                     onAppointmentClick = onAppointmentClick,
-                    onSlotClick = { hour, minute ->
-                        onAddAppointmentClick(selectedDate, hour, minute)
-                    }
+                    onSlotClick = { hour, minute -> if (canCreateOrEdit) onAddAppointmentClick(selectedDate, hour, minute) }
                 )
             }
         }
     }
 }
+
 @Composable
 fun CalendarHeader(
     selectedDate: LocalDate,
@@ -169,121 +249,57 @@ fun CalendarHeader(
     onTodayClick: () -> Unit,
     onDateSelected: (LocalDate) -> Unit = {}
 ) {
-
-    val dayName = selectedDate.dayOfWeek
-        .getDisplayName(TextStyle.SHORT, Locale("es"))
-        .replaceFirstChar { it.uppercase() }
-
+    val dayName = selectedDate.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("es")).replaceFirstChar { it.uppercase() }
     val dayNum = selectedDate.dayOfMonth
-
-    val monthName = selectedDate.month
-        .getDisplayName(TextStyle.SHORT, Locale("es"))
-        .replaceFirstChar { it.uppercase() }
+    val monthName = selectedDate.month.getDisplayName(TextStyle.SHORT, Locale("es")).replaceFirstChar { it.uppercase() }
 
     var showDatePicker by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     if (showDatePicker) {
         val dialog = remember(selectedDate) {
-            DatePickerDialog(
-                context,
-                { _, year, month, day ->
-                    onDateSelected(LocalDate.of(year, month + 1, day))
-                    showDatePicker = false
-                },
-                selectedDate.year,
-                selectedDate.monthValue - 1,
-                selectedDate.dayOfMonth
-            ).also {
-                it.setOnDismissListener { showDatePicker = false }
-            }
+            DatePickerDialog(context, { _, year, month, day -> onDateSelected(LocalDate.of(year, month + 1, day)); showDatePicker = false }, selectedDate.year, selectedDate.monthValue - 1, selectedDate.dayOfMonth).also { it.setOnDismissListener { showDatePicker = false } }
         }
-
-        LaunchedEffect(Unit) {
-            dialog.show()
-        }
+        LaunchedEffect(Unit) { dialog.show() }
     }
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 18.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-
-
         OutlinedButton(
             onClick = onTodayClick,
             shape = RoundedCornerShape(10.dp),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = Color(0xFF537895)
-            ),
-            modifier = Modifier.height(50.dp)
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF537895)),
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+            modifier = Modifier.height(38.dp)
         ) {
-            Text(
-                text = stringResource(R.string.calendar_today),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium
-            )
+            Text(text = "Hoy", fontSize = 14.sp, fontWeight = FontWeight.Medium)
         }
 
-        Spacer(modifier = Modifier.weight(1f))
-
-
-        IconButton(
-            onClick = onPrevDay,
-            modifier = Modifier.size(38.dp)
-        ) {
-            Icon(
-                Icons.Default.ChevronLeft,
-                contentDescription = null,
-                tint = Color(0xFF537895)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(5.dp))
-
-
-        IconButton(
-            onClick = onNextDay,
-            modifier = Modifier.size(38.dp)
-        ) {
-            Icon(
-                Icons.Default.ChevronRight,
-                contentDescription = "Següent",
-                tint = Color(0xFF537895)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        // FECHA DERECHA
-        TextButton(
-            onClick = { showDatePicker = true },
-            contentPadding = PaddingValues(0.dp),
-            modifier = Modifier.height(32.dp)
-        ) {
-
-            Icon(
-                imageVector = Icons.Default.CalendarMonth,
-                contentDescription = null,
-                tint = Color(0xFF537895),
-                modifier = Modifier.size(18.dp)
-            )
-
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onPrevDay, modifier = Modifier.size(34.dp)) {
+                Icon(Icons.Default.ChevronLeft, contentDescription = null, tint = Color(0xFF537895))
+            }
             Spacer(modifier = Modifier.width(4.dp))
-
-            Text(
-                text = "$dayName $dayNum de $monthName",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF537895)
-            )
+            IconButton(onClick = onNextDay, modifier = Modifier.size(34.dp)) {
+                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFF537895))
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Row(
+                modifier = Modifier.clickable { showDatePicker = true }.padding(horizontal = 4.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = Color(0xFF537895), modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(text = "$dayName $dayNum de $monthName", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF537895))
+            }
         }
     }
-        }
+}
 
-
+// ... Mantén aquí debajo tus funciones HoursColumn, AppointmentsColumn, AppointmentCard, etc. que tenías sin cambiar ...
 @Composable
 fun HoursColumn() {
     Column(modifier = Modifier.width(58.dp)) {
@@ -304,12 +320,10 @@ fun AppointmentsColumn(
 ) {
     val totalHeightDp = TOTAL_HOURS * SLOT_HEIGHT_DP
 
-
     BoxWithConstraints(
         modifier = Modifier.fillMaxWidth().padding(top = TOP_MARGIN_DP.dp).height(totalHeightDp.dp)
     ) {
         val columnMaxWidth = maxWidth
-
 
         Column(modifier = Modifier.height(totalHeightDp.dp).fillMaxWidth()) {
             (0 until TOTAL_HOURS).forEach { hourOffset ->
@@ -326,15 +340,13 @@ fun AppointmentsColumn(
                                 isAntiAlias = true
                                 color = android.graphics.Color.parseColor("#E8E8E8")
                                 strokeWidth = 1.dp.toPx()
-                                pathEffect =
-                                    DashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx()), 0f)
+                                pathEffect = DashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx()), 0f)
                             }
                             drawContext.canvas.nativeCanvas.drawLine(0f, midY, size.width, midY, nativePaint)
                         }
                 )
             }
         }
-
 
         appointments.forEach { appointment ->
             val startMinutes = parseTimeToMinutes(appointment.startTime)
@@ -343,22 +355,17 @@ fun AppointmentsColumn(
             if (startMinutes != null) {
                 val endMinutes = startMinutes + duration
 
-
-                // Buscamos qué otras citas chocan con esta en el tiempo
                 val overlappingApps = appointments.filter { other ->
                     val oStart = parseTimeToMinutes(other.startTime) ?: 0
                     val oEnd = oStart + (other.treatment?.durationMinutes ?: 30)
-
                     startMinutes < oEnd && endMinutes > oStart
                 }.sortedBy { it.id ?: 0L }
 
                 val totalColumns = overlappingApps.size
                 val columnIndex = overlappingApps.indexOf(appointment).coerceAtLeast(0)
 
-
                 val cardWidth = columnMaxWidth / totalColumns
                 val offsetX = cardWidth * columnIndex
-
 
                 val topOffsetMinutes = startMinutes - (DAY_START_HOUR * 60)
                 if (topOffsetMinutes >= 0) {
@@ -380,6 +387,7 @@ fun AppointmentsColumn(
         }
     }
 }
+
 @Composable
 fun AppointmentCard(
     appointment: Appointment,
@@ -387,7 +395,6 @@ fun AppointmentCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-
     val startLabel = formatTime(appointment.startTime)
     val endLabel = run {
         val startMin = parseTimeToMinutes(appointment.startTime)
@@ -421,7 +428,6 @@ fun AppointmentCard(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-
             Text(
                 text = if (boxInfo.isNotEmpty()) "$startLabel - $endLabel | $boxInfo" else "$startLabel - $endLabel",
                 fontSize = 11.sp,
@@ -438,7 +444,6 @@ fun AppointmentCard(
                 overflow = TextOverflow.Ellipsis
             )
 
-            // ALERTAS
             if (hasAllergies) {
                 Text(
                     text = stringResource(R.string.patient_allergies_prefix, allergies!!),
@@ -461,7 +466,6 @@ fun AppointmentCard(
                 )
             }
 
-
             if (treatmentName.isNotBlank()) {
                 Text(
                     text = "$treatmentName | $doctorName",
@@ -472,22 +476,18 @@ fun AppointmentCard(
                 )
             }
 
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-
                 Icon(
                     imageVector = Icons.Default.Visibility,
                     contentDescription = null,
                     tint = color,
                     modifier = Modifier.size(15.dp)
                 )
-
                 Spacer(modifier = Modifier.width(4.dp))
-
                 Text(
                     text = stringResource(R.string.appointment_view_summary),
                     fontSize = 10.sp,
@@ -504,8 +504,6 @@ fun colorForTreatment(treatmentId: Long?): Color {
     return TreatmentColors[(treatmentId % TreatmentColors.size).toInt()]
 }
 
-
-//Utils
 fun appointmentHeightDp(appointment: Appointment): Float {
     val durationMinutes = appointment.treatment?.durationMinutes ?: 30
     return (durationMinutes * SLOT_HEIGHT_DP / 60f).coerceAtLeast(40f)

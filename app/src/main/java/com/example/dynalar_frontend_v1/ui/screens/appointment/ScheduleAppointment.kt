@@ -1,6 +1,5 @@
 package com.example.dynalar_frontend_v1.ui.screens
 
-
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,7 +11,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -26,6 +24,7 @@ import com.example.dynalar_frontend_v1.ui.components.Navegate_Button
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.utils.SessionManager
 import com.example.dynalar_frontend_v1.viewmodel.AppointmentViewModel
+import com.example.dynalar_frontend_v1.viewmodel.MaterialViewModel
 import com.example.dynalar_frontend_v1.viewmodel.PatientViewModel
 import com.example.dynalar_frontend_v1.viewmodel.TreatmentViewModel
 import java.time.LocalDate
@@ -38,6 +37,7 @@ fun ScheduleAppointmentPage(
     patientViewModel: PatientViewModel = viewModel(),
     treatmentViewModel: TreatmentViewModel = viewModel(),
     appointmentViewModel: AppointmentViewModel = viewModel(),
+    materialViewModel: MaterialViewModel = viewModel(), // <-- AÑADIDO PARA REDUCIR STOCK
     onBackClick: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -61,15 +61,12 @@ fun ScheduleAppointmentPage(
     var showInfectionWarning by remember { mutableStateOf(false) }
     var hasAcceptedInfectionWarning by remember { mutableStateOf(false) }
 
-    // --- MAGIA PARA EL PACIENTE ---
-    // 1. Si es paciente, lanzamos la petición para cargar sus datos en 2º plano
     LaunchedEffect(isPatient, loggedInUserId) {
         if (isPatient && loggedInUserId != -1L) {
             patientViewModel.getPatientById(loggedInUserId)
         }
     }
 
-    // 2. Observamos la respuesta y lo auto-asignamos
     if (isPatient) {
         val patientData = patientViewModel.selectedPatient
         LaunchedEffect(patientData) {
@@ -79,9 +76,19 @@ fun ScheduleAppointmentPage(
         }
     }
 
-    // Éxito al crear
+    // --- ÉXITO AL CREAR LA CITA: REDUCIR STOCK ---
     LaunchedEffect(appointmentViewModel.uiStateAutoAssign) {
         if (appointmentViewModel.uiStateAutoAssign is InterfaceGlobal.Success) {
+            // Recorremos los materiales del tratamiento elegido y reducimos su stock
+            selectedTreatment?.materials?.forEach { treatmentMaterial ->
+                treatmentMaterial.material.id?.let { materialId ->
+                    materialViewModel.decreaseStock(
+                        id = materialId,
+                        quantity = treatmentMaterial.quantityRequired
+                    )
+                }
+            }
+
             appointmentViewModel.resetAutoAssignState()
             onBackClick()
         }
@@ -146,8 +153,6 @@ fun ScheduleAppointmentPage(
             CustomTopBar(title = stringResource(R.string.appointment_new_title), onNavigateBack = onBackClick)
 
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-
-                // 3. CARTEL VISUAL PARA EL PACIENTE
                 if (isPatient && selectedPatient != null) {
                     Surface(
                         color = Color(0xFFE3F2FD),
@@ -170,9 +175,8 @@ fun ScheduleAppointmentPage(
                     hour = hour, minute = minute,
                     onStartTimeChange = { h, m -> hour = h; minute = m },
                     endHour = endHour, endMinute = endMinute,
-                    onEndTimeChange = { _, _ -> }, // Se calcula auto
+                    onEndTimeChange = { _, _ -> },
                     selectedPatient = selectedPatient,
-                    // 4. EL BLOQUEO: Si es paciente, pasamos null para que el componente deshabilite la búsqueda
                     onPatientSelected = if (isPatient) null else { it -> selectedPatient = it },
                     selectedTreatment = selectedTreatment,
                     onTreatmentSelected = { selectedTreatment = it },
@@ -187,5 +191,3 @@ fun ScheduleAppointmentPage(
         }
     }
 }
-
-// ... (No hace falta que borres TimeSlotGrid, EditableChip, SectionLabel y UnavailableChip, déjalos tal y como estaban al final del archivo)
