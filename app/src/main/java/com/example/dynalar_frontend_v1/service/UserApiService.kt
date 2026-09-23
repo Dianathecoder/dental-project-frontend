@@ -54,4 +54,7 @@ interface UserApiService {
         @Path("userId") userId: Long,
         @Body dto: DentistAvailabilityDTO
     ): Response<Void>
+    @GET("dentist/treatment/{treatmentId}")
+    suspend fun getDentistsByTreatment(@Path("treatmentId") treatmentId: Long): Response<List<User>>
+
 }

@@ -26,9 +26,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.dynalar_frontend_v1.network.RetrofitClient
 import com.example.dynalar_frontend_v1.ui.AppRoutes
-import com.example.dynalar_frontend_v1.ui.screens.ScheduleAppointmentPage
 import com.example.dynalar_frontend_v1.ui.screens.appointment.CalendarPage
 import com.example.dynalar_frontend_v1.ui.screens.appointment.ResumeDateScreen
+import com.example.dynalar_frontend_v1.ui.screens.appointment.ScheduleAppointmentPage
 import com.example.dynalar_frontend_v1.ui.screens.auth.LoginPage
 import com.example.dynalar_frontend_v1.ui.screens.auth.RegisterPage
 import com.example.dynalar_frontend_v1.ui.screens.dashboard.AdminDashboardPage
@@ -488,6 +488,7 @@ class MainActivity : ComponentActivity() {
                         composable(AppRoutes.CalendarPage.route) {
                             CalendarPage(
                                 viewModel = appointmentViewModel,
+                                userViewModel = userViewModel,
                                 onNavigateBack = { navController.popBackStack() },
                                 onAddAppointmentClick = { date, hour, minute ->
                                     navController.navigate(
@@ -653,7 +654,6 @@ class MainActivity : ComponentActivity() {
                                 StaffProfilePage(
                                     staff = staffUser,
                                     onNavigateBack = { navController.popBackStack() },
-                                    // ---> AQUÍ SE CORRIGE EL ERROR DEL LOGCAT <---
                                     onEditClick = { id -> navController.navigate(AppRoutes.EditStaff.createRoute(id)) },
                                     onDeleteClick = { id -> userViewModel.deleteUser(id) { navController.popBackStack() } },
                                     onNavigateToChat = { id -> navController.navigate(AppRoutes.ChatScreen.createRoute(id)) },
@@ -668,21 +668,9 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
-                        // ---> AÑADIDO: PANTALLA DE EDITAR TRABAJADOR <---
                         composable(
-                            route = AppRoutes.EditStaff.route,
-                            arguments = listOf(navArgument("staffId") { type = NavType.LongType })
-                        ) { backStackEntry ->
-                            val staffId = backStackEntry.arguments?.getLong("staffId") ?: -1L
-
-                            // Aquí deberás llamar a tu pantalla para editar trabajador (ej: EditStaffPage)
-                            // Si aún no la has creado, te aparecerá este mensaje temporal:
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("AQUÍ VA TU PANTALLA DE EDITAR AL TRABAJADOR $staffId")
-                            }
-                        }
-
-                        composable(AppRoutes.StaffControlHome.route) {
+                            route = AppRoutes.StaffControlHome.route
+                        ) {
                             StaffControlHomeScreen(
                                 onNavigateBack = { navController.popBackStack() },
                                 onNavigateToDaily = { navController.navigate(AppRoutes.DailyAttendance.route) },
@@ -724,6 +712,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
+                        // --- AGENDA DEDICADA EXCLUSIVAMENTE AL DOCTOR EN SOLO LECTURA ---
                         composable(
                             route = AppRoutes.DoctorAgenda.route,
                             arguments = listOf(navArgument("doctorId") { type = NavType.LongType })
@@ -763,6 +752,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateBack = { navController.popBackStack() }
                             )
                         }
+
                         composable(
                             route = AppRoutes.EditStaff.route,
                             arguments = listOf(navArgument("staffId") { type = NavType.LongType })

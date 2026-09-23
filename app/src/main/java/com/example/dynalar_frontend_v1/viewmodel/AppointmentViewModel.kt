@@ -11,9 +11,6 @@ import com.example.dynalar_frontend_v1.model.appointment.AutoAssignRequest
 import com.example.dynalar_frontend_v1.model.appointment.SlotRequest
 import com.example.dynalar_frontend_v1.network.RetrofitClient
 import com.example.dynalar_frontend_v1.model.appointment.DaySummary
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -123,13 +120,21 @@ class AppointmentViewModel : ViewModel() {
         }
     }
 
-    fun fetchSlots(patientId: Long, treatmentId: Long, startDate: LocalDate, endDate: LocalDate) {
+    // Firma ordenada con doctorId al final con valor por defecto
+    fun fetchSlots(
+        patientId: Long,
+        treatmentId: Long,
+        startDate: LocalDate,
+        endDate: LocalDate,
+        doctorId: Long? = null
+    ) {
         uiStateSlots = InterfaceGlobal.Loading
         viewModelScope.launch {
             try {
                 val request = SlotRequest(
                     patientId = patientId,
                     treatmentId = treatmentId,
+                    doctorId = doctorId,
                     startDate = startDate.toString(),
                     endDate = endDate.toString()
                 )
@@ -146,7 +151,15 @@ class AppointmentViewModel : ViewModel() {
         }
     }
 
-    fun autoAssign(patientId: Long, treatmentId: Long, date: LocalDate, hour: Int, minute: Int, reason: String) {
+    fun autoAssign(
+        patientId: Long,
+        treatmentId: Long,
+        doctorId: Long?,
+        date: LocalDate,
+        hour: Int,
+        minute: Int,
+        reason: String
+    ) {
         uiStateAutoAssign = InterfaceGlobal.Loading
         viewModelScope.launch {
             try {
@@ -155,6 +168,7 @@ class AppointmentViewModel : ViewModel() {
                 val request = AutoAssignRequest(
                     patientId = patientId,
                     treatmentId = treatmentId,
+                    doctorId = doctorId,
                     requestedTime = requestedTimeStr,
                     reason = if (reason.isBlank()) "Cap observació" else reason
                 )
@@ -242,5 +256,4 @@ class AppointmentViewModel : ViewModel() {
             }
         }
     }
-
 }

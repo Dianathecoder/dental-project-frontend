@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.appointment.Appointment
 import com.example.dynalar_frontend_v1.model.management.Treatment
@@ -40,6 +41,8 @@ import java.time.format.DateTimeFormatter
 import kotlin.collections.emptyList
 import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.model.chat.Day
+import com.example.dynalar_frontend_v1.model.user.User
+import com.example.dynalar_frontend_v1.viewmodel.UserViewModel
 import java.util.Locale
 
 
@@ -326,7 +329,6 @@ fun UnavailableChip(text: String) {
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppointmentFormContent(
@@ -342,26 +344,38 @@ fun AppointmentFormContent(
     onPatientSelected: ((Patient) -> Unit)? = null,
     selectedTreatment: Treatment?,
     onTreatmentSelected: (Treatment) -> Unit,
+    selectedDoctor: User? = null,
+    onDoctorSelected: (User) -> Unit = {},
     description: String,
     onDescriptionChange: (String) -> Unit,
     patientViewModel: PatientViewModel,
     treatmentViewModel: TreatmentViewModel,
-    appointmentViewModel: AppointmentViewModel
+    appointmentViewModel: AppointmentViewModel,
+    userViewModel: UserViewModel = viewModel() // Necesario para cargar los doctores
 ) {
     var showCalendar by remember { mutableStateOf(false) }
 
-
+    // 1. CARGAMOS TODOS LOS TRATAMIENTOS, PACIENTES Y DOCTORES AL ABRIR LA PANTALLA
     LaunchedEffect(Unit) {
         treatmentViewModel.getTreatments()
+        userViewModel.getAllStaff() // Carga todos los empleados
         if (onPatientSelected != null) {
             patientViewModel.getPatients()
         }
     }
 
+    // 2. CUANDO SE SELECCIONA UN TRATAMIENTO, PREGUNTAMOS AL BACKEND QUIÉN ESTÁ ASIGNADO
+    LaunchedEffect(selectedTreatment) {
+        if (selectedTreatment != null) {
+            userViewModel.getDoctorsByTreatment(selectedTreatment.id!!)
+        }
+    }
 
-    LaunchedEffect(selectedTreatment, selectedDate, selectedPatient) {
+    // 3. CUANDO TENEMOS PACIENTE, TRATAMIENTO Y DOCTOR, BUSCAMOS LOS HUECOS LIBRES
+    LaunchedEffect(selectedTreatment, selectedDate, selectedPatient, selectedDoctor) {
         val pId = selectedPatient?.id
         val tId = selectedTreatment?.id
+        val dId = selectedDoctor?.id
 
         if (pId != null && tId != null) {
             val start = selectedDate.with(java.time.DayOfWeek.MONDAY)
@@ -379,11 +393,10 @@ fun AppointmentFormContent(
             modifier = Modifier.padding(bottom = 20.dp)
         )
 
-
         SectionLabel(icon = R.drawable.visita_tiempo, text = "Día y hora de la visita")
         Row(verticalAlignment = Alignment.CenterVertically) {
             EditableChip(
-                text = selectedDate.format(DateTimeFormatter.ofPattern("EEE, d 'de' MMM", Locale("es"))),
+                text = selectedDate.format(DateTimeFormatter.ofPattern("EEE, d 'de' MMM", java.util.Locale("es"))),
                 onClick = { showCalendar = true }
             )
             Spacer(Modifier.width(10.dp))
@@ -396,7 +409,6 @@ fun AppointmentFormContent(
                 onClick = { }
             )
         }
-
 
         if (onPatientSelected != null) {
             Spacer(Modifier.height(28.dp))
@@ -416,17 +428,14 @@ fun AppointmentFormContent(
             }
         }
 
-        // 3. TRATAMIENTO
         Spacer(Modifier.height(24.dp))
         SectionLabel(icon = R.drawable.visita_tratamientos, text = "Tratamiento")
         when (val tState = treatmentViewModel.uiStateTreatment) {
             is InterfaceGlobal.Success -> {
-                // Filtramos los tratamientos si el paciente no ha firmado la anestesia
-                // Verificamos tanto el campo booleano como la existencia de la firma en el registro médico
                 val filteredTreatments = if (selectedPatient != null) {
-                    val hasSignedAnesthesia = selectedPatient.anesthesiaConsent == true || 
-                                              !selectedPatient.medicalRecord?.signatureBase64.isNullOrBlank()
-                    
+                    val hasSignedAnesthesia = selectedPatient.anesthesiaConsent == true ||
+                            !selectedPatient.medicalRecord?.signatureBase64.isNullOrBlank()
+
                     if (!hasSignedAnesthesia) {
                         tState.data.filter { treatment ->
                             treatment.materials?.none { it.material.name.contains("Anest", ignoreCase = true) } ?: true
@@ -450,15 +459,97 @@ fun AppointmentFormContent(
             else -> UnavailableChip("No hi ha tractaments disponibles")
         }
 
-
+        // --- DESPLEGABLE DE DOCTORES CON ETIQUETAS VISUALES ---
         if (selectedTreatment != null) {
+            Spacer(Modifier.height(24.dp))
+            // Nota: Usa el icono que prefieras aquí. R.drawable.visita_paciente sirve si no tienes otro.
+            SectionLabel(icon = R.drawable.visita_paciente, text = "Doctor")
+
+            // Extraemos a todos los doctores de la lista general
+            val allDoctors = userViewModel.staffList.filter {
+                it.roles.any { role -> role.contains("DOCTOR") || role.contains("DENTIST") }
+            }
+
+            // Extraemos los IDs de los doctores que están capacitados (del backend)
+            val qualifiedDocIds = if (userViewModel.qualifiedDoctors is InterfaceGlobal.Success) {
+                (userViewModel.qualifiedDoctors as InterfaceGlobal.Success).data.map { it.id }
+            } else {
+                emptyList()
+            }
+
+            var expandedDoctor by remember { mutableStateOf(false) }
+
+            ExposedDropdownMenuBox(
+                expanded = expandedDoctor,
+                onExpandedChange = { expandedDoctor = !expandedDoctor }
+            ) {
+                OutlinedTextField(
+                    value = selectedDoctor?.let { "Dr/a. ${it.name} ${it.surname}" } ?: "",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Seleccionar Doctor") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDoctor) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                ExposedDropdownMenu(
+                    expanded = expandedDoctor,
+                    onDismissRequest = { expandedDoctor = false },
+                    modifier = Modifier.background(Color.White)
+                ) {
+                    if (allDoctors.isEmpty()) {
+                        DropdownMenuItem(text = { Text("No hi ha doctores registrats") }, onClick = {})
+                    } else {
+                        allDoctors.forEach { doc ->
+                            val isQualified = qualifiedDocIds.contains(doc.id)
+
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("Dr/a. ${doc.name} ${doc.surname}", fontSize = 14.sp)
+                                        Spacer(Modifier.weight(1f))
+
+                                        // Etiqueta visual
+                                        Surface(
+                                            color = if (isQualified) Color(0xFFE8F5E9) else Color(0xFFFFEBEE),
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Text(
+                                                text = if (isQualified) "Assignat" else "No Assignat",
+                                                color = if (isQualified) Color(0xFF2E7D32) else Color(0xFFC62828),
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                            )
+                                        }
+                                    }
+                                },
+                                onClick = {
+                                    if (isQualified) {
+                                        onDoctorSelected(doc)
+                                        expandedDoctor = false
+                                    }
+                                },
+                                enabled = isQualified // Solo deja hacer clic si está asignado
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        if (selectedTreatment != null && selectedDoctor != null) {
             Spacer(Modifier.height(28.dp))
             SectionLabel(icon = R.drawable.visita_tiempo, text = "Horaris Disponibles")
             when (val slotsState = appointmentViewModel.uiStateSlots) {
                 is InterfaceGlobal.Success -> {
                     val todaySlots = slotsState.data[selectedDate.toString()] ?: emptyList()
                     if (todaySlots.isEmpty()) {
-                        UnavailableChip("Sense forats lliures")
+                        UnavailableChip("Sense forats lliures per a aquest doctor")
                     } else {
                         TimeSlotGrid(todaySlots, hour, minute) { h, m -> onStartTimeChange(h, m) }
                     }
@@ -467,7 +558,6 @@ fun AppointmentFormContent(
                 else -> UnavailableChip("Consultant disponibilitat...")
             }
         }
-
 
         Spacer(Modifier.height(28.dp))
         SectionLabel(icon = R.drawable.visita_descripcion, text = "Notas")
@@ -483,7 +573,6 @@ fun AppointmentFormContent(
             )
         )
     }
-
 
     if (showCalendar) {
         val datePickerState = rememberDatePickerState(
@@ -502,4 +591,3 @@ fun AppointmentFormContent(
         ) { DatePicker(state = datePickerState) }
     }
 }
-

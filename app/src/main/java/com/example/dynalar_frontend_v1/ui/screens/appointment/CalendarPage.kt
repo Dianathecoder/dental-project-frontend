@@ -35,17 +35,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.appointment.Appointment
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.theme.TreatmentColors
+import com.example.dynalar_frontend_v1.utils.SessionManager
 import com.example.dynalar_frontend_v1.viewmodel.AppointmentViewModel
+import com.example.dynalar_frontend_v1.viewmodel.UserViewModel
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
-import com.example.dynalar_frontend_v1.R
-import com.example.dynalar_frontend_v1.utils.SessionManager
-import com.example.dynalar_frontend_v1.viewmodel.UserViewModel
 
 private const val SLOT_HEIGHT_DP = 80
 private const val DAY_START_HOUR = 8
@@ -56,6 +56,7 @@ private const val TOP_MARGIN_DP = 16
 fun CalendarPage(
     viewModel: AppointmentViewModel = viewModel(),
     userViewModel: UserViewModel = viewModel(),
+    targetDoctorId: Long? = null,
     onAppointmentClick: (Appointment) -> Unit = {},
     onAddAppointmentClick: (LocalDate, Int, Int) -> Unit = { _, _, _ -> },
     onNavigateBack: () -> Unit = {},
@@ -64,7 +65,7 @@ fun CalendarPage(
     val sessionManager = remember { SessionManager(context) }
     val myUserId = sessionManager.getUserId()
 
-    // 1. EVALUAR ROLES
+    // 1. EVALUAR ROLES Y RESTRICCIONES
     val isSuperAdmin = sessionManager.hasRole("SUPERADMIN") || sessionManager.hasRole("ROLE_SUPERADMIN")
     val isOwner = sessionManager.hasRole("OWNER") || sessionManager.hasRole("ROLE_OWNER")
     val isAdmin = sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN")
@@ -77,7 +78,15 @@ fun CalendarPage(
     val canCreateOrEdit = !isDoctorOnly
 
     // 2. ESTADO DEL FILTRO (-1L = Ver todos, -2L = Mi calendario)
-    var selectedFilterId by remember { mutableStateOf(if (isDoctorOnly) myUserId else -1L) }
+    var selectedFilterId by remember(targetDoctorId) {
+        mutableStateOf(
+            when {
+                targetDoctorId != null -> targetDoctorId
+                isDoctorOnly -> myUserId
+                else -> -1L
+            }
+        )
+    }
 
     val selectedDate = viewModel.selectedCalendarDate
     val sharedScrollState = rememberScrollState()
@@ -102,11 +111,12 @@ fun CalendarPage(
             uiState.data.filter { appointment ->
                 appointment.startTime?.startsWith(selectedDate.toString()) == true
             }.filter { appt ->
+                val doctorUserId = appt.dentist?.user?.id ?: appt.dentist?.id
                 when {
-                    isDoctorOnly -> appt.dentist?.id == myUserId
-                    selectedFilterId == -1L -> true // Global
-                    selectedFilterId == -2L -> appt.dentist?.id == myUserId // Mi propio calendario
-                    else -> appt.dentist?.id == selectedFilterId // Un doctor en específico
+                    isDoctorOnly -> doctorUserId == myUserId
+                    selectedFilterId == -1L -> true
+                    selectedFilterId == -2L -> doctorUserId == myUserId
+                    else -> doctorUserId == selectedFilterId
                 }
             }
         } else {
@@ -120,7 +130,6 @@ fun CalendarPage(
             Column(modifier = Modifier.background(Color.White)) {
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // --- FILA 1: TÍTULO Y BOTÓN + ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -144,7 +153,6 @@ fun CalendarPage(
                     }
                 }
 
-                // --- FILA 2: CONTROLES DE FECHA (Como en la imagen) ---
                 CalendarHeader(
                     selectedDate = selectedDate,
                     onPrevDay = { viewModel.updateSelectedDate(selectedDate.minusDays(1)) },
@@ -153,7 +161,6 @@ fun CalendarPage(
                     onDateSelected = { viewModel.updateSelectedDate(it) }
                 )
 
-                // --- FILA 3: FILTRO DESPLEGABLE (Como en la imagen) ---
                 if (canViewAll) {
                     var expanded by remember { mutableStateOf(false) }
 
@@ -249,9 +256,9 @@ fun CalendarHeader(
     onTodayClick: () -> Unit,
     onDateSelected: (LocalDate) -> Unit = {}
 ) {
-    val dayName = selectedDate.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("es")).replaceFirstChar { it.uppercase() }
+    val dayName = selectedDate.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.forLanguageTag("es")).replaceFirstChar { it.uppercase() }
     val dayNum = selectedDate.dayOfMonth
-    val monthName = selectedDate.month.getDisplayName(TextStyle.SHORT, Locale("es")).replaceFirstChar { it.uppercase() }
+    val monthName = selectedDate.month.getDisplayName(TextStyle.SHORT, Locale.forLanguageTag("es")).replaceFirstChar { it.uppercase() }
 
     var showDatePicker by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -299,7 +306,6 @@ fun CalendarHeader(
     }
 }
 
-// ... Mantén aquí debajo tus funciones HoursColumn, AppointmentsColumn, AppointmentCard, etc. que tenías sin cambiar ...
 @Composable
 fun HoursColumn() {
     Column(modifier = Modifier.width(58.dp)) {
@@ -409,7 +415,8 @@ fun AppointmentCard(
     val boxInfo = appointment.box?.number?.let { "Box $it" } ?: ""
 
     val patientName = "${appointment.patient?.name ?: ""} ${appointment.patient?.lastName ?: ""}".trim()
-    val doctorName = "Dr/a. ${appointment.dentist?.surname ?: ""}".trim()
+    val doctorSurname = appointment.dentist?.user?.surname ?: appointment.dentist?.surname ?: ""
+    val doctorName = if (doctorSurname.isNotBlank()) "Dr/a. $doctorSurname" else ""
     val treatmentName = appointment.treatment?.name ?: ""
     val infectiousDeceases = appointment.patient?.medicalRecord?.infectiousDeceases
     val allergies = appointment.patient?.medicalRecord?.allergies
@@ -468,7 +475,7 @@ fun AppointmentCard(
 
             if (treatmentName.isNotBlank()) {
                 Text(
-                    text = "$treatmentName | $doctorName",
+                    text = if (doctorName.isNotBlank()) "$treatmentName | $doctorName" else treatmentName,
                     fontSize = 10.sp,
                     color = Color.DarkGray,
                     maxLines = 1,
