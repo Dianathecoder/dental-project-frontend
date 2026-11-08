@@ -1,5 +1,6 @@
 package com.example.dynalar_frontend_v1
 
+import ChatContactsScreen
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -8,7 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -31,6 +32,11 @@ import com.example.dynalar_frontend_v1.ui.screens.appointment.ResumeDateScreen
 import com.example.dynalar_frontend_v1.ui.screens.appointment.ScheduleAppointmentPage
 import com.example.dynalar_frontend_v1.ui.screens.auth.LoginPage
 import com.example.dynalar_frontend_v1.ui.screens.auth.RegisterPage
+import com.example.dynalar_frontend_v1.ui.screens.chat.ChatScreen
+import com.example.dynalar_frontend_v1.ui.screens.chat.ChatNavigationDrawer
+import com.example.dynalar_frontend_v1.ui.screens.chat.RightSideChatDrawer
+import com.example.dynalar_frontend_v1.ui.screens.chat.SupportEntryScreen
+import com.example.dynalar_frontend_v1.model.chat.ChatScope
 import com.example.dynalar_frontend_v1.ui.screens.dashboard.AdminDashboardPage
 import com.example.dynalar_frontend_v1.ui.screens.dashboard.DentistAgendaPage
 import com.example.dynalar_frontend_v1.ui.screens.dashboard.HomePage
@@ -69,6 +75,7 @@ import com.example.dynalar_frontend_v1.utils.SessionManager
 import com.example.dynalar_frontend_v1.viewmodel.*
 import java.time.LocalDate
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -82,6 +89,7 @@ class MainActivity : ComponentActivity() {
         super.attachBaseContext(newBase.createConfigurationContext(config))
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -98,6 +106,7 @@ class MainActivity : ComponentActivity() {
             val adminViewModel: AdminViewModel = viewModel()
             val boxViewModel: BoxViewModel = viewModel()
             val staffControlViewModel: StaffControlViewModel = viewModel()
+            val chatViewModel: ChatViewModel = viewModel()
 
             val context = LocalContext.current
             val sessionManager = remember { SessionManager(context) }
@@ -124,6 +133,17 @@ class MainActivity : ComponentActivity() {
             key(currentLang) {
                 Dynalar_frontend_v1Theme {
                     val navController = rememberNavController()
+                    var chatDrawerOpen by remember { mutableStateOf(false) }
+                    val isAuxiliar = sessionManager.hasRole("AUXILIAR") || sessionManager.hasRole("ROLE_AUXILIAR")
+                    val isSupportManager = sessionManager.hasRole("SUPERADMIN") || sessionManager.hasRole("ROLE_SUPERADMIN")
+                            || sessionManager.hasRole("OWNER") || sessionManager.hasRole("ROLE_OWNER")
+                            || sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN")
+                    val isPatient = sessionManager.hasRole("PATIENT") || sessionManager.hasRole("ROLE_PATIENT")
+                    val isStaff = isAuxiliar || sessionManager.hasRole("ADMIN") || sessionManager.hasRole("ROLE_ADMIN")
+                            || sessionManager.hasRole("OWNER") || sessionManager.hasRole("ROLE_OWNER")
+                            || sessionManager.hasRole("SUPERADMIN") || sessionManager.hasRole("ROLE_SUPERADMIN")
+                            || sessionManager.hasRole("DENTIST") || sessionManager.hasRole("ROLE_DENTIST")
+                            || sessionManager.hasRole("DOCTOR") || sessionManager.hasRole("ROLE_DOCTOR")
 
                     val startDestination = if (sessionManager.hasToken()) {
                         when {
@@ -145,6 +165,36 @@ class MainActivity : ComponentActivity() {
                         AppRoutes.Login.route
                     }
 
+                    RightSideChatDrawer(
+                        isOpen = chatDrawerOpen && sessionManager.hasToken(),
+                        onOpen = { chatDrawerOpen = true },
+                        onClose = { chatDrawerOpen = false },
+                        drawerContent = {
+                            ChatNavigationDrawer(
+                                isStaff = isStaff,
+                                isAuxiliar = isAuxiliar,
+                                isSupportManager = isSupportManager,
+                                isPatient = isPatient,
+                                onInternalChats = {
+                                    chatDrawerOpen = false
+                                    navController.navigate(AppRoutes.ChatContacts.createRoute(ChatScope.STAFF.name))
+                                },
+                                onSupportChats = {
+                                    chatDrawerOpen = false
+                                    if (isAuxiliar || isSupportManager) {
+                                        navController.navigate(AppRoutes.ChatContacts.createRoute(ChatScope.SUPPORT.name))
+                                    } else {
+                                        navController.navigate(AppRoutes.CustomerSupport.route)
+                                    }
+                                },
+                                onOpenRecentChat = { scope, contactId ->
+                                    chatDrawerOpen = false
+                                    navController.navigate(AppRoutes.ChatScreen.createRoute(scope.name, contactId))
+                                },
+                                vm = chatViewModel
+                            )
+                        }
+                    ) {
                     NavHost(
                         navController = navController,
                         startDestination = startDestination
@@ -194,7 +244,9 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToPatientProfile = { patientId ->
                                     navController.navigate(AppRoutes.PatientProfile.createRoute(patientId))
                                 },
-                                onLanguageChange = onLanguageChange
+                                onLanguageChange = onLanguageChange,
+                                onNavigateSupport = { navController.navigate(AppRoutes.CustomerSupport.route) },
+                                onOpenDrawer = { chatDrawerOpen = true }
                             )
                         }
 
@@ -429,6 +481,7 @@ class MainActivity : ComponentActivity() {
                         composable(AppRoutes.UserProfile.route) {
                             UserProfilePage(
                                 viewModel = userViewModel,
+                                onLanguageChange = onLanguageChange,
                                 onNavigateBack = { navController.popBackStack() },
                                 onNavigateToChangeAvatar = {
                                     navController.navigate(AppRoutes.ChangeAvatar.route)
@@ -443,7 +496,9 @@ class MainActivity : ComponentActivity() {
 
                         composable(AppRoutes.ChangeAvatar.route) {
                             ChangeAvatarPage(
+                                userViewModel = userViewModel,
                                 onAvatarSelected = {
+                                    userViewModel.getProfile()
                                     navController.popBackStack()
                                 },
                                 onBack = { navController.popBackStack() }
@@ -612,7 +667,7 @@ class MainActivity : ComponentActivity() {
                                     appointmentViewModel.selectedAppointment = appointment
                                     navController.navigate(AppRoutes.ResumeDate.route)
                                 },
-                                onLanguageChange = onLanguageChange
+                                onOpenDrawer = { chatDrawerOpen = true }
                             )
                         }
 
@@ -656,7 +711,7 @@ class MainActivity : ComponentActivity() {
                                     onNavigateBack = { navController.popBackStack() },
                                     onEditClick = { id -> navController.navigate(AppRoutes.EditStaff.createRoute(id)) },
                                     onDeleteClick = { id -> userViewModel.deleteUser(id) { navController.popBackStack() } },
-                                    onNavigateToChat = { id -> navController.navigate(AppRoutes.ChatScreen.createRoute(id)) },
+                                    onNavigateToChat = { id -> navController.navigate(AppRoutes.ChatScreen.createRoute(ChatScope.STAFF.name, id)) },
                                     onDoctorAgendaClick = { id -> navController.navigate(AppRoutes.DoctorAgenda.createRoute(id)) },
                                     onDoctorPatientsClick = { id -> navController.navigate(AppRoutes.DoctorPatients.createRoute(id)) },
                                     onNavigateToAvailability = { id -> navController.navigate(AppRoutes.DoctorAvailability.createRoute(id)) }
@@ -699,19 +754,6 @@ class MainActivity : ComponentActivity() {
                                 onNavigateBack = { navController.popBackStack() }
                             )
                         }
-
-                        composable(
-                            route = AppRoutes.ChatScreen.route,
-                            arguments = listOf(navArgument("receiverId") { type = NavType.LongType })
-                        ) { backStackEntry ->
-                            val receiverId = backStackEntry.arguments?.getLong("receiverId") ?: 0L
-                            com.example.dynalar_frontend_v1.ui.screens.chat.ChatScreen(
-                                navController = navController,
-                                receiverId = receiverId,
-                                sessionManager = sessionManager
-                            )
-                        }
-
                         // --- AGENDA DEDICADA EXCLUSIVAMENTE AL DOCTOR EN SOLO LECTURA ---
                         composable(
                             route = AppRoutes.DoctorAgenda.route,
@@ -766,7 +808,73 @@ class MainActivity : ComponentActivity() {
                                 treatmentViewModel = treatmentViewModel
                             )
                         }
+                        composable(
+                            route = AppRoutes.ChatContacts.route,
+                            arguments = listOf(
+                                navArgument("scope") { type = NavType.StringType },
+                                navArgument("topic") { type = NavType.StringType; nullable = true; defaultValue = null }
+                            )
+                        ) { backStackEntry ->
+                            val scope = runCatching {
+                                ChatScope.valueOf(backStackEntry.arguments?.getString("scope") ?: ChatScope.STAFF.name)
+                            }.getOrDefault(ChatScope.STAFF)
+                            val topic = backStackEntry.arguments?.getString("topic")
+                            ChatContactsScreen(
+                                scope = scope,
+                                topic = topic,
+                                onBack = { navController.popBackStack() },
+                                onOpenChat = { id -> navController.navigate(AppRoutes.ChatScreen.createRoute(scope.name, id, topic)) }
+                            )
+                        }
 
+                        composable(AppRoutes.CustomerSupport.route) {
+                            SupportEntryScreen(
+                                isStaffInbox = false,
+                                onBack = { navController.popBackStack() },
+                                onProblemSelected = { problem ->
+                                    navController.navigate(AppRoutes.ChatContacts.createRoute(ChatScope.SUPPORT.name, problem))
+                                }
+                            )
+                        }
+
+                        composable(AppRoutes.SupportInbox.route) {
+                            ChatContactsScreen(
+                                scope = ChatScope.SUPPORT,
+                                onBack = { navController.popBackStack() },
+                                onOpenChat = { id -> navController.navigate(AppRoutes.ChatScreen.createRoute(ChatScope.SUPPORT.name, id)) }
+                            )
+                        }
+
+                        composable(
+                            route = AppRoutes.ChatScreen.route,
+                            arguments = listOf(
+                                navArgument("scope") { type = NavType.StringType },
+                                navArgument("receiverId") { type = NavType.LongType },
+                                navArgument("topic") { type = NavType.StringType; nullable = true; defaultValue = null }
+                            )
+                        ) { backStackEntry ->
+                            val receiverId = backStackEntry.arguments?.getLong("receiverId") ?: 0L
+                            val scope = runCatching {
+                                ChatScope.valueOf(backStackEntry.arguments?.getString("scope") ?: ChatScope.STAFF.name)
+                            }.getOrDefault(ChatScope.STAFF)
+                            val topic = backStackEntry.arguments?.getString("topic")
+                            ChatScreen(
+                                receiverId = receiverId,
+                                scope = scope,
+                                topic = topic,
+                                onBack = { navController.popBackStack() },
+                                onViewPeerProfile = { chatScope, contact ->
+                                    if (chatScope == ChatScope.SUPPORT && contact.patientId != null) {
+                                        navController.navigate(AppRoutes.PatientProfile.createRoute(contact.patientId))
+                                    } else {
+                                        navController.navigate(AppRoutes.StaffProfile.createRoute(contact.id))
+                                    }
+                                }
+                            )
+                        }
+
+
+                    }
                     }
                 }
             }

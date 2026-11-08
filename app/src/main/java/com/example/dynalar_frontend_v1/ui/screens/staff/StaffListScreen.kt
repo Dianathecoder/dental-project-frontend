@@ -29,7 +29,6 @@ import com.example.dynalar_frontend_v1.model.user.User
 import com.example.dynalar_frontend_v1.ui.components.AddButton
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.components.DeleteConfirmationDialog
-import com.example.dynalar_frontend_v1.ui.components.SharedFilterDropdown
 import com.example.dynalar_frontend_v1.ui.components.SwipeToDeleteContainer
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.utils.SessionManager
@@ -115,13 +114,7 @@ fun StaffListScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 // DEFINICIÓN DE OPCIONES DE FILTRO BASADAS EN EL ROL DEL USUARIO ACTUAL
                 val filterOptions = mutableListOf<Pair<StaffRoleFilter, String>>(
                     StaffRoleFilter.ALL to stringResource(id = R.string.filter_role_all)
@@ -145,16 +138,26 @@ fun StaffListScreen(
                     StaffRoleFilter.AUXILIAR -> stringResource(id = R.string.filter_auxiliars)
                 }
 
-                SharedFilterDropdown(
-                    selectedFilter = selectedRoleFilter,
-                    defaultFilter = StaffRoleFilter.ALL,
-                    sortAscending = sortAscending,
-                    filterLabel = filterLabel,
-                    filterSectionTitle = stringResource(id = R.string.filter_role_header),
-                    filterOptions = filterOptions,
-                    onFilterChanged = { selectedRoleFilter = it },
-                    onSortChanged = { sortAscending = it }
-                )
+                androidx.compose.foundation.lazy.LazyRow(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(filterOptions) { (filter, label) ->
+                        FilterChip(
+                            selected = selectedRoleFilter == filter,
+                            onClick = { selectedRoleFilter = filter },
+                            label = { Text(label, maxLines = 1) }
+                        )
+                    }
+                    item {
+                        FilterChip(
+                            selected = false,
+                            onClick = { sortAscending = !sortAscending },
+                            label = { Text(if (sortAscending) "A–Z" else "Z–A") }
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))

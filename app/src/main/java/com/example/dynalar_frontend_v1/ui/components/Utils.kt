@@ -135,9 +135,26 @@ fun UserAvatar(
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+    val localSavedUri = prefs.getString("user_avatar_uri_$userId", null)
+    val localSavedRes = prefs.getInt("user_avatar_$userId", 0)
 
-    // 1. Prioridad: ¿La base de datos nos manda un enlace?
-    if (!avatarUrl.isNullOrEmpty()) {
+    // Los cambios hechos en este dispositivo deben prevalecer sobre el valor remoto
+    // hasta que el backend tenga una URL de imagen compartible entre dispositivos.
+    if (!localSavedUri.isNullOrEmpty()) {
+        AsyncImage(
+            model = localSavedUri,
+            contentDescription = contentDescription,
+            modifier = modifier,
+            contentScale = ContentScale.Crop
+        )
+    } else if (localSavedRes != 0) {
+        Image(
+            painter = painterResource(id = localSavedRes),
+            contentDescription = contentDescription,
+            modifier = modifier,
+            contentScale = ContentScale.Crop
+        )
+    } else if (!avatarUrl.isNullOrEmpty()) {
         AsyncImage(
             model = avatarUrl,
             contentDescription = contentDescription,
@@ -145,50 +162,29 @@ fun UserAvatar(
             contentScale = ContentScale.Crop
         )
     } else {
-        // 2. Prioridad: ¿Tenemos una foto guardada en la memoria del teléfono para este usuario?
-        val localSavedUri = prefs.getString("user_avatar_uri_$userId", null)
-        val localSavedRes = prefs.getInt("user_avatar_$userId", 0)
+        // Sin avatar local ni remoto, mostramos el avatar de stock.
+        val safeRoles = when (rolesRaw) {
+            is List<*> -> rolesRaw.map { it.toString() }
+            is String -> listOf(rolesRaw)
+            else -> emptyList()
+        }
 
-        if (localSavedUri != null) {
+        val avatarResult = getStaffImage(userId = userId, roles = safeRoles, sex = sexRaw)
+
+        if (avatarResult is String) {
             AsyncImage(
-                model = localSavedUri,
+                model = avatarResult,
                 contentDescription = contentDescription,
                 modifier = modifier,
                 contentScale = ContentScale.Crop
             )
-        } else if (localSavedRes != 0) {
+        } else if (avatarResult is Int) {
             Image(
-                painter = painterResource(id = localSavedRes),
+                painter = painterResource(id = avatarResult),
                 contentDescription = contentDescription,
                 modifier = modifier,
                 contentScale = ContentScale.Crop
             )
-        } else {
-            // 3. Prioridad: Dibujo de stock por defecto
-            val safeRoles = when (rolesRaw) {
-                is List<*> -> rolesRaw.map { it.toString() }
-                is String -> listOf(rolesRaw)
-                else -> emptyList()
-            }
-
-            // CORREGIDO: roles y sex sin el sufijo "Raw"
-            val avatarResult = getStaffImage(userId = userId, roles = safeRoles, sex = sexRaw)
-
-            if (avatarResult is String) {
-                AsyncImage(
-                    model = avatarResult,
-                    contentDescription = contentDescription,
-                    modifier = modifier,
-                    contentScale = ContentScale.Crop
-                )
-            } else if (avatarResult is Int) {
-                Image(
-                    painter = painterResource(id = avatarResult),
-                    contentDescription = contentDescription,
-                    modifier = modifier,
-                    contentScale = ContentScale.Crop
-                )
-            }
         }
     }
 }

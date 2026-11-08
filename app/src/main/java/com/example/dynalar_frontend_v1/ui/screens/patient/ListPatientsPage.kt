@@ -32,6 +32,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -65,7 +66,6 @@ import com.example.dynalar_frontend_v1.model.patient.Patient
 import com.example.dynalar_frontend_v1.ui.components.AddButton
 import com.example.dynalar_frontend_v1.ui.components.CustomTopBar
 import com.example.dynalar_frontend_v1.ui.components.DeleteConfirmationDialog
-import com.example.dynalar_frontend_v1.ui.components.SharedFilterDropdown
 import com.example.dynalar_frontend_v1.ui.components.SwipeToDeleteContainer
 import com.example.dynalar_frontend_v1.ui.components.getPatientImage
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
@@ -112,35 +112,32 @@ fun ListPatientsScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End
-            ) {
-                val filterLabel = when (selectedClinicalFilter) {
-                    ClinicalFilter.ALL -> "Filtrar"
-                    ClinicalFilter.ALLERGIES -> "Al·lèrgies"
-                    ClinicalFilter.INFECTIONS -> "Infeccioses"
-                    ClinicalFilter.HEALTHY -> "Sense alertes"
-                }
-
-                SharedFilterDropdown(
-                    selectedFilter = selectedClinicalFilter,
-                    defaultFilter = ClinicalFilter.ALL,
-                    sortAscending = sortAscending,
-                    filterLabel = filterLabel,
-                    filterSectionTitle = "Estat mèdic",
-                    filterOptions = listOf(
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                androidx.compose.foundation.lazy.LazyRow(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(listOf(
                         ClinicalFilter.ALL to "Tots",
                         ClinicalFilter.ALLERGIES to "Al·lèrgies",
                         ClinicalFilter.INFECTIONS to "Infeccioses",
                         ClinicalFilter.HEALTHY to "Sense alertes"
-                    ),
-                    onFilterChanged = { selectedClinicalFilter = it },
-                    onSortChanged = { sortAscending = it }
-                )
+                    )) { (filter, label) ->
+                        FilterChip(
+                            selected = selectedClinicalFilter == filter,
+                            onClick = { selectedClinicalFilter = filter },
+                            label = { Text(label, maxLines = 1) }
+                        )
+                    }
+                    item {
+                        FilterChip(
+                            selected = false,
+                            onClick = { sortAscending = !sortAscending },
+                            label = { Text(if (sortAscending) "A–Z" else "Z–A") }
+                        )
+                    }
+                }
             }
             Spacer(modifier = Modifier.height(16.dp))
 

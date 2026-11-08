@@ -40,7 +40,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.collections.emptyList
 import com.example.dynalar_frontend_v1.R
-import com.example.dynalar_frontend_v1.model.chat.Day
+import com.example.dynalar_frontend_v1.model.appointment.Day
 import com.example.dynalar_frontend_v1.model.user.User
 import com.example.dynalar_frontend_v1.viewmodel.UserViewModel
 import java.util.Locale

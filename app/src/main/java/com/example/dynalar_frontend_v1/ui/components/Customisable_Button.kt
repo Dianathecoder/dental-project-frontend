@@ -23,6 +23,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -34,6 +38,7 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
@@ -63,10 +68,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.ui.theme.TextoPrincipal
 import com.example.dynalar_frontend_v1.ui.theme.TextoSecundario
-
+import com.example.dynalar_frontend_v1.viewmodel.ChatViewModel
+import kotlinx.coroutines.delay
 
 
 //Boton de navegacion global
@@ -323,6 +330,7 @@ fun BannerGenericProfile(
     profileImage: @Composable () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
     onNavigateBack: () -> Unit,
+    topBarActions: (@Composable () -> Unit)? = null,
     bannerColor: Color = Color.White,
     textColor: Color = TextoPrincipal
 ) {
@@ -343,7 +351,8 @@ fun BannerGenericProfile(
     ) {
         CustomTopBar(
             title = "Perfil del Usuari",
-            onNavigateBack = onNavigateBack
+            onNavigateBack = onNavigateBack,
+            trailingContent = topBarActions
         )
 
         Spacer(modifier = Modifier.height(30.dp))
@@ -400,7 +409,7 @@ fun CustomTopBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
-            modifier = Modifier.clickable { onNavigateBack() },
+            modifier = Modifier.weight(1f).clickable { onNavigateBack() },
             verticalAlignment = Alignment.CenterVertically
         ) {
             BackButton(
@@ -416,6 +425,7 @@ fun CustomTopBar(
                 fontWeight = FontWeight.Bold
             )
         }
+        trailingContent?.invoke()
 
     }
 }
@@ -445,3 +455,33 @@ fun BackButton(
     }
 }
 
+@Composable
+fun ChatActionButton(
+    onClick: () -> Unit,
+    vm: ChatViewModel = viewModel()
+) {
+    LaunchedEffect(Unit) {
+        while (true) {
+            vm.refreshUnread()
+            delay(15_000)
+        }
+    }
+
+    IconButton(onClick = onClick) {
+        BadgedBox(
+            badge = {
+                if (vm.unreadTotal > 0) {
+                    Badge {
+                        Text(if (vm.unreadTotal > 99) "99+" else vm.unreadTotal.toString())
+                    }
+                }
+            }
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Chat,
+                contentDescription = "Xat",
+                tint = Color(0xFF537895)
+            )
+        }
+    }
+}
