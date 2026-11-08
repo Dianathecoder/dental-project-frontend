@@ -82,6 +82,7 @@ dependencies {
     implementation(libs.foundation.layout)
     implementation(libs.foundation)
     implementation(libs.places)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
     //implementation(libs.runtime)
 

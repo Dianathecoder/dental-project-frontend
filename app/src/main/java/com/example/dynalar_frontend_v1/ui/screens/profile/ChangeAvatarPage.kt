@@ -56,14 +56,13 @@ fun loadCustomAvatars(context: Context, userId: Long): List<Uri> {
 @Composable
 fun ChangeAvatarPage(
     onAvatarSelected: (Any) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    userViewModel: com.example.dynalar_frontend_v1.viewmodel.UserViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
     val userId = sessionManager.getUserId()
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-
-    val userViewModel: com.example.dynalar_frontend_v1.viewmodel.UserViewModel = viewModel()
 
     val savedUri = prefs.getString("user_avatar_uri_$userId", null)
     val savedResId = prefs.getInt("user_avatar_$userId", doctorImages.first())

@@ -1,4 +1,4 @@
-package com.example.dynalar_frontend_v1.model.chat
+package com.example.dynalar_frontend_v1.model.appointment
 
 import java.time.LocalDate
 

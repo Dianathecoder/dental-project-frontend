@@ -17,7 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dynalar_frontend_v1.model.chat.Day
+import com.example.dynalar_frontend_v1.model.appointment.Day
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import java.time.LocalDate
 

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
@@ -48,7 +49,7 @@ fun AdminDashboardPage(
     onNavigateAttendance: () -> Unit,
     onNavigateToClockInDirect: () -> Unit,
     onNavigateToAppointmentDetail: (Appointment) -> Unit,
-    onLanguageChange: (String) -> Unit = {}
+    onOpenDrawer: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
@@ -124,7 +125,7 @@ fun AdminDashboardPage(
 
             Header_HomePage(
                 onNavigateProfileUserProfile = onNavigateProfileUserProfile,
-                onLanguageChange = onLanguageChange
+                onOpenDrawer = onOpenDrawer
             )
 
             Spacer(modifier = Modifier.height(24.dp))

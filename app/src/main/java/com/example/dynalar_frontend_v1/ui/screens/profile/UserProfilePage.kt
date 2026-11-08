@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,6 +34,7 @@ import com.example.dynalar_frontend_v1.ui.components.BannerGenericProfile
 import com.example.dynalar_frontend_v1.ui.components.ErrorScreenWithImage
 import com.example.dynalar_frontend_v1.ui.components.InputField
 import com.example.dynalar_frontend_v1.ui.components.UserAvatar
+import com.example.dynalar_frontend_v1.ui.screens.dashboard.HomeLanguageSelector
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.ui.theme.FondoPagina
 import com.example.dynalar_frontend_v1.utils.SessionManager
@@ -44,6 +46,7 @@ fun UserProfilePage(
     viewModel: UserViewModel = viewModel(),
     onNavigateBack: () -> Unit = {},
     onNavigateToChangeAvatar: () -> Unit = {},
+    onLanguageChange: (String) -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     val profileState by viewModel.profileUiState.collectAsState()
@@ -51,6 +54,8 @@ fun UserProfilePage(
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
     val userId = sessionManager.getUserId()
+    var profileMenuExpanded by remember { mutableStateOf(false) }
+    var showDeleteAccountDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.getProfile()
@@ -106,6 +111,25 @@ fun UserProfilePage(
                     }
                 },
                 onNavigateBack = onNavigateBack,
+                topBarActions = {
+                    Box {
+                        IconButton(onClick = { profileMenuExpanded = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Más opciones")
+                        }
+                        DropdownMenu(
+                            expanded = profileMenuExpanded,
+                            onDismissRequest = { profileMenuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Borrar cuenta", color = Color(0xFFD32F2F)) },
+                                onClick = {
+                                    profileMenuExpanded = false
+                                    showDeleteAccountDialog = true
+                                }
+                            )
+                        }
+                    }
+                },
                 content = {}
             )
 
@@ -114,6 +138,7 @@ fun UserProfilePage(
                 Box(modifier = Modifier.weight(1f)) {
                     UserInfoContent(
                         userData = userData,
+                        onLanguageChange = onLanguageChange,
                         onLogout = {
                             sessionManager.clearSession()
                             context.getSharedPreferences("dynalar_prefs", Context.MODE_PRIVATE).edit().clear().apply()
@@ -128,10 +153,31 @@ fun UserProfilePage(
             }
         }
     }
+
+    if (showDeleteAccountDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAccountDialog = false },
+            title = { Text("¿Borrar tu cuenta?") },
+            text = { Text("Esta acción eliminará tu cuenta y los datos clínicos asociados. No se puede deshacer.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteAccountDialog = false
+                    viewModel.deleteUser(userId) {
+                        sessionManager.clearSession()
+                        context.getSharedPreferences("dynalar_prefs", Context.MODE_PRIVATE).edit().clear().apply()
+                        onLogout()
+                    }
+                }) { Text("Borrar cuenta", color = Color(0xFFD32F2F)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteAccountDialog = false }) { Text("Cancelar") }
+            }
+        )
+    }
 }
 
 @Composable
-fun UserInfoContent(userData: User, onLogout: () -> Unit = {}) {
+fun UserInfoContent(userData: User, onLanguageChange: (String) -> Unit = {}, onLogout: () -> Unit = {}) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 24.dp)
@@ -139,6 +185,10 @@ fun UserInfoContent(userData: User, onLogout: () -> Unit = {}) {
         InputField(label = stringResource(id = R.string.user_name_label), value = userData.name ?: "")
         InputField(label = stringResource(id = R.string.user_surname_label), value = userData.surname ?: "")
         InputField(label = stringResource(id = R.string.user_email_label), value = userData.email ?: "")
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Idioma", fontWeight = FontWeight.Medium, color = Color(0xFF34495E))
+            HomeLanguageSelector(onLanguageChange = onLanguageChange)
+        }
         Spacer(modifier = Modifier.height(24.dp))
         Button(
             onClick = onLogout,

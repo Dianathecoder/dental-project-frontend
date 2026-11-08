@@ -1,5 +1,7 @@
 package com.example.dynalar_frontend_v1.ui
 
+import android.net.Uri
+
 sealed class AppRoutes(val route: String) {
     object Login : AppRoutes("loginPage")
     object Home : AppRoutes("homePage")
@@ -77,8 +79,11 @@ sealed class AppRoutes(val route: String) {
         fun createRoute(staffId: Long) = "editStaff/$staffId"
     }
 
-    object ChatScreen : AppRoutes("chatScreen/{receiverId}") {
-        fun createRoute(receiverId: Long) = "chatScreen/$receiverId"
+    object ChatScreen : AppRoutes("chatScreen/{scope}/{receiverId}?topic={topic}") {
+        fun createRoute(scope: String, receiverId: Long, topic: String? = null): String {
+            val base = "chatScreen/$scope/$receiverId"
+            return if (topic.isNullOrBlank()) base else "$base?topic=${Uri.encode(topic)}"
+        }
     }
     object DoctorAgenda : AppRoutes("doctor_agenda/{doctorId}") {
         fun createRoute(doctorId: Long) = "doctor_agenda/$doctorId"
@@ -94,4 +99,13 @@ sealed class AppRoutes(val route: String) {
     }
     object ClinicalHome : AppRoutes("clinicalHome")
     object DoctorAvailabilityList : AppRoutes("doctorAvailabilityList")
+
+    object ChatContacts : AppRoutes("chatContacts/{scope}?topic={topic}") {
+        fun createRoute(scope: String, topic: String? = null): String {
+            val base = "chatContacts/$scope"
+            return if (topic.isNullOrBlank()) base else "$base?topic=${Uri.encode(topic)}"
+        }
+    }
+    object CustomerSupport : AppRoutes("customerSupport")
+    object SupportInbox : AppRoutes("supportInbox")
 }

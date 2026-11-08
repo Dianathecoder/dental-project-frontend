@@ -5,6 +5,9 @@ import com.example.dynalar_frontend_v1.service.*
 import com.example.dynalar_frontend_v1.utils.SessionManager
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.Locale
@@ -12,7 +15,7 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private const val BASE_URL = "http://192.168.1.57:8080/"
+    private const val BASE_URL = "http://192.168.1.52:8080/"
     private var sessionManager: SessionManager? = null
 
     fun init(context: Context) {
@@ -35,10 +38,13 @@ object RetrofitClient {
 
         val response = chain.proceed(requestBuilder.build())
 
-        // Control de sesión expirada
-        if (response.code == 401 || response.code == 403) {
+        // Solo 401 indica que falta o ha caducado la autenticación.
+        // Un 403 es una denegación de permisos y no debe cerrar la sesión.
+        if (response.code == 401) {
             sessionManager?.clearSession()
             android.util.Log.e("SEGURIDAD_API", "Token expirado o inválido")
+        } else if (response.code == 403) {
+            android.util.Log.w("SEGURIDAD_API", "Acceso denegado para este recurso")
         }
 
         response
@@ -73,4 +79,19 @@ object RetrofitClient {
     val attendanceApiService: AttendanceApiService by lazy { retrofit.create(AttendanceApiService::class.java) }
 
     val staffControlApiService: StaffControlApiService by lazy { retrofit.create(StaffControlApiService::class.java) }
+    val chatService: ChatService by lazy { retrofit.create(ChatService::class.java)
+    }
+
+    fun openChatWebSocket(scope: String, peerId: Long, listener: WebSocketListener): WebSocket? {
+        val token = sessionManager?.fetchAuthToken() ?: return null
+        val socketUrl = BASE_URL
+            .replaceFirst("https://", "wss://")
+            .replaceFirst("http://", "ws://")
+            .trimEnd('/') + "/ws/chat/$scope/$peerId"
+        val request = Request.Builder()
+            .url(socketUrl)
+            .header("Authorization", "Bearer $token")
+            .build()
+        return okHttpClient.newWebSocket(request, listener)
+    }
 }

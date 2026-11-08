@@ -22,7 +22,10 @@ import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.SupportAgent
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -44,6 +47,7 @@ import com.example.dynalar_frontend_v1.R
 import com.example.dynalar_frontend_v1.interfaces.InterfaceGlobal
 import com.example.dynalar_frontend_v1.model.appointment.Appointment
 import com.example.dynalar_frontend_v1.ui.components.CardMenuButton
+import com.example.dynalar_frontend_v1.ui.components.ChatActionButton
 import com.example.dynalar_frontend_v1.ui.components.DayAppointmentsDialog
 import com.example.dynalar_frontend_v1.ui.theme.ButtonPrimary
 import com.example.dynalar_frontend_v1.ui.theme.FondoPagina
@@ -58,6 +62,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import androidx.compose.material3.IconButton
 
 @Composable
 fun HomePage(
@@ -68,7 +73,10 @@ fun HomePage(
     onNavigateToAppointmentDetail: (Appointment) -> Unit,
     onNavigateBoxMaterials: () -> Unit,
     onNavigateToPatientProfile: (Long) -> Unit = {},
-    onLanguageChange: (String) -> Unit = {}
+    onLanguageChange: (String) -> Unit = {},
+    onNavigateChat: (() -> Unit)? = null,
+    onNavigateSupport: (() -> Unit)? = null,
+    onOpenDrawer: (() -> Unit)? = null
 ) {
     LaunchedEffect(Unit) {
         viewModel.fetchToday()
@@ -96,8 +104,33 @@ fun HomePage(
 
             Header_HomePage(
                 onNavigateProfileUserProfile = onNavigateProfileUserProfile,
-                onLanguageChange = onLanguageChange
+                onNavigateChat = onNavigateChat,
+                onOpenDrawer = onOpenDrawer
             )
+            if (onNavigateSupport != null) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .clickable(onClick = onNavigateSupport),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F3FF)),
+                    border = BorderStroke(1.dp, Color(0xFFB8D7F5))
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.SupportAgent, contentDescription = null, tint = ButtonPrimary, modifier = Modifier.size(32.dp))
+                        Spacer(Modifier.width(14.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Ayuda y soporte", fontWeight = FontWeight.Bold, color = Color(0xFF204A73))
+                            Text("Cuéntanos qué problema tienes", fontSize = 13.sp, color = Color(0xFF537895))
+                        }
+                        Icon(Icons.Default.KeyboardArrowRight, contentDescription = "Abrir soporte", tint = ButtonPrimary)
+                    }
+                }
+            }
             Spacer(modifier = Modifier.height(40.dp))
 
             val uiState = viewModel.uiStateToday
@@ -182,10 +215,14 @@ fun HomePage(
             }
         )
     }
-}@Composable
+}
+
+
+@Composable
 fun Header_HomePage(
     onNavigateProfileUserProfile: () -> Unit,
-    onLanguageChange: (String) -> Unit
+    onNavigateChat: (() -> Unit)? = null,
+    onOpenDrawer: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
@@ -273,8 +310,16 @@ fun Header_HomePage(
             )
         }
 
-        HomeLanguageSelector(onLanguageChange = onLanguageChange)
-    }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (onNavigateChat != null) {
+                ChatActionButton(onClick = onNavigateChat)
+            }
+            if (onOpenDrawer != null) {
+                IconButton(onClick = onOpenDrawer) {
+                    Icon(Icons.Default.Menu, contentDescription = "Abrir menú de chats")
+                }
+            }
+        }    }
 }
 @Composable
 fun GreetingSection(citasHoy: Int) {
@@ -488,14 +533,20 @@ fun HomeLanguageSelector(onLanguageChange: (String) -> Unit) {
         mutableStateOf(prefs.getString("language", "ca") ?: "ca")
     }
 
-    val languages = listOf("ca" to "CA", "es" to "ES", "en" to "EN")
+    val languages = listOf("ca" to "Català", "es" to "Español", "en" to "English")
     var expanded by remember { mutableStateOf(false) }
 
     Box {
-        TextButton(onClick = { expanded = true }) {
-            Icon(Icons.Default.Language, contentDescription = "Idioma", tint = Color.Gray, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(text = currentLangCode.uppercase(), color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        OutlinedButton(
+            onClick = { expanded = true },
+            shape = RoundedCornerShape(12.dp),
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF34495E))
+        ) {
+            Icon(Icons.Default.Language, contentDescription = null, tint = ButtonPrimary, modifier = Modifier.size(19.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = languages.firstOrNull { it.first == currentLangCode }?.second ?: "Español", fontWeight = FontWeight.Medium)
+            Icon(Icons.Default.ExpandMore, contentDescription = "Elegir idioma")
         }
         DropdownMenu(
             expanded = expanded,

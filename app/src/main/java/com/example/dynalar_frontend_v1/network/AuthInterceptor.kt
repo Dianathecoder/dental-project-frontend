@@ -18,7 +18,7 @@ class AuthInterceptor(private val sessionManager: SessionManager) : Interceptor 
         val response = chain.proceed(requestBuilder.build())
 
 
-        if (response.code == 401 || response.code == 403) {
+        if (response.code == 401) {
 
             sessionManager.clearSession()
 
