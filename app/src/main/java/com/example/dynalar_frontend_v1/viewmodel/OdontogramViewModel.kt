@@ -22,6 +22,8 @@ class OdontogramViewModel(): ViewModel(){
     private val _dentalProcessesState = MutableStateFlow<List<DentalProcess>>(emptyList())
 
     val dentalProcessesState: StateFlow<List<DentalProcess>> = _dentalProcessesState.asStateFlow()
+    private val _dentalProcessesError = MutableStateFlow(false)
+    val dentalProcessesError: StateFlow<Boolean> = _dentalProcessesError.asStateFlow()
     private val odontogramRepository = OdontogramRepository()
 
     private val dentalProcessRepository = DentalProcessRepository()
@@ -40,24 +42,38 @@ class OdontogramViewModel(): ViewModel(){
         }
     }
 
-    fun updateOdontogram(id: Long, odontogram: Odontogram){
+    fun updateOdontogram(id: Long, odontogram: Odontogram, onResult: (Boolean) -> Unit = {}){
         _odontogramUiState.value = OdontogramUiState.Success(odontogram)
         viewModelScope.launch {
-        try {
-            odontogramRepository.updateOdontogram(id, odontogram)
-        }
-        catch (e: Exception) {
-            e.printStackTrace()
+            try {
+                val response = odontogramRepository.updateOdontogram(id, odontogram)
+                if (response.isSuccessful) {
+                    val savedOdontogram = odontogramRepository.getOdontogramById(id)
+                    _odontogramUiState.value = OdontogramUiState.Success(savedOdontogram)
+                    onResult(true)
+                } else {
+                    android.util.Log.e("ODONTOGRAMA", "No se guardaron los cambios: HTTP ${response.code()}")
+                    val currentOdontogram = odontogramRepository.getOdontogramById(id)
+                    _odontogramUiState.value = OdontogramUiState.Success(currentOdontogram)
+                    onResult(false)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                runCatching { odontogramRepository.getOdontogramById(id) }
+                    .onSuccess { _odontogramUiState.value = OdontogramUiState.Success(it) }
+                onResult(false)
             }
         }
     }
 
     fun getAllDentalProcesses(){
         viewModelScope.launch {
+            _dentalProcessesError.value = false
             try {
                 _dentalProcessesState.value = dentalProcessRepository.getAllDentalProcesses()
             } catch (e: Exception) {
                 e.printStackTrace()
+                _dentalProcessesError.value = true
             }
         }
     }

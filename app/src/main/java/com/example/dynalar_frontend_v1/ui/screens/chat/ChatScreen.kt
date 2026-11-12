@@ -89,7 +89,10 @@ fun ChatScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { vm.peer?.let { onViewPeerProfile(scope, it) } },
+                            .clickable {
+                                if (scope == ChatScope.STAFF) onBack()
+                                else vm.peer?.let { onViewPeerProfile(scope, it) }
+                            },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         if (vm.peer != null) {

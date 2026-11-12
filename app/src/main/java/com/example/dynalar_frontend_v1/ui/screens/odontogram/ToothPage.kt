@@ -70,13 +70,16 @@ import com.example.dynalar_frontend_v1.viewmodel.OdontogramViewModel
 @Composable
 fun ToothPage(number: Int, odontogramId: Long, viewModel: OdontogramViewModel = viewModel(), onBack: () -> Unit,) {
 
-    var selectedSurface by remember { mutableStateOf(ToothSurface.NONE) }
+    var selectedSurface by remember { mutableStateOf(ToothSurface.COMPLET) }
     var selectedProcessStatus by remember { mutableStateOf<ProcessStatus?>(ProcessStatus.FET) }
     var selectedDentalProcess by remember { mutableStateOf(null as DentalProcess?) }
+    var isSavingTreatment by remember { mutableStateOf(false) }
+    var saveFeedback by remember { mutableStateOf<String?>(null) }
 
     val odontogramUiState by viewModel.odontogramUiState.collectAsState()
 
     val dentalProcessList by viewModel.dentalProcessesState.collectAsState()
+    val dentalProcessesError by viewModel.dentalProcessesError.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.getAllDentalProcesses()
@@ -125,7 +128,7 @@ fun ToothPage(number: Int, odontogramId: Long, viewModel: OdontogramViewModel = 
     }
 
     val saveTreatment = {
-        if (selectedDentalProcess != null) {
+        if (selectedDentalProcess != null && !isSavingTreatment) {
             val newEntry = OdontogramEntry(
                 tooth = Tooth(number = number),
                 surface = selectedSurface,
@@ -145,14 +148,22 @@ fun ToothPage(number: Int, odontogramId: Long, viewModel: OdontogramViewModel = 
                 odontogramEntries = updatedEntries
             )
 
-            viewModel.updateOdontogram(odontogramId, odontogramToUpdate)
-            toothEntries = updatedEntries.filter { it.tooth?.number == number }
-            displayEntries = updatedEntries.filter { it.tooth?.number == number }
-
-            selectedSurface = ToothSurface.NONE
-            selectedDentalProcess = null
-            selectedProcessStatus = ProcessStatus.FET
-            showReplaceDialog = false
+            isSavingTreatment = true
+            saveFeedback = null
+            viewModel.updateOdontogram(odontogramId, odontogramToUpdate) { saved ->
+                isSavingTreatment = false
+                if (saved) {
+                    toothEntries = updatedEntries.filter { it.tooth?.number == number }
+                    displayEntries = toothEntries
+                    selectedSurface = ToothSurface.NONE
+                    selectedDentalProcess = null
+                    selectedProcessStatus = ProcessStatus.FET
+                    showReplaceDialog = false
+                    saveFeedback = "Registro guardado"
+                } else {
+                    saveFeedback = "No se pudo guardar. Revisa la conexión y vuelve a intentarlo."
+                }
+            }
         }
     }
 
@@ -229,6 +240,7 @@ fun ToothPage(number: Int, odontogramId: Long, viewModel: OdontogramViewModel = 
                 },
                 toothEntries = displayEntries,
                 selectedColor = surfaceColor,
+                hasSelectedProcess = selectedDentalProcess != null,
                 modifier = Modifier.size(140.dp)
             )
 
@@ -270,6 +282,17 @@ fun ToothPage(number: Int, odontogramId: Long, viewModel: OdontogramViewModel = 
                                 selectedDentalProcess = pathology
                             }
                         )
+                        if (dentalProcessesError) {
+                            Text(
+                                text = "No se pudieron cargar los procesos. Comprueba que el servidor esté iniciado y vuelve a intentarlo.",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            TextButton(onClick = { viewModel.getAllDentalProcesses() }) {
+                                Text("Reintentar")
+                            }
+                        } else if (dentalProcessList.isEmpty()) {
+                            Text("No hay procesos disponibles en el servidor.")
+                        }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
@@ -314,9 +337,19 @@ fun ToothPage(number: Int, odontogramId: Long, viewModel: OdontogramViewModel = 
                                     }
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = selectedDentalProcess != null && !isSavingTreatment
                         ) {
-                            Text(stringResource(id = R.string.tooth_save_process))                        }
+                            Text(if (isSavingTreatment) "Guardando…" else "Guardar")
+                        }
+                        saveFeedback?.let { message ->
+                            Text(
+                                text = message,
+                                color = if (message == "Registro guardado") MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -399,7 +432,8 @@ fun InteractiveTooth(
     onSurfaceClick: (ToothSurface) -> Unit,
     modifier: Modifier = Modifier,
     toothEntries: List<OdontogramEntry?> = emptyList(),
-    selectedColor: Color = Color.hsl(1.37F, 1.0F, 0.92F)
+    selectedColor: Color = Color.hsl(1.37F, 1.0F, 0.92F),
+    hasSelectedProcess: Boolean = false
 ) {
     Box(
         modifier = modifier.aspectRatio(1f),
@@ -513,8 +547,10 @@ fun InteractiveTooth(
 
             fun drawSurface(path: Path, surface: ToothSurface) {
                 val entryColor = getEntryColorForSurface(surface)
+                val isEditingThisSurface = hasSelectedProcess &&
+                        (selectedSurface == ToothSurface.COMPLET || selectedSurface == surface)
                 when {
-                    selectedSurface == ToothSurface.COMPLET || selectedSurface == surface -> {
+                    isEditingThisSurface -> {
                         drawPath(path = path, color = selectedColor, style = Fill)
                     }
 

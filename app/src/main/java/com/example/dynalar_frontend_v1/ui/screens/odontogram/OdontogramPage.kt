@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,6 +31,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.dynalar_frontend_v1.model.odontogram.Odontogram
 import com.example.dynalar_frontend_v1.model.odontogram.OdontogramEntry
 import com.example.dynalar_frontend_v1.interfaces.OdontogramUiState
@@ -45,6 +49,8 @@ import kotlinx.coroutines.delay
 enum class OdontogramState {
     FULL, VERTICAL, QUADRANT
 }
+
+private enum class OdontogramViewMode { TWO_D, THREE_D }
 
 fun getTeethForQuadrant(quadrantId: Int): List<Int> {
     return when (quadrantId) {
@@ -75,15 +81,27 @@ fun OdontogramPage(
     onBack: () -> Unit
 ) {
     var currentState by remember { mutableStateOf(OdontogramState.FULL) }
+    var viewMode by rememberSaveable { mutableStateOf(OdontogramViewMode.TWO_D) }
     var selectedQuadrant by remember { mutableStateOf<Int?>(null) }
     var quadrantName by remember { mutableStateOf("") }
     val odontogramUiState by viewModel.odontogramUiState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     var showEntries by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
 
     LaunchedEffect(odontogramId) {
         viewModel.getOdontogramById(odontogramId)
+    }
+
+    DisposableEffect(lifecycleOwner, odontogramId) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.getOdontogramById(odontogramId)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     val entries = when (val state = odontogramUiState) {
@@ -155,6 +173,28 @@ fun OdontogramPage(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            SegmentedButton(
+                selected = viewMode == OdontogramViewMode.TWO_D,
+                onClick = {
+                    viewMode = OdontogramViewMode.TWO_D
+                    currentState = OdontogramState.FULL
+                    selectedQuadrant = null
+                },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+            ) { Text("2D") }
+            SegmentedButton(
+                selected = viewMode == OdontogramViewMode.THREE_D,
+                onClick = {
+                    viewMode = OdontogramViewMode.THREE_D
+                    currentState = OdontogramState.FULL
+                    selectedQuadrant = null
+                },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+            ) { Text("3D") }
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -178,6 +218,13 @@ fun OdontogramPage(
                     }
                 }
                 is OdontogramUiState.Success -> {
+                    if (viewMode == OdontogramViewMode.THREE_D) {
+                        Odontogram3DView(
+                            onToothSelected = onToothSelected,
+                            entries = entries,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
                     AnimatedContent(
                         targetState = currentState,
                         transitionSpec = {
@@ -217,21 +264,26 @@ fun OdontogramPage(
                             )
                         }
                     }
+                    }
                 }
             }
         }
 
         AnimatedVisibility(
-            visible = currentState == OdontogramState.FULL,
+            visible = viewMode == OdontogramViewMode.THREE_D ||
+                    (viewMode == OdontogramViewMode.TWO_D && currentState == OdontogramState.FULL),
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = { currentState = OdontogramState.VERTICAL },
-                    modifier = Modifier.padding(bottom = 16.dp)
-                ) {
-                    Text(stringResource(R.string.odontogram_view_vertical))                }
+                if (viewMode == OdontogramViewMode.TWO_D) {
+                    Button(
+                        onClick = { currentState = OdontogramState.VERTICAL },
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    ) {
+                        Text(stringResource(R.string.odontogram_view_vertical))
+                    }
+                }
                 Button(
                     onClick = { showEntries = true },
                     modifier = Modifier.padding(bottom = 16.dp)
@@ -241,7 +293,7 @@ fun OdontogramPage(
         }
 
         AnimatedVisibility(
-            visible = currentState != OdontogramState.FULL,
+            visible = viewMode == OdontogramViewMode.TWO_D && currentState != OdontogramState.FULL,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
         ) {
