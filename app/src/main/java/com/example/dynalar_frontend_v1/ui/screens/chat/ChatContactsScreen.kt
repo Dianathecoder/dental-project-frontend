@@ -99,7 +99,10 @@ fun ChatContactsScreen(
                             topic != null -> "Elige un auxiliar"
                             else -> "Chats con auxiliares"
                         },
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = if (scope == ChatScope.STAFF) {
+                            Modifier.clickable(onClick = onBack)
+                        } else Modifier
                     )
                 },
                 navigationIcon = {

@@ -39,6 +39,9 @@ android {
 }
 
 dependencies {
+    // Renderizado del modelo dental GLB en Jetpack Compose.
+    implementation("io.github.sceneview:sceneview:2.3.4")
+
     // --- UI y Jetpack Compose (Base) ---
     // Agrupa todas las versiones de Compose para que no choquen entre sí
     implementation(platform(libs.androidx.compose.bom))
